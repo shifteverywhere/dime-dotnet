@@ -12,38 +12,16 @@ namespace ShiftEverywhere.DiME
         public Identity identity { get; private set; }
         public byte[] state;
         public byte[] payload { get; private set; }
-
-        public struct Parameters
-        {
-            [JsonPropertyName("sub")]
-            public Guid subjectId { get; internal set; }
-            [JsonPropertyName("iss")]
-            public Guid issuerId { get; internal set; }
-            [JsonPropertyName("iat")]
-            public long issuedAt { get; internal set; }
-            [JsonPropertyName("exp")]
-            public long expiresAt { get; internal set; }
-            [JsonPropertyName("xky")][JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-            public string exchangeKey { get; internal set; }
-            [JsonPropertyName("lnk")][JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-            public string linkedTo { get; internal set; }
-
-            public Parameters(Guid subjectId, Guid issuerId, long issuedAt, long expiresAt, string exchangeKey, string linkedTo)
-            {
-                if (DateTimeOffset.UtcNow.ToUnixTimeSeconds() > expiresAt) { throw new ArgumentException("Expires at is earlier than now."); } // TODO: throw other exception
-                if (issuedAt < expiresAt) { throw new ArgumentException("Expires at is earlier than issued at."); }
-                this.subjectId = subjectId;
-                this.issuerId = issuerId;
-                this.issuedAt = issuedAt;
-                this.expiresAt = expiresAt;
-                this.exchangeKey = exchangeKey;
-                this.linkedTo = linkedTo;
-            }
-        }
-        public Message.Parameters parameters; // TODO: should be read only
+        public Guid subjectId { get { return this.json.sub; } }
+        public Guid issuerId { get { return this.json.iss; } }
+        public long issuedAt { get { return this.json.iat; } }
+        public long expiresAt { get { return this.json.exp; } }
+        public string exchangeKey { get { return this.json.xky; } }
+        public string linkedTo { get { return this.json.lnk; } }
 
         public Message(Guid subjectId, Identity issuerIdentity, string issuerIdentityPrivateKey, byte[] payload, long expiresAt, string subjectExchangeKey = null,  Keypair? issuerExchangeKeypair = null, string linkedTo = null, int profile = Crypto.DEFUALT_PROFILE)
         {
+            if (!Crypto.SupportedProfile(profile)) { throw new ArgumentException("Unsupported cryptography profile."); }
             if ( issuerIdentity == null || issuerIdentityPrivateKey == null || payload == null ) { throw new ArgumentNullException(); }
             long now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
             if ( expiresAt <= now ) { throw new ArgumentException("Expiration date must be in the future."); }
@@ -54,7 +32,7 @@ namespace ShiftEverywhere.DiME
             this.issuerExchangeKeypair = issuerExchangeKeypair;
             this.subjectExchangeKey = subjectExchangeKey;
             string exchangeKey = issuerExchangeKeypair.HasValue ? (issuerExchangeKeypair.Value).publicKey : null;
-            this.parameters = new Message.Parameters(subjectId, issuerIdentity.subjectId, now, expiresAt, linkedTo, exchangeKey);
+            this.json = new Message.JSONData(subjectId, issuerIdentity.subjectId, now, expiresAt, linkedTo, exchangeKey);
         }
 
         public static Message Import(string encoded)
@@ -70,12 +48,17 @@ namespace ShiftEverywhere.DiME
             {
                 string messagePart = encoded.Substring(0, encoded.LastIndexOf('.'));
                 string signature = components[components.Length - 1];
-                if ( Crypto.VerifySignature(profile, messagePart, signature, identity.identityKey) )
+                if (!Crypto.VerifySignature(profile, messagePart, signature, identity.identityKey))
                 {
                     throw new ArgumentNullException("Unable to verify message signature."); // TODO: throw more specific exception
                 }
-                Message.Parameters parameters = JsonSerializer.Deserialize<Message.Parameters>(Utility.FromBase64(components[2]));
+                Message.JSONData parameters = JsonSerializer.Deserialize<Message.JSONData>(Utility.FromBase64(components[2]));
                 Message message = new Message(identity, parameters, Utility.FromBase64(components[2]), profile);
+                message.payload = Utility.FromBase64(components[3]);
+                if(components.Length == 6)
+                {
+                    message.state = Utility.FromBase64(components[4]);
+                }
                 message.encoded = messagePart;
                 message.signature = signature;
                 message.isImmutable = true;
@@ -100,12 +83,12 @@ namespace ShiftEverywhere.DiME
         public bool Verify(string linkedMessage = null)
         {
             long now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-            if (now >= this.parameters.issuedAt && now < this.parameters.expiresAt)
+            if (now >= this.json.iat && now < this.json.exp)
             {
-                if (this.parameters.linkedTo != null && linkedMessage != null)
+                if (this.json.lnk != null && linkedMessage != null)
                 {
                     string msgHash = Crypto.GenerateHash(this.profile, linkedMessage);
-                    if (msgHash != this.parameters.linkedTo) { throw new ArgumentException("Linked message mismatch."); } // TODO throw another exception
+                    if (msgHash != this.json.lnk) { throw new ArgumentException("Linked message mismatch."); } // TODO throw another exception
                 }
                 return Crypto.VerifySignature(this.profile, this.Encode(), this.signature, this.identity.identityKey); // TODO: throw exception
             }
@@ -114,8 +97,8 @@ namespace ShiftEverywhere.DiME
 
         public byte[] GetPayload(string exchangePrivateKey = null)
         {
-            if (this.parameters.exchangeKey != null && exchangePrivateKey == null) { throw new ArgumentException("Payload is encrypted."); } // TODO: another exception
-            if (this.parameters.exchangeKey != null)
+            if (this.json.xky != null && exchangePrivateKey == null) { throw new ArgumentException("Payload is encrypted."); } // TODO: another exception
+            if (this.json.xky != null)
             {
                 // TODO: decrypt payload
                 return this.payload;
@@ -123,11 +106,11 @@ namespace ShiftEverywhere.DiME
             return this.payload;
         }
 
-        public void LinkMessage(string encodedMessage)
+        public void LinkMessage(Message message)
         {
             if (this.isImmutable) { throw new ArgumentException("Message is immutable and cannot be changed."); } // TODO: another exception
-            if (encodedMessage == null) { throw new ArgumentException("Message to link must not be null."); }
-            this.parameters.linkedTo = Crypto.GenerateHash(this.profile, encodedMessage);
+            if (message == null) { throw new ArgumentException("Message to link must not be null."); }
+            this.json.lnk = Crypto.GenerateHash(this.profile, message.Export());
         }
 
         /* PRIVATE */
@@ -138,13 +121,37 @@ namespace ShiftEverywhere.DiME
         private Keypair? issuerExchangeKeypair;
         private string encoded;
         private bool isImmutable = false;
+        private struct JSONData
+        {
+            public Guid sub;
+            public Guid iss;
+            public long iat;
+            public long exp;
+            [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+            public string xky;
+            [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+            public string lnk;
 
-        private Message(Identity issuerIdentity, Message.Parameters parameters, byte[] payload, int profile = Crypto.DEFUALT_PROFILE)
+            public JSONData(Guid sub, Guid iss, long iat, long exp, string xky, string lnk)
+            {
+                if (DateTimeOffset.UtcNow.ToUnixTimeSeconds() > exp) { throw new ArgumentException("Expires at is earlier than now."); } // TODO: throw other exception
+                if (iat > exp) { throw new ArgumentException("Expires at is earlier than issued at."); }
+                this.sub = sub;
+                this.iss = iss;
+                this.iat = iat;
+                this.exp = exp;
+                this.xky = xky;
+                this.lnk = lnk;
+            }
+        }
+        private Message.JSONData json;
+
+        private Message(Identity issuerIdentity, Message.JSONData parameters, byte[] payload, int profile = Crypto.DEFUALT_PROFILE)
         {
             if ( issuerIdentity == null || payload == null ) { throw new ArgumentNullException(); }
             this.identity = issuerIdentity;
             this.identity = issuerIdentity;
-            this.parameters = parameters;
+            this.json = parameters;
             this.payload = payload;
             this.profile = profile;
         }
@@ -158,8 +165,8 @@ namespace ShiftEverywhere.DiME
                                     Message.HEADER,
                                     this.profile,
                                     Utility.ToBase64(this.identity.Export()),
-                                    Utility.ToBase64(JsonSerializer.Serialize(this)));
-                if ( this.parameters.exchangeKey != null )
+                                    Utility.ToBase64(JsonSerializer.Serialize(this.json)));
+                if ( this.json.xky != null )
                 {
                     // TODO: encrypt payplaod
                     builder.AppendFormat(".{0}", Utility.ToBase64(this.payload));

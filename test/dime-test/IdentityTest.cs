@@ -126,16 +126,15 @@ namespace ShiftEverywhere.DiMETest
         [TestMethod]
         public void ImportTest1()
         {
-            string encoded = "I1.eyJzdWIiOiI2ZGU4NGQ4ZS1iNDlkLTRjOTEtYTc2YS01ZmVjMGY5ZmQ3MTgiLCJpYXQiOjE2MjEzNjUzMDEsImV4cCI6MTY1MjkwMTMwMSwiaXNzIjoiNmRlODRkOGUtYjQ5ZC00YzkxLWE3NmEtNWZlYzBmOWZkNzE4IiwiaWt5IjoiTUNvd0JRWURLMlZ3QXlFQWhmY0MwRXd1MWNhZ3RqQzMydS9mTy9xa1docW9IQzVkanNlZWk3MHc5TlEifQ.HxwzkWtoGFWdhGNr6S//Hnvn/IAi3cXc7NDiMzlF8DezcfPqUARs16Jjni7Is1fmthYLMOcH72gfdFP1QcdTCA";
+            string encoded = "I1.eyJzdWIiOiI5OGFkZTRhYy02YzExLTQzYWYtYjQ3NS1hOGQ5MjMwN2JmOTQiLCJpc3MiOiI5OGFkZTRhYy02YzExLTQzYWYtYjQ3NS1hOGQ5MjMwN2JmOTQiLCJpYXQiOjE2MjE1Mzc1MjksImV4cCI6MTY1MzA3MzUyOSwiaWt5IjoiTUNvd0JRWURLMlZ3QXlFQXFYL014XHUwMDJCRkcxNUFEbnVPVGIwWENLVi9CMG5aSzFrN21GY3NJU2twczJWdyJ9.NBWnpkewhWgNUfs6SMAM9oFNvnYpn4rmFcW8DdeKe0gVMft4vfjMoJP9ydraE1aw1807GCK60Sk5svblpYP7DQ";
             Identity identity = Identity.Import(encoded);
             Assert.IsNotNull(identity);
             Assert.AreEqual(identity.profile, 1);
-            Assert.AreEqual(identity.subjectId, new Guid("6de84d8e-b49d-4c91-a76a-5fec0f9fd718"));
-            Assert.AreEqual(identity.issuedAt, 1621365301);
-            Assert.AreEqual(identity.expiresAt, 1652901301);
-            Assert.AreEqual(identity.issuerId, new Guid("6de84d8e-b49d-4c91-a76a-5fec0f9fd718"));
-            Assert.AreEqual(identity.identityKey, "MCowBQYDK2VwAyEAhfcC0Ewu1cagtjC32u/fO/qkWhqoHC5djseei70w9NQ");
-            Assert.AreEqual(identity.signature, "HxwzkWtoGFWdhGNr6S//Hnvn/IAi3cXc7NDiMzlF8DezcfPqUARs16Jjni7Is1fmthYLMOcH72gfdFP1QcdTCA");
+            Assert.AreEqual(new Guid("98ade4ac-6c11-43af-b475-a8d92307bf94"), identity.subjectId);
+            Assert.AreEqual(1621537529, identity.issuedAt);
+            Assert.AreEqual(1653073529, identity.expiresAt);
+            Assert.AreEqual(new Guid("98ade4ac-6c11-43af-b475-a8d92307bf94"), identity.issuerId);
+            Assert.AreEqual(identity.identityKey, "MCowBQYDK2VwAyEAqX/Mx\u002BFG15ADnuOTb0XCKV/B0nZK1k7mFcsISkps2Vw");
         }
 
         private static void SetTrustedIdentity()

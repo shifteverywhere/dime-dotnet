@@ -10,62 +10,40 @@ namespace ShiftEverywhere.DiME
         /* PUBLIC */
         public static Identity trustedIdentity;
         /// <summary>The cryptography profile that is used with the identity.</summary>
-        [JsonIgnore(Condition = JsonIgnoreCondition.Always)]
-        public int profile {get; private set; } = 1;
+        public int profile { get; private set; }
         /// <summary>A unique UUID (GUID) of the identity. Same as the "sub" field.</summary>
-        [JsonPropertyName("sub")]
-        public Guid subjectId { get; private set; }        
+        public Guid subjectId { get { return this.json.sub; } }        
         /// <summary>The date when the identity was issued, i.e. approved by the issuer. Same as the "iat" field.</summary>
-        [JsonPropertyName("iat")]
-        public long issuedAt { get; private set; } = 0;
+        public long issuedAt { get { return this.json.iat; } }
         /// <summary>The date when the identity will expire and should not be accepted anymore. Same as the "exp" field.</summary>
-        [JsonPropertyName("exp")]
-        public long expiresAt { get; private set; } = 0;
+        public long expiresAt { get { return this.json.exp; } } 
         /// <summary>A unique UUID (GUID) of the issuer of the identity. Same as the "iss" field. If same value as subjectId, then this is a self-issued identity.</summary>
-        [JsonPropertyName("iss")]
-        public Guid issuerId { get; private set; }
+        public Guid issuerId { get { return this.json.iss; } }
         /// <summary>The public key associated with the identity. Same as the "iky" field.</summary>
-        [JsonPropertyName("iky")]
-        public string identityKey { get; private set; }
-        /// <summary>The trust chain of signed public keys. Same as the "chn" field.</summary>
-        [JsonPropertyName("chn")][JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public string identityKey { get { return this.json.iky; } }
+        /// <summary>The trust chain of signed public keys.</summary>
         public Identity[] trustChain { get; private set; }
-        [JsonIgnore(Condition = JsonIgnoreCondition.Always)]
-        public string signature { get; private set; }
-
-        [JsonConstructor]
-        public Identity(Guid subjectId, long issuedAt, long expiresAt, Guid issuerId, string identityKey)
-        {
-            this.subjectId = subjectId;
-            this.issuedAt = issuedAt;
-            this.expiresAt = expiresAt;
-            this.issuerId = issuerId;
-            this.identityKey = identityKey;
-        }
 
         public Identity(Guid subjectId, string identityKey, long issuedAt, long expiresAt, Guid issuerId, string signature = null, int profile = Crypto.DEFUALT_PROFILE) 
         {
+            if (!Crypto.SupportedProfile(profile)) { throw new ArgumentException("Unsupported cryptography profile."); }
             this.profile = profile;
-            this.subjectId = subjectId;
-            this.identityKey = identityKey;
-            this.issuedAt = issuedAt;
-            this.expiresAt = expiresAt;
-            this.issuerId = issuerId;
+            this.json = new Identity.JSONData(subjectId, issuerId, issuedAt, expiresAt, identityKey);
             this.signature = signature;
         }
 
         public static Identity Import(string encoded) 
         {
-            if ( !encoded.StartsWith(Identity.HEADER) ) { throw new ArgumentException("Unexpected data format."); }
+            if (!encoded.StartsWith(Identity.HEADER)) { throw new ArgumentException("Unexpected data format."); }
             string[] components = encoded.Split(".");
-            if ( components.Length != 3 ) { throw new ArgumentException("Unexpected number of components found then decoding identity."); }
+            if (components.Length != 3) { throw new ArgumentException("Unexpected number of components found then decoding identity."); }
             int profile = int.Parse(components[0].Substring(1));
-            if ( !Crypto.SupportedProfile(profile) ) { throw new ArgumentException("Unsupported cryptography profile."); }
+            if (!Crypto.SupportedProfile(profile)) { throw new ArgumentException("Unsupported cryptography profile."); }
             byte[] json = Utility.FromBase64(components[1]);
-            Identity identity = JsonSerializer.Deserialize<Identity>(json);
-            identity.profile = profile;
-            identity.signature = components[2];
+            Identity.JSONData parameters = JsonSerializer.Deserialize<Identity.JSONData>(json);
+            Identity identity = new Identity(parameters, components[components.Length - 1], profile);
             identity.encoded = encoded.Substring(0, encoded.LastIndexOf('.'));
+            //identity.isImmutable = true;
             return identity;
         }
 
@@ -85,8 +63,7 @@ namespace ShiftEverywhere.DiME
             {
                 long now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
                 Guid issuerId = issuerIdentity != null ? issuerIdentity.subjectId : subjectId;
-                Identity identity = new Identity(subjectId, iir.identityKey, now, now + Identity.defaultLifetime, issuerId);
-                identity.identityKey = iir.identityKey;
+                Identity identity = new Identity(subjectId, iir.identityKey, now, now + Identity.defaultLifetime, issuerId, null, iir.profile);
                 identity.signature = Crypto.GenerateSignature(identity.profile, identity.Encode(), issuerKeypair.privateKey);
                 // TODO: set the chain
                 return identity;
@@ -114,7 +91,35 @@ namespace ShiftEverywhere.DiME
         /* PRIVATE */
         private const string HEADER = "I";
         private const long defaultLifetime = 365 * 24 * 60 * 60;
+        private string signature;
         private string encoded;
+        private struct JSONData
+        {
+            public Guid sub { get; set; }
+            public Guid iss { get; set; }
+            public long iat { get; set; }
+            public long exp { get; set; }
+            public string iky { get; set; }
+
+            public JSONData(Guid sub, Guid iss, long iat, long exp, string iky)
+            {
+                if (DateTimeOffset.UtcNow.ToUnixTimeSeconds() > exp) { throw new ArgumentException("Expires at is earlier than now."); } // TODO: throw other exception
+                if (iat > exp) { throw new ArgumentException("Expires at is earlier than issued at."); }
+                this.sub = sub;
+                this.iss = iss;
+                this.iat = iat;
+                this.exp = exp;
+                this.iky = iky;
+            }
+        }
+        private Identity.JSONData json;
+        private Identity(Identity.JSONData parameters, string signature = null, int profile = Crypto.DEFUALT_PROFILE) 
+        {
+            this.profile = profile;
+            this.json = parameters;
+            this.signature = signature;
+        }
+
         private string Encode()
         {
             if ( this.encoded == null ) 
@@ -123,7 +128,7 @@ namespace ShiftEverywhere.DiME
                 builder.AppendFormat("{0}{1}.{2}", 
                                     Identity.HEADER,
                                     this.profile, 
-                                    Utility.ToBase64(JsonSerializer.Serialize(this)));
+                                    Utility.ToBase64(JsonSerializer.Serialize(this.json)));
                 this.encoded = builder.ToString();
             }
             return this.encoded;

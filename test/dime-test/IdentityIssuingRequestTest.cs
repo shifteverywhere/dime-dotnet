@@ -16,7 +16,7 @@ namespace ShiftEverywhere.DiMETest
             } 
             catch (Exception e) 
             {
-                if (e is NotSupportedException) { return; }
+                if (e is ArgumentException) { return; }
                 throw e;
             } 
             Assert.IsTrue(false, $"Expected NotSupportedException not thrown");
@@ -96,7 +96,6 @@ namespace ShiftEverywhere.DiMETest
             Assert.AreEqual(iir.profile, 1);
             Assert.AreEqual(iir.issuedAt, 1621368631);
             Assert.AreEqual(iir.identityKey, "MCowBQYDK2VwAyEA\u002BJUjHKBdtd0lGmkUxHr6MrpIHZ4JBFM/JAG7H2LANMY");
-            Assert.AreEqual(iir.signature, "eU8NdFHI58waVsKOT5mSfPuCwofPwHkudlva+NOtZ6ZbOe4uwNPIoLnOko6rbej1jpyyA8Sw/5zxNQg1jBp3Dw");
         }
 
     }
