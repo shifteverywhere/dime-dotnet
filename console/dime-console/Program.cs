@@ -8,17 +8,19 @@ namespace ShiftEverywhere.DiMEConsole
     {
         public Identity trustedIdentity;
         public Keypair trustedKeypair;
-        public Identity issuerIdentity;
-        public Keypair issuerKeypair;
-        public Identity subjectIdentity;
+        public Identity serviceProviderIdentity;
+        public Keypair serviceProviderKeypair;
+        public Identity mobileIdentity;
+        public Keypair mobileKeypair;
 
         public Program()
         {
             this.trustedKeypair = Keypair.GenerateKeypair(KeypairType.IdentityKey);
             this.trustedIdentity = GenerateIdentity(this.trustedKeypair);
-            this.issuerKeypair = Keypair.GenerateKeypair(KeypairType.IdentityKey);
-            this.issuerIdentity = GenerateIdentity(this.issuerKeypair);
-            this.subjectIdentity = GenerateIdentity(Keypair.GenerateKeypair(KeypairType.IdentityKey));
+            this.serviceProviderKeypair = Keypair.GenerateKeypair(KeypairType.IdentityKey);
+            this.serviceProviderIdentity = GenerateIdentity(this.serviceProviderKeypair);
+            this.mobileKeypair = Keypair.GenerateKeypair(KeypairType.IdentityKey);
+            this.mobileIdentity = GenerateIdentity(this.mobileKeypair);
             Identity.trustedIdentity = this.trustedIdentity;
         }
 
@@ -31,24 +33,40 @@ namespace ShiftEverywhere.DiMEConsole
         public Message GenerateMessage(Guid subjectId, Identity issuerIdentity, string payload)
         {
             long expiresAt = DateTimeOffset.UtcNow.ToUnixTimeSeconds() + 120;
-            return new Message(subjectId, issuerIdentity, issuerKeypair.privateKey, Encoding.UTF8.GetBytes(payload), expiresAt);
+            return new Message(subjectId, issuerIdentity, serviceProviderKeypair.privateKey, Encoding.UTF8.GetBytes(payload), expiresAt);
         }
 
         static void Main(string[] args)
         {
-            Program program = new Program();
-            Message msg = program.GenerateMessage(program.subjectIdentity.subjectId, 
-                                                  program.issuerIdentity,
-                                                  "Racecar is racecar backwards.");
-            string encoded = msg.Export();
-            Console.WriteLine(encoded);
-
-            Envelope env = new Envelope(program.issuerIdentity, program.subjectIdentity.subjectId, msg.parameters.issuedAt, msg.parameters.expiresAt);
-            env.AddMessage(msg);
-            string envEncoded = env.Export(program.issuerKeypair.privateKey);
-
-            Envelope env2 = Envelope.Import(envEncoded);
-            
+            Program prg = new Program();
+            // At service provider
+            Message serviceProviderMessage = prg.GenerateMessage(prg.mobileIdentity.subjectId, prg.serviceProviderIdentity, "Racecar is racecar backwards.");
+            string serviceProviderMessageEncoded = serviceProviderMessage.Export();
+            // Send 'serviceProviderMessageEncoded' to back-end
+            Message serviceProviderMessageAtBackEnd = Message.Import(serviceProviderMessageEncoded);
+            Envelope backEndEnvelope = new Envelope(prg.trustedIdentity, prg.mobileIdentity.subjectId, DateTimeOffset.UtcNow.ToUnixTimeSeconds(), serviceProviderMessage.expiresAt);
+            backEndEnvelope.AddMessage(serviceProviderMessage);
+            string backEndEnvelopeEncoded = backEndEnvelope.Export(prg.trustedKeypair.privateKey);
+            // Send 'backEndEnvelopeEncoded' to mobile
+            Envelope backEndEnvelopeAtMobile = Envelope.Import(backEndEnvelopeEncoded);
+            string messagePayload = System.Text.Encoding.UTF8.GetString(backEndEnvelopeAtMobile.messages[0].payload, 0, backEndEnvelopeAtMobile.messages[0].payload.Length);
+            Console.WriteLine("Message from service provider: " + messagePayload);
+            Message mobileResponseMessage = prg.GenerateMessage(prg.mobileIdentity.subjectId, prg.serviceProviderIdentity, "Yes, it is!");
+            mobileResponseMessage.LinkMessage(backEndEnvelopeAtMobile.messages[0]); // link the mobile response to the received service provider message       
+            Envelope mobileEnvelope = new Envelope(prg.mobileIdentity, prg.serviceProviderIdentity.issuerId, mobileResponseMessage.issuedAt, backEndEnvelopeAtMobile.expiresAt);
+            mobileEnvelope.AddMessage(backEndEnvelopeAtMobile.messages[0]);
+            mobileEnvelope.AddMessage(mobileResponseMessage);
+            string mobileEnvelopeEncoded = mobileEnvelope.Export(prg.mobileKeypair.privateKey);
+            // Send 'mobileEnvelopeEncoded' to back-end
+            Envelope mobleEnvelopeAtBackEnd = Envelope.Import(mobileEnvelopeEncoded);
+            Envelope finalBackEndEnvelope = new Envelope(prg.trustedIdentity, mobileEnvelope.subjectId, DateTimeOffset.UtcNow.ToUnixTimeSeconds(), mobileEnvelope.expiresAt);
+            finalBackEndEnvelope.AddMessage(mobleEnvelopeAtBackEnd.messages[0]);
+            finalBackEndEnvelope.AddMessage(mobleEnvelopeAtBackEnd.messages[1]);
+            string finalBackEndEnvelopeEncoded = finalBackEndEnvelope.Export(prg.trustedKeypair.privateKey);
+            // Send 'finalBackEndEnvelopeEncoded' to service provider
+            Envelope finalBackEndEnvelopeAtServiceProvider = Envelope.Import(finalBackEndEnvelopeEncoded);
+            string responcePayload = System.Text.Encoding.UTF8.GetString(finalBackEndEnvelopeAtServiceProvider.messages[1].payload, 0, finalBackEndEnvelopeAtServiceProvider.messages[1].payload.Length);
+            Console.WriteLine("Responce from mobile: " + responcePayload);
         }
     }
 }
