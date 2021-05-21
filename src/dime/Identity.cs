@@ -35,7 +35,7 @@ namespace ShiftEverywhere.DiME
         public static Identity Import(string encoded) 
         {
             if (!encoded.StartsWith(Identity.HEADER)) { throw new ArgumentException("Unexpected data format."); }
-            string[] components = encoded.Split(".");
+            string[] components = encoded.Split(new char[] { '.' });
             if (components.Length != 3) { throw new ArgumentException("Unexpected number of components found then decoding identity."); }
             int profile = int.Parse(components[0].Substring(1));
             if (!Crypto.SupportedProfile(profile)) { throw new ArgumentException("Unsupported cryptography profile."); }

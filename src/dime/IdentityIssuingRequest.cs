@@ -25,7 +25,7 @@ namespace ShiftEverywhere.DiME
         public static IdentityIssuingRequest Import(string encoded) 
         {
             if (!encoded.StartsWith(IdentityIssuingRequest.HEADER)) { throw new ArgumentException("Unexpected data format."); }
-            string[] components = encoded.Split(".");
+            string[] components = encoded.Split(new char[] { '.' });
             if (components.Length != 3 ) { throw new ArgumentException("Unexpected number of components found then decoding identity issuing request."); }
             int profile = int.Parse(components[0].Substring(1));
             byte[] json = Utility.FromBase64(components[1]);

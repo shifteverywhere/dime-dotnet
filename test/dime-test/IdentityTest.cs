@@ -120,7 +120,7 @@ namespace ShiftEverywhere.DiMETest
             Assert.IsNotNull(encoded);
             Assert.IsTrue(encoded.Length > 0);
             Assert.IsTrue(encoded.StartsWith("I" + identity.profile.ToString()));
-            Assert.IsTrue(encoded.Split(".").Length == 3);
+            Assert.IsTrue(encoded.Split(new char[] { '.' }).Length == 3);
         }
 
         [TestMethod]

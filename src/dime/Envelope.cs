@@ -27,7 +27,7 @@ namespace ShiftEverywhere.DiME
         public static Envelope Import(string encoded)
         {
             if (!encoded.StartsWith(Envelope.HEADER)) { throw new ArgumentException("Unexpected data format."); }
-            string[] components = encoded.Split(".");
+            string[] components = encoded.Split(new char[] { '.' });
             if (components.Length != 5) { throw new ArgumentException("Unexpected number of components found then decoding identity."); }
             int profile = int.Parse(components[0].Substring(1));
             if (!Crypto.SupportedProfile(profile)) { throw new ArgumentException("Unsupported cryptography profile."); }
@@ -44,7 +44,7 @@ namespace ShiftEverywhere.DiME
                 Envelope.JSONData parameters = JsonSerializer.Deserialize<Envelope.JSONData>(Utility.FromBase64(components[3]));
                 Envelope envelope = new Envelope(identity, parameters, profile);
                 byte[] msgBytes = Utility.FromBase64(components[2]);
-                string[] msgArray = System.Text.Encoding.UTF8.GetString(msgBytes, 0, msgBytes.Length).Split(";");
+                string[] msgArray = System.Text.Encoding.UTF8.GetString(msgBytes, 0, msgBytes.Length).Split(new char[] { ';' }); ;
                 foreach(string msg in msgArray)
                 {
                     Message message = Message.Import(msg);
