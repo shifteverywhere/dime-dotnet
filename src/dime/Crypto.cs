@@ -13,30 +13,33 @@ namespace ShiftEverywhere.DiME
             return profile == Crypto.DEFUALT_PROFILE;
         }
         
-        public static string GenerateSignature(int version, string data, string privateIdentityKey)
+        public static string GenerateSignature(int profile, string data, string privateIdentityKey)
         {
-                if ( version != 1 ) { throw new NotSupportedException(); }
-                if ( privateIdentityKey == null ) { throw new ArgumentNullException(); }
+                if (!Crypto.SupportedProfile(profile)) { throw new NotSupportedException(); }
+                if (privateIdentityKey == null) { throw new ArgumentNullException(); }
                 Key key = Key.Import(SignatureAlgorithm.Ed25519, Utility.FromBase64(privateIdentityKey), KeyBlobFormat.PkixPrivateKey);
                 byte[] signature = SignatureAlgorithm.Ed25519.Sign(key, Encoding.UTF8.GetBytes(data));
                 return System.Convert.ToBase64String(signature).Trim('=');
         }
 
-        public static bool VerifySignature(int version, string data, string signature, string publicIdentityKey)
+        public static void VerifySignature(int profile, string data, string signature, string publicIdentityKey)
         {
-            if ( version != 1 ) { throw new NotSupportedException(); }
-            if ( publicIdentityKey == null ) { throw new ArgumentNullException(); }
+            if (!Crypto.SupportedProfile(profile)) { throw new UnsupportedProfileException(); }
+            if (publicIdentityKey == null) { throw new ArgumentNullException(); }
             PublicKey verifyKey = PublicKey.Import(SignatureAlgorithm.Ed25519, Utility.FromBase64(publicIdentityKey), KeyBlobFormat.PkixPublicKey);
-            return SignatureAlgorithm.Ed25519.Verify(verifyKey, Encoding.UTF8.GetBytes(data), Utility.FromBase64(signature));
+            if (!SignatureAlgorithm.Ed25519.Verify(verifyKey, Encoding.UTF8.GetBytes(data), Utility.FromBase64(signature)))
+            {
+                throw new IntegrityException();
+            }
         }
 
-        public static Keypair GenerateKeyPair(int version, KeypairType type)
+        public static Keypair GenerateKeyPair(int profile, KeypairType type)
         {
-            if ( version != 1 ) { throw new NotSupportedException(); }
+            if (!Crypto.SupportedProfile(profile)) { throw new UnsupportedProfileException(); }
             Key key;
             KeyCreationParameters parameters = new KeyCreationParameters();
             parameters.ExportPolicy = KeyExportPolicies.AllowPlaintextExport;
-            switch ( type )
+            switch (type)
             {
                 case KeypairType.IdentityKey:
                     key = new Key(SignatureAlgorithm.Ed25519, parameters);
@@ -45,21 +48,27 @@ namespace ShiftEverywhere.DiME
                     key = new Key(KeyAgreementAlgorithm.X25519, parameters);
                     break;
                 default:
-                    throw new NotSupportedException();
+                    throw new NotSupportedException("Unkown keypair type.");
             }
-            if ( key != null ) 
+            if (key != null) 
             {
-                return new Keypair(type, 
+                return new Keypair(Guid.NewGuid(), 
+                                   type, 
                                    Crypto.ExportKey(key, KeyBlobFormat.PkixPublicKey), 
                                    Crypto.ExportKey(key, KeyBlobFormat.PkixPrivateKey));
             }
-            throw new Exception();
+            throw new Exception("Unknow error.");
         }
 
-        public static string GenerateHash(int version, string data)
+        public static string GenerateHash(int profile, string data)
         {
-            if ( version != 1 ) { throw new NotSupportedException(); }
-            return Utility.ToHex(HashAlgorithm.Blake2b_256.Hash(Encoding.UTF8.GetBytes(data)));
+            return Crypto.GenerateHash(profile, Encoding.UTF8.GetBytes(data));
+        }
+
+        public static string GenerateHash(int profile, byte[] data)
+        {
+            if (!Crypto.SupportedProfile(profile)) { throw new UnsupportedProfileException(); }
+            return Utility.ToHex(HashAlgorithm.Blake2b_256.Hash(data));
         }
 
         private static string ExportKey(Key key, KeyBlobFormat keyBlobFormat)

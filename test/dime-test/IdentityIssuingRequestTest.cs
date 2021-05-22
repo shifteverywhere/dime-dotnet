@@ -47,7 +47,7 @@ namespace ShiftEverywhere.DiMETest
         public void VerifyTest1()
         {
             IdentityIssuingRequest iir = IdentityIssuingRequest.GenerateRequest(Keypair.GenerateKeypair(KeypairType.IdentityKey));
-            Assert.IsTrue(iir.Verify(), "Claim signature not valid");
+            iir.Verify();
         }
 
         [TestMethod]
@@ -55,8 +55,8 @@ namespace ShiftEverywhere.DiMETest
         {
             Keypair keypair1 = Keypair.GenerateKeypair(KeypairType.IdentityKey);
             Keypair keypair2 = Keypair.GenerateKeypair(KeypairType.IdentityKey);
-            IdentityIssuingRequest iir = IdentityIssuingRequest.GenerateRequest( new Keypair(KeypairType.IdentityKey, keypair1.publicKey, keypair2.privateKey), 1);
-            Assert.IsFalse(iir.Verify(), "Claim signature should not be valid");
+            IdentityIssuingRequest iir = IdentityIssuingRequest.GenerateRequest( new Keypair(Guid.NewGuid(), KeypairType.IdentityKey, keypair1.publicKey, keypair2.privateKey), 1);
+            iir.Verify();
         }
 
         [TestMethod]

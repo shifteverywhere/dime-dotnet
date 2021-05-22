@@ -33,7 +33,7 @@ namespace ShiftEverywhere.DiMEConsole
         public Message GenerateMessage(Guid subjectId, Identity issuerIdentity, string payload)
         {
             long expiresAt = DateTimeOffset.UtcNow.ToUnixTimeSeconds() + 120;
-            return new Message(subjectId, issuerIdentity, serviceProviderKeypair.privateKey, Encoding.UTF8.GetBytes(payload), expiresAt);
+            return new Message(subjectId, issuerIdentity, Encoding.UTF8.GetBytes(payload), expiresAt);
         }
 
         static void Main(string[] args)
@@ -41,7 +41,7 @@ namespace ShiftEverywhere.DiMEConsole
             Program prg = new Program();
             // At service provider
             Message serviceProviderMessage = prg.GenerateMessage(prg.mobileIdentity.subjectId, prg.serviceProviderIdentity, "Racecar is racecar backwards.");
-            string serviceProviderMessageEncoded = serviceProviderMessage.Export();
+            string serviceProviderMessageEncoded = serviceProviderMessage.Export(prg.serviceProviderKeypair.privateKey);
             // Send 'serviceProviderMessageEncoded' to back-end
             Message serviceProviderMessageAtBackEnd = Message.Import(serviceProviderMessageEncoded);
             Envelope backEndEnvelope = new Envelope(prg.trustedIdentity, prg.mobileIdentity.subjectId, DateTimeOffset.UtcNow.ToUnixTimeSeconds(), serviceProviderMessage.expiresAt);

@@ -48,15 +48,15 @@ namespace ShiftEverywhere.DiMETest
                 IdentityTests.SetTrustedIdentity();
                 Keypair keypair1 = Keypair.GenerateKeypair(KeypairType.IdentityKey);
                 Keypair keypair2 = Keypair.GenerateKeypair(KeypairType.IdentityKey);
-                IdentityIssuingRequest iir = IdentityIssuingRequest.GenerateRequest( new Keypair(KeypairType.IdentityKey, keypair1.publicKey, keypair2.privateKey), 1);
+                IdentityIssuingRequest iir = IdentityIssuingRequest.GenerateRequest( new Keypair(Guid.NewGuid(), KeypairType.IdentityKey, keypair1.publicKey, keypair2.privateKey), 1);
                 Identity identity = Identity.IssueIdentity(iir, Guid.NewGuid(), IdentityTests.rootKeypair);
             }
             catch (Exception e)
             {
-                if (e is ArgumentException) { return; }
+                if (e is IntegrityException) { return; }
                 throw e;
             }
-            Assert.IsTrue(false, $"Expected ArgumentException not thrown");
+            Assert.IsTrue(false, $"Expected InvalidSignatureException not thrown");
         }        
     
         [TestMethod]
@@ -99,7 +99,7 @@ namespace ShiftEverywhere.DiMETest
         {
             IdentityTests.SetTrustedIdentity();
             Identity identity = Identity.IssueIdentity(IdentityIssuingRequest.GenerateRequest(Keypair.GenerateKeypair(KeypairType.IdentityKey)), Guid.NewGuid(), IdentityTests.rootKeypair);
-            Assert.IsTrue(identity.VerifyTrust());
+            identity.VerifyTrust();
         }
 
         [TestMethod]
@@ -108,7 +108,7 @@ namespace ShiftEverywhere.DiMETest
             IdentityTests.SetTrustedIdentity();
             Keypair keypair = Keypair.GenerateKeypair(KeypairType.IdentityKey);
             Identity identity = Identity.IssueIdentity(IdentityIssuingRequest.GenerateRequest(keypair), Guid.NewGuid(), keypair);
-            Assert.IsFalse(identity.VerifyTrust());
+            identity.VerifyTrust();
         }
 
         [TestMethod]

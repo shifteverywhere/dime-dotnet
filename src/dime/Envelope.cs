@@ -33,38 +33,36 @@ namespace ShiftEverywhere.DiME
             if (!Crypto.SupportedProfile(profile)) { throw new ArgumentException("Unsupported cryptography profile."); }
             byte[] identityBytes = Utility.FromBase64(components[1]);
             Identity identity = Identity.Import(System.Text.Encoding.UTF8.GetString(identityBytes, 0, identityBytes.Length));
-            if (identity.VerifyTrust())
+            identity.VerifyTrust();
+            string envPart = encoded.Substring(0, encoded.LastIndexOf('.'));
+            string signature = components[components.Length - 1];
+            Crypto.VerifySignature(profile, envPart, signature, identity.identityKey);
+            Envelope.JSONData parameters = JsonSerializer.Deserialize<Envelope.JSONData>(Utility.FromBase64(components[3]));
+            Envelope envelope = new Envelope(identity, parameters, profile);
+            byte[] msgBytes = Utility.FromBase64(components[2]);
+            string[] msgArray = System.Text.Encoding.UTF8.GetString(msgBytes, 0, msgBytes.Length).Split(new char[] { ';' }); ;
+            foreach(string msg in msgArray)
             {
-                string envPart = encoded.Substring(0, encoded.LastIndexOf('.'));
-                string signature = components[components.Length - 1];
-                if (!Crypto.VerifySignature(profile, envPart, signature, identity.identityKey))
-                {
-                    throw new ArgumentException("Unable to verify message signature."); // TODO: throw more specific exception
-                }
-                Envelope.JSONData parameters = JsonSerializer.Deserialize<Envelope.JSONData>(Utility.FromBase64(components[3]));
-                Envelope envelope = new Envelope(identity, parameters, profile);
-                byte[] msgBytes = Utility.FromBase64(components[2]);
-                string[] msgArray = System.Text.Encoding.UTF8.GetString(msgBytes, 0, msgBytes.Length).Split(new char[] { ';' }); ;
-                foreach(string msg in msgArray)
-                {
-                    Message message = Message.Import(msg);
-                    envelope.AddMessage(message);
-                }
-                envelope.encoded = envPart;
-                envelope.signature = signature;
-                envelope.isImmutable = true;
-                return envelope;
+                Message message = Message.Import(msg);
+                envelope.AddMessage(message);
             }
-            throw new ArgumentNullException("Untrusted identity."); // TODO: throw more specific exception            
+            envelope.encoded = envPart;
+            envelope.signature = signature;
+            envelope.isImmutable = true;
+            return envelope;
         }
 
-        public string Export(string identityPrivateKey)
+        public string Export(string identityPrivateKey = null)
         {
+            if (this.signature == null && identityPrivateKey == null) { throw new ArgumentNullException("Need private key to sign envelope for export."); }
             if (this.signature == null)
             {
-                this.signature = Crypto.GenerateSignature(this.profile, Encode(), identityPrivateKey);
+                this.encoded = Encode(identityPrivateKey);
+                this.signature = Crypto.GenerateSignature(this.profile, this.encoded, identityPrivateKey);
+                this.isImmutable = true;
             }
-            return Encode() + "." + this.signature;
+            Crypto.VerifySignature(this.profile, this.encoded, this.signature, this.identity.identityKey);
+            return this.encoded + "." + this.signature;
         }
 
         public void AddMessage(Message message)
@@ -79,7 +77,7 @@ namespace ShiftEverywhere.DiME
             }
             else
             {
-                throw new ArgumentNullException("This envelope object is imutable."); // TODO: throw another exception
+                throw new ImmutableException();
             }
         }
 
@@ -112,12 +110,11 @@ namespace ShiftEverywhere.DiME
             this.profile = profile;
         }
 
-        private string Encode()
+        private string Encode(string issuerIdentityPrivateKey = null)
         {
             if ( this.encoded == null ) 
             {  
                 var envBuilder = new StringBuilder();
-
                 envBuilder.AppendFormat("{0}{1}.{2}.", 
                                     Envelope.HEADER,
                                     this.profile,
@@ -125,7 +122,8 @@ namespace ShiftEverywhere.DiME
                 var msgBuilder = new StringBuilder();
                 foreach (Message message in this.messages)
                 {
-                    msgBuilder.AppendFormat("{0};", message.Export());
+                    string msg = message.HasSignature() ? message.Export() : message.Export(issuerIdentityPrivateKey);
+                    msgBuilder.AppendFormat("{0};", msg);
                 }
                 msgBuilder.Remove(msgBuilder.Length - 1, 1); 
                 envBuilder.AppendFormat("{0}.{1}",

@@ -47,14 +47,13 @@ namespace ShiftEverywhere.DiME
             return Crypto.GenerateHash(this.profile, this.Encode());
         }
 
-        public bool Verify()
+        public void Verify()
         {
-            long now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-            if (now >= this.issuedAt)
+            if (DateTimeOffset.UtcNow.ToUnixTimeSeconds() >= this.issuedAt)
             {
-                return Crypto.VerifySignature(this.profile, this.Encode(), this.signature, this.identityKey);
+                Crypto.VerifySignature(this.profile, this.Encode(), this.signature, this.identityKey);
             }
-            return false;
+            throw new DateExpirationException();
         }
 
         /* PRIVATE */

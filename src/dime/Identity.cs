@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Text;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 
 namespace ShiftEverywhere.DiME
 {
@@ -59,16 +58,13 @@ namespace ShiftEverywhere.DiME
 
         public static Identity IssueIdentity(IdentityIssuingRequest iir, Guid subjectId, Keypair issuerKeypair, Identity issuerIdentity = null) 
         {    
-            if ( iir.Verify() )
-            {
-                long now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-                Guid issuerId = issuerIdentity != null ? issuerIdentity.subjectId : subjectId;
-                Identity identity = new Identity(subjectId, iir.identityKey, now, now + Identity.defaultLifetime, issuerId, null, iir.profile);
-                identity.signature = Crypto.GenerateSignature(identity.profile, identity.Encode(), issuerKeypair.privateKey);
-                // TODO: set the chain
-                return identity;
-            }
-            throw new ArgumentException("Unable to verify claim signature"); // TODO: throw another type of exception
+            iir.Verify();
+            long now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+            Guid issuerId = issuerIdentity != null ? issuerIdentity.subjectId : subjectId;
+            Identity identity = new Identity(subjectId, iir.identityKey, now, now + Identity.defaultLifetime, issuerId, null, iir.profile);
+            identity.signature = Crypto.GenerateSignature(identity.profile, identity.Encode(), issuerKeypair.privateKey);
+            // TODO: set the chain
+            return identity;
         }
 
         public string Thumbprint() 
@@ -79,13 +75,24 @@ namespace ShiftEverywhere.DiME
         public bool IsSelfSigned() 
         {
             if ( this.subjectId != this.issuerId) { return false; }
-            return Crypto.VerifySignature(this.profile, this.Encode(), this.signature, this.identityKey);
+            try {
+                Crypto.VerifySignature(this.profile, this.Encode(), this.signature, this.identityKey);
+            } catch (IntegrityException)
+            {
+                return false;
+            }
+            return true;
         }
 
-        public bool VerifyTrust()
+        public void VerifyTrust()
         {
             if (Identity.trustedIdentity == null) { throw new ArgumentNullException("No trusted identity set."); }
-            return Crypto.VerifySignature(this.profile, this.Encode(), this.signature, Identity.trustedIdentity.identityKey);
+            try {
+                Crypto.VerifySignature(this.profile, this.Encode(), this.signature, Identity.trustedIdentity.identityKey);
+            } catch (IntegrityException) 
+            {
+                throw new UntrustedIdentityException();
+            }
         }
 
         /* PRIVATE */
@@ -103,8 +110,8 @@ namespace ShiftEverywhere.DiME
 
             public JSONData(Guid sub, Guid iss, long iat, long exp, string iky)
             {
-                if (DateTimeOffset.UtcNow.ToUnixTimeSeconds() > exp) { throw new ArgumentException("Expires at is earlier than now."); } // TODO: throw other exception
-                if (iat > exp) { throw new ArgumentException("Expires at is earlier than issued at."); }
+                if (DateTimeOffset.UtcNow.ToUnixTimeSeconds() > exp) { throw new ArgumentException("Expiration must be in the future."); }
+                if (iat > exp) { throw new ArgumentException("Expiration must be after issue date."); }
                 this.sub = sub;
                 this.iss = iss;
                 this.iat = iat;
