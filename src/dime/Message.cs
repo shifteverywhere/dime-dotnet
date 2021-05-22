@@ -19,16 +19,16 @@ namespace ShiftEverywhere.DiME
         public string exchangeKey { get { return this.json.xky; } }
         public string linkedTo { get { return this.json.lnk; } }
 
-        public Message(Guid subjectId, Identity issuerIdentity, byte[] payload, long expiresAt, string linkedTo = null, int profile = Crypto.DEFUALT_PROFILE)
+        public Message(Guid subjectId, Identity issuerIdentity, byte[] payload, long validFor)
         {
-            if (!Crypto.SupportedProfile(profile)) { throw new ArgumentException("Unsupported cryptography profile."); }
+            if (!Crypto.SupportedProfile(issuerIdentity.profile)) { throw new UnsupportedProfileException(); }
             if ( issuerIdentity == null || payload == null ) { throw new ArgumentNullException(); }
             long now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-            if ( expiresAt <= now ) { throw new ArgumentException("Expiration date must be in the future."); }
-            this.profile = profile;
+            if ( validFor <= 0 ) { throw new ArgumentException("Message must be valid for at least 1 second."); }
+            this.profile = issuerIdentity.profile;
             this.identity = issuerIdentity;
             this.payload = payload;
-            this.json = new Message.JSONData(subjectId, issuerIdentity.subjectId, now, expiresAt, linkedTo, exchangeKey);
+            this.json = new Message.JSONData(subjectId, issuerIdentity.subjectId, now, (now + validFor));
         }
 
         public static Message Import(string encoded)
@@ -125,7 +125,7 @@ namespace ShiftEverywhere.DiME
             [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
             public string lnk;
 
-            public JSONData(Guid sub, Guid iss, long iat, long exp, string xky, string lnk)
+            public JSONData(Guid sub, Guid iss, long iat, long exp, string xky = null, string lnk = null)
             {
                 if (DateTimeOffset.UtcNow.ToUnixTimeSeconds() > exp) { throw new ArgumentException("Expiration must be in the future."); }
                 if (iat > exp) { throw new ArgumentException("Expiration must be after issue date."); }

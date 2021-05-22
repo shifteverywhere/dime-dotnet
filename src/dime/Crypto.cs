@@ -55,7 +55,8 @@ namespace ShiftEverywhere.DiME
                 return new Keypair(Guid.NewGuid(), 
                                    type, 
                                    Crypto.ExportKey(key, KeyBlobFormat.PkixPublicKey), 
-                                   Crypto.ExportKey(key, KeyBlobFormat.PkixPrivateKey));
+                                   Crypto.ExportKey(key, KeyBlobFormat.PkixPrivateKey),
+                                   profile);
             }
             throw new Exception("Unknow error.");
         }

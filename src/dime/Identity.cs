@@ -23,14 +23,6 @@ namespace ShiftEverywhere.DiME
         /// <summary>The trust chain of signed public keys.</summary>
         public Identity[] trustChain { get; private set; }
 
-        public Identity(Guid subjectId, string identityKey, long issuedAt, long expiresAt, Guid issuerId, string signature = null, int profile = Crypto.DEFUALT_PROFILE) 
-        {
-            if (!Crypto.SupportedProfile(profile)) { throw new ArgumentException("Unsupported cryptography profile."); }
-            this.profile = profile;
-            this.json = new Identity.JSONData(subjectId, issuerId, issuedAt, expiresAt, identityKey);
-            this.signature = signature;
-        }
-
         public static Identity Import(string encoded) 
         {
             if (!encoded.StartsWith(Identity.HEADER)) { throw new ArgumentException("Unexpected data format."); }
@@ -56,13 +48,13 @@ namespace ShiftEverywhere.DiME
             return Identity.IssueIdentity(IdentityIssuingRequest.Import(iir), subjectId, issuerKeypair, issuerIdentity);
         }
 
-        public static Identity IssueIdentity(IdentityIssuingRequest iir, Guid subjectId, Keypair issuerKeypair, Identity issuerIdentity = null) 
+        public static Identity IssueIdentity(IdentityIssuingRequest iir, Guid subjectId, Keypair issuerIdentityKeypair, Identity issuerIdentity = null) 
         {    
             iir.Verify();
             long now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
             Guid issuerId = issuerIdentity != null ? issuerIdentity.subjectId : subjectId;
-            Identity identity = new Identity(subjectId, iir.identityKey, now, now + Identity.defaultLifetime, issuerId, null, iir.profile);
-            identity.signature = Crypto.GenerateSignature(identity.profile, identity.Encode(), issuerKeypair.privateKey);
+            Identity identity = new Identity(subjectId, iir.identityKey, now, now + Identity.defaultLifetime, issuerId, iir.profile);
+            identity.signature = Crypto.GenerateSignature(identity.profile, identity.Encode(), issuerIdentityKeypair.privateKey);
             // TODO: set the chain
             return identity;
         }
@@ -120,6 +112,14 @@ namespace ShiftEverywhere.DiME
             }
         }
         private Identity.JSONData json;
+
+        private Identity(Guid subjectId, string identityKey, long issuedAt, long expiresAt, Guid issuerId, int profile = Crypto.DEFUALT_PROFILE) 
+        {
+            if (!Crypto.SupportedProfile(profile)) { throw new ArgumentException("Unsupported cryptography profile."); }
+            this.profile = profile;
+            this.json = new Identity.JSONData(subjectId, issuerId, issuedAt, expiresAt, identityKey);
+        }
+
         private Identity(Identity.JSONData parameters, string signature = null, int profile = Crypto.DEFUALT_PROFILE) 
         {
             this.profile = profile;

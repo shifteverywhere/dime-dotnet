@@ -8,56 +8,37 @@ namespace ShiftEverywhere.DiMETest
     public class IdentityTests
     {
         [TestMethod]
-        public void IdentityTest1()
+        public void IssueIdentityTest1()
         {
             int profile = 1;
             Guid subjectId = Guid.NewGuid();
-            string identityKey = Keypair.GenerateKeypair(KeypairType.IdentityKey).publicKey;
-            long issuedAt = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-            long expiresAt = issuedAt + 120;
-            Guid issuerId = Guid.NewGuid();
-            Identity identity = new Identity(subjectId, identityKey, issuedAt, expiresAt, issuerId, null, profile);
+            Keypair keypair = Keypair.GenerateKeypair(KeypairType.IdentityKey, profile);
+            Identity identity = Identity.IssueIdentity(IdentityIssuingRequest.GenerateRequest(keypair), subjectId, keypair);
             Assert.IsTrue(profile == identity.profile);
             Assert.IsTrue(subjectId == identity.subjectId);
-            Assert.IsTrue(identityKey == identity.identityKey);
-            Assert.IsTrue(issuedAt == identity.issuedAt);
-            Assert.IsTrue(expiresAt == identity.expiresAt);
-            Assert.IsTrue(issuerId == identity.issuerId);
-        }
-
-        [TestMethod]
-        public void IssueIdentityTest1()
-        {
-            Keypair keypair = Keypair.GenerateKeypair(KeypairType.IdentityKey);
-            Identity identity = Identity.IssueIdentity(IdentityIssuingRequest.GenerateRequest(keypair), Guid.NewGuid(), keypair);
+            Assert.IsTrue(subjectId == identity.issuerId);
+            Assert.IsTrue(keypair.publicKey == identity.identityKey);
+            Assert.IsTrue(identity.issuedAt != 0);
+            Assert.IsTrue(identity.issuedAt < identity.expiresAt);
+            Assert.IsTrue(subjectId == identity.issuerId);
         }
 
         [TestMethod]
         public void IssueIdentityTest2()
         {
             IdentityTests.SetTrustedIdentity();
-            IdentityIssuingRequest iir = IdentityIssuingRequest.GenerateRequest(Keypair.GenerateKeypair(KeypairType.IdentityKey));
-            Identity identity = Identity.IssueIdentity(iir, Guid.NewGuid(), IdentityTests.rootKeypair);
+            int profile = 1;
+            Guid subjectId = Guid.NewGuid();
+            Keypair keypair = Keypair.GenerateKeypair(KeypairType.IdentityKey, profile);
+            IdentityIssuingRequest iir = IdentityIssuingRequest.GenerateRequest(keypair);
+            Identity identity = Identity.IssueIdentity(iir, subjectId, IdentityTests.rootKeypair, Identity.trustedIdentity);
+            Assert.IsTrue(profile == identity.profile);
+            Assert.IsTrue(subjectId == identity.subjectId);
+            Assert.IsTrue(keypair.publicKey == identity.identityKey);
+            Assert.IsTrue(identity.issuedAt != 0);
+            Assert.IsTrue(identity.issuedAt < identity.expiresAt);
+            Assert.IsTrue(Identity.trustedIdentity.subjectId == identity.issuerId);
         }
-
-        [TestMethod]
-        public void IssueIdentityTest3()
-        {
-            try
-            {
-                IdentityTests.SetTrustedIdentity();
-                Keypair keypair1 = Keypair.GenerateKeypair(KeypairType.IdentityKey);
-                Keypair keypair2 = Keypair.GenerateKeypair(KeypairType.IdentityKey);
-                IdentityIssuingRequest iir = IdentityIssuingRequest.GenerateRequest( new Keypair(Guid.NewGuid(), KeypairType.IdentityKey, keypair1.publicKey, keypair2.privateKey), 1);
-                Identity identity = Identity.IssueIdentity(iir, Guid.NewGuid(), IdentityTests.rootKeypair);
-            }
-            catch (Exception e)
-            {
-                if (e is IntegrityException) { return; }
-                throw e;
-            }
-            Assert.IsTrue(false, $"Expected InvalidSignatureException not thrown");
-        }        
     
         [TestMethod]
         public void IsSelfSignedTest1()
@@ -105,10 +86,17 @@ namespace ShiftEverywhere.DiMETest
         [TestMethod]
         public void VerifyTrustTest3()
         {
-            IdentityTests.SetTrustedIdentity();
-            Keypair keypair = Keypair.GenerateKeypair(KeypairType.IdentityKey);
-            Identity identity = Identity.IssueIdentity(IdentityIssuingRequest.GenerateRequest(keypair), Guid.NewGuid(), keypair);
-            identity.VerifyTrust();
+            try
+            {
+                IdentityTests.SetTrustedIdentity();
+                Keypair keypair = Keypair.GenerateKeypair(KeypairType.IdentityKey);
+                Identity identity = Identity.IssueIdentity(IdentityIssuingRequest.GenerateRequest(keypair), Guid.NewGuid(), keypair);
+                identity.VerifyTrust();
+            }
+            catch (UntrustedIdentityException)
+            {
+                // All is well
+            }
         }
 
         [TestMethod]

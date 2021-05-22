@@ -12,13 +12,13 @@ namespace ShiftEverywhere.DiME
         public long issuedAt { get { return this.json.iat;} }
         public string identityKey { get { return this.json.iky; } }
 
-        public static IdentityIssuingRequest GenerateRequest(Keypair keypair, int profile = Crypto.DEFUALT_PROFILE) 
+        public static IdentityIssuingRequest GenerateRequest(Keypair keypair) 
         {
             if (keypair.type != KeypairType.IdentityKey) { throw new ArgumentNullException("KeyPair of invalid type."); }
             if (keypair.privateKey == null) { throw new ArgumentNullException("Private key must not be null"); }
             long now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-            IdentityIssuingRequest iir = new IdentityIssuingRequest(new IdentityIssuingRequest.JSONData(now, keypair.publicKey), profile);
-            iir.signature = Crypto.GenerateSignature(profile, iir.Encode(), keypair.privateKey);
+            IdentityIssuingRequest iir = new IdentityIssuingRequest(new IdentityIssuingRequest.JSONData(now, keypair.publicKey), keypair.profile);
+            iir.signature = Crypto.GenerateSignature(iir.profile, iir.Encode(), keypair.privateKey);
             return iir;
         }
 
@@ -49,11 +49,8 @@ namespace ShiftEverywhere.DiME
 
         public void Verify()
         {
-            if (DateTimeOffset.UtcNow.ToUnixTimeSeconds() >= this.issuedAt)
-            {
-                Crypto.VerifySignature(this.profile, this.Encode(), this.signature, this.identityKey);
-            }
-            throw new DateExpirationException();
+            if (DateTimeOffset.UtcNow.ToUnixTimeSeconds() < this.issuedAt) { throw new DateExpirationException(); }
+            Crypto.VerifySignature(this.profile, this.Encode(), this.signature, this.identityKey);
         }
 
         /* PRIVATE */

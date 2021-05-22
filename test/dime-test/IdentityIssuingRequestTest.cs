@@ -6,22 +6,7 @@ namespace ShiftEverywhere.DiMETest
 {
     [TestClass]
     public class IdentityIssuingRequestTests
-    {
-        [TestMethod]
-        public void GenerateRequestTest1()
-        {
-            try 
-            {
-                IdentityIssuingRequest iir = IdentityIssuingRequest.GenerateRequest(Keypair.GenerateKeypair(KeypairType.IdentityKey), 0);
-            } 
-            catch (Exception e) 
-            {
-                if (e is ArgumentException) { return; }
-                throw e;
-            } 
-            Assert.IsTrue(false, $"Expected NotSupportedException not thrown");
-        }
-    
+    {  
         [TestMethod]
         public void GenerateRequestTest2()
         {
@@ -47,15 +32,6 @@ namespace ShiftEverywhere.DiMETest
         public void VerifyTest1()
         {
             IdentityIssuingRequest iir = IdentityIssuingRequest.GenerateRequest(Keypair.GenerateKeypair(KeypairType.IdentityKey));
-            iir.Verify();
-        }
-
-        [TestMethod]
-        public void VerifyTest2()
-        {
-            Keypair keypair1 = Keypair.GenerateKeypair(KeypairType.IdentityKey);
-            Keypair keypair2 = Keypair.GenerateKeypair(KeypairType.IdentityKey);
-            IdentityIssuingRequest iir = IdentityIssuingRequest.GenerateRequest( new Keypair(Guid.NewGuid(), KeypairType.IdentityKey, keypair1.publicKey, keypair2.privateKey), 1);
             iir.Verify();
         }
 

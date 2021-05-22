@@ -16,25 +16,19 @@ namespace ShiftEverywhere.DiME
         /* PUBLIC */
         [JsonIgnore(Condition = JsonIgnoreCondition.Always)]
         public int profile { get; private set; }
-        [JsonPropertyName("kid")]
-        public Guid id { get;}
-        [JsonPropertyName("kty")]
-        public KeypairType type { get; private set; }
-        [JsonPropertyName("pub")]
-        public string publicKey { get; private set; }
-        [JsonPropertyName("prv")][JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-        public string privateKey { get; private set; }
+        public Guid id { get { return this.json.kid; } }
+        public KeypairType type { get { return this.json.kty; } }
+        public string publicKey { get { return this.json.pub; } }
+        public string privateKey { get { return this.json.prv; } }
 
-        public Keypair(Guid id, KeypairType type, string publicKey, string privateKey, int profile = Crypto.DEFUALT_PROFILE)
+        [JsonConstructor]
+        internal Keypair(Guid id, KeypairType type, string publicKey, string privateKey, int profile)
         {
             if (!Crypto.SupportedProfile(profile)) { throw new UnsupportedProfileException(); }
             if (id == null || publicKey == null || privateKey == null) { throw new ArgumentNullException(); }
-            this.id = id;
-            this.type = type;
-            this.publicKey = publicKey;
-            this.privateKey = privateKey;  
+            this.json = new Keypair.JSONData(id, type, publicKey, privateKey);
             this.profile = profile;
-            this.encoded = null;          
+            this.encoded = null;
         }
 
         public static Keypair GenerateKeypair(KeypairType type, int profile = Crypto.DEFUALT_PROFILE)
@@ -50,8 +44,8 @@ namespace ShiftEverywhere.DiME
             int profile = int.Parse(components[0].Substring(1));
             if (!Crypto.SupportedProfile(profile)) { throw new UnsupportedProfileException(); }
             byte[] json = Utility.FromBase64(components[1]);
-            Keypair keypair = JsonSerializer.Deserialize<Keypair>(json);
-            keypair.profile = profile;
+            Keypair.JSONData parameters = JsonSerializer.Deserialize<Keypair.JSONData>(json);
+            Keypair keypair = new Keypair(parameters, profile);
             return keypair;
         }
 
@@ -64,7 +58,33 @@ namespace ShiftEverywhere.DiME
         private const string HEADER = "k";
         private string encoded;
 
-        public string Encode()
+        private struct JSONData
+        {
+            public Guid kid { get; set; }
+            public KeypairType kty { get; set; }
+            public string pub { get; set; }
+            [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+            public string prv { get; set; }
+
+            public JSONData(Guid kid, KeypairType kty, string pub, string prv)
+            {
+                this.kid = kid;
+                this.kty = kty;
+                this.pub = pub;
+                this.prv = prv;
+            }
+        }
+        private JSONData json;
+
+        private Keypair(JSONData parameters, int profile = Crypto.DEFUALT_PROFILE)
+        {
+            if (!Crypto.SupportedProfile(profile)) { throw new UnsupportedProfileException(); }
+            this.json = parameters;
+            this.profile = profile;
+            this.encoded = null;
+        }
+
+        private string Encode()
         {
             if ( this.encoded == null ) 
             {  
@@ -72,7 +92,7 @@ namespace ShiftEverywhere.DiME
                 builder.AppendFormat("{0}{1}.{2}", 
                                     Keypair.HEADER,
                                     this.profile, 
-                                    Utility.ToBase64(JsonSerializer.Serialize(this)));
+                                    Utility.ToBase64(JsonSerializer.Serialize(this.json)));
                 this.encoded = builder.ToString();
             }
             return this.encoded;
