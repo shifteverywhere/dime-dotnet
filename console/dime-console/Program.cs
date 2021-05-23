@@ -49,7 +49,7 @@ namespace ShiftEverywhere.DiMEConsole
             string backEndEnvelopeEncoded = backEndEnvelope.Export(prg.trustedKeypair.privateKey);
             // Send 'backEndEnvelopeEncoded' to mobile
             Envelope backEndEnvelopeAtMobile = Envelope.Import(backEndEnvelopeEncoded);
-            string messagePayload = System.Text.Encoding.UTF8.GetString(backEndEnvelopeAtMobile.messages[0].payload, 0, backEndEnvelopeAtMobile.messages[0].payload.Length);
+            string messagePayload = System.Text.Encoding.UTF8.GetString(backEndEnvelopeAtMobile.messages[0].GetPayload(), 0, backEndEnvelopeAtMobile.messages[0].GetPayload().Length);
             Console.WriteLine("Message from service provider: " + messagePayload);
             Message mobileResponseMessage = prg.GenerateMessage(prg.mobileIdentity.subjectId, prg.serviceProviderIdentity, "Yes, it is!");
             mobileResponseMessage.LinkMessage(backEndEnvelopeAtMobile.messages[0]); // link the mobile response to the received service provider message       
@@ -65,7 +65,7 @@ namespace ShiftEverywhere.DiMEConsole
             string finalBackEndEnvelopeEncoded = finalBackEndEnvelope.Export(prg.trustedKeypair.privateKey);
             // Send 'finalBackEndEnvelopeEncoded' to service provider
             Envelope finalBackEndEnvelopeAtServiceProvider = Envelope.Import(finalBackEndEnvelopeEncoded);
-            string responcePayload = System.Text.Encoding.UTF8.GetString(finalBackEndEnvelopeAtServiceProvider.messages[1].payload, 0, finalBackEndEnvelopeAtServiceProvider.messages[1].payload.Length);
+            string responcePayload = System.Text.Encoding.UTF8.GetString(finalBackEndEnvelopeAtServiceProvider.messages[1].GetPayload(), 0, finalBackEndEnvelopeAtServiceProvider.messages[1].GetPayload().Length);
             Console.WriteLine("Responce from mobile: " + responcePayload);
         }
     }

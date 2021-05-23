@@ -15,12 +15,13 @@ namespace ShiftEverywhere.DiME
         public Guid issuerId { get { return this.json.iss; } }
         public long issuedAt { get { return this.json.iat; } }
         public long expiresAt { get { return this.json.exp; } }
+        public bool isImmutable { get; private set; } = false;
 
         public Envelope(Identity issuerIdentity, Guid subjectId, long issuedAt, long expiresAt, int profile = Crypto.DEFUALT_PROFILE)
         {
             if (!Crypto.SupportedProfile(profile)) { throw new ArgumentException("Unsupported cryptography profile."); }
             this.identity = issuerIdentity;
-            this.json = new JSONData(subjectId, issuerIdentity.subjectId, issuedAt, expiresAt);
+            this.json = new JSONData(Guid.NewGuid(), subjectId, issuerIdentity.subjectId, issuedAt, expiresAt);
             this.profile = profile;
         }
 
@@ -84,17 +85,18 @@ namespace ShiftEverywhere.DiME
         /* PRIVATE */
         private const string HEADER = "E";
         private string signature;
-        private bool isImmutable = false;
         private string encoded;
         private struct JSONData
         {
-            public Guid sub;
-            public Guid iss;
-            public long iat;
-            public long exp;
+            public Guid uid { get; set; }
+            public Guid sub { get; set; }
+            public Guid iss { get; set; }
+            public long iat { get; set; }
+            public long exp { get; set; }
 
-            public JSONData(Guid sub, Guid iss, long iat, long exp)
+            public JSONData(Guid uid, Guid sub, Guid iss, long iat, long exp)
             {
+                this.uid = uid;
                 this.sub = sub;
                 this.iss = iss;
                 this.iat = iat;

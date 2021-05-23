@@ -79,9 +79,11 @@ namespace ShiftEverywhere.DiME
         public void VerifyTrust()
         {
             if (Identity.trustedIdentity == null) { throw new ArgumentNullException("No trusted identity set."); }
-            try {
+            try 
+            {
                 Crypto.VerifySignature(this.profile, this.Encode(), this.signature, Identity.trustedIdentity.identityKey);
-            } catch (IntegrityException) 
+            } 
+            catch (IntegrityException) 
             {
                 throw new UntrustedIdentityException();
             }
