@@ -12,15 +12,18 @@ namespace ShiftEverywhere.DiMETest
         {
             int profile = 1;
             Guid subjectId = Guid.NewGuid();
-            Keypair keypair = Keypair.GenerateKeypair(KeypairType.IdentityKey, profile);
-            Identity identity = Identity.IssueIdentity(IdentityIssuingRequest.GenerateRequest(keypair), subjectId, keypair);
-            Assert.IsTrue(profile == identity.profile);
-            Assert.IsTrue(subjectId == identity.subjectId);
-            Assert.IsTrue(subjectId == identity.issuerId);
-            Assert.IsTrue(keypair.publicKey == identity.identityKey);
-            Assert.IsTrue(identity.issuedAt != 0);
-            Assert.IsTrue(identity.issuedAt < identity.expiresAt);
-            Assert.IsTrue(subjectId == identity.issuerId);
+            Keypair keypair = Keypair.GenerateKeypair(KeypairType.Identity, profile);
+            Identity.Capability[] caps = new Identity.Capability[2] { Identity.Capability.Issue, Identity.Capability.Authorize };
+            Identity identity = Identity.IssueIdentity(IdentityIssuingRequest.GenerateRequest(keypair, caps), subjectId, caps, keypair);
+            Assert.IsTrue(profile == identity.Profile);
+            Assert.IsTrue(subjectId == identity.SubjectId);
+            Assert.IsTrue(subjectId == identity.IssuerId);
+            Assert.IsTrue(identity.HasCapability(caps[0]));
+            Assert.IsTrue(identity.HasCapability(caps[1]));
+            Assert.IsTrue(keypair.PublicKey == identity.identityKey);
+            Assert.IsTrue(identity.IssuedAt != 0);
+            Assert.IsTrue(identity.IssuedAt < identity.ExpiresAt);
+            Assert.IsTrue(subjectId == identity.IssuerId);
         }
 
         [TestMethod]
@@ -29,22 +32,36 @@ namespace ShiftEverywhere.DiMETest
             IdentityTests.SetTrustedIdentity();
             int profile = 1;
             Guid subjectId = Guid.NewGuid();
-            Keypair keypair = Keypair.GenerateKeypair(KeypairType.IdentityKey, profile);
+            Keypair keypair = Keypair.GenerateKeypair(KeypairType.Identity, profile);
+            Identity.Capability[] caps = new Identity.Capability[1] { Identity.Capability.Authorize };
             IdentityIssuingRequest iir = IdentityIssuingRequest.GenerateRequest(keypair);
-            Identity identity = Identity.IssueIdentity(iir, subjectId, IdentityTests.rootKeypair, Identity.trustedIdentity);
-            Assert.IsTrue(profile == identity.profile);
-            Assert.IsTrue(subjectId == identity.subjectId);
-            Assert.IsTrue(keypair.publicKey == identity.identityKey);
-            Assert.IsTrue(identity.issuedAt != 0);
-            Assert.IsTrue(identity.issuedAt < identity.expiresAt);
-            Assert.IsTrue(Identity.trustedIdentity.subjectId == identity.issuerId);
+            Identity identity = Identity.IssueIdentity(iir, subjectId, caps, IdentityTests.rootKeypair, Identity.TrustedIdentity);
+            Assert.IsTrue(profile == identity.Profile);
+            Assert.IsTrue(subjectId == identity.SubjectId);
+            Assert.IsTrue(identity.HasCapability(caps[0]));
+            Assert.IsTrue(keypair.PublicKey == identity.identityKey);
+            Assert.IsTrue(identity.IssuedAt != 0);
+            Assert.IsTrue(identity.IssuedAt < identity.ExpiresAt);
+            Assert.IsTrue(Identity.TrustedIdentity.SubjectId == identity.IssuerId);
         }
-    
+
+       [TestMethod]
+        public void IssueIdentityTest3()
+        {
+            IdentityTests.SetTrustedIdentity();
+            Identity.Capability[] caps = new Identity.Capability[1] { Identity.Capability.Issue };
+            IdentityIssuingRequest iir = IdentityIssuingRequest.GenerateRequest(Keypair.GenerateKeypair(KeypairType.Identity));
+            try {
+                Identity identity = Identity.IssueIdentity(iir, Guid.NewGuid(), caps, IdentityTests.rootKeypair, Identity.TrustedIdentity);
+            } catch (IdentityCapabilityException) { /* All is well */ }
+        }
+
         [TestMethod]
         public void IsSelfSignedTest1()
         {
-            Keypair keypair = Keypair.GenerateKeypair(KeypairType.IdentityKey);
-            Identity identity = Identity.IssueIdentity(IdentityIssuingRequest.GenerateRequest(keypair), Guid.NewGuid(), keypair);
+            Keypair keypair = Keypair.GenerateKeypair(KeypairType.Identity);
+            Identity.Capability[] caps = new Identity.Capability[2] { Identity.Capability.Issue, Identity.Capability.Authorize };
+            Identity identity = Identity.IssueIdentity(IdentityIssuingRequest.GenerateRequest(keypair, caps), Guid.NewGuid(), caps, keypair);
             Assert.IsTrue(identity.IsSelfSigned());
         }
 
@@ -52,8 +69,9 @@ namespace ShiftEverywhere.DiMETest
         public void IsSelfSignedTest2()
         {
             IdentityTests.SetTrustedIdentity();
-            IdentityIssuingRequest iir = IdentityIssuingRequest.GenerateRequest(Keypair.GenerateKeypair(KeypairType.IdentityKey));
-            Identity identity = Identity.IssueIdentity(iir, Guid.NewGuid(), IdentityTests.rootKeypair);
+            Identity.Capability[] caps = new Identity.Capability[1] { Identity.Capability.Authorize };
+            IdentityIssuingRequest iir = IdentityIssuingRequest.GenerateRequest(Keypair.GenerateKeypair(KeypairType.Identity));
+            Identity identity = Identity.IssueIdentity(iir, Guid.NewGuid(), caps, IdentityTests.rootKeypair, Identity.TrustedIdentity);
             Assert.IsFalse(identity.IsSelfSigned());
         }
 
@@ -62,9 +80,10 @@ namespace ShiftEverywhere.DiMETest
         {
             try 
             {
-                Identity.trustedIdentity = null;
-                Keypair keypair = Keypair.GenerateKeypair(KeypairType.IdentityKey);
-                Identity identity = Identity.IssueIdentity(IdentityIssuingRequest.GenerateRequest(keypair), Guid.NewGuid(), keypair);
+                Identity.TrustedIdentity = null;
+                Identity.Capability[] caps = new Identity.Capability[1] { Identity.Capability.Authorize };
+                Keypair keypair = Keypair.GenerateKeypair(KeypairType.Identity);
+                Identity identity = Identity.IssueIdentity(IdentityIssuingRequest.GenerateRequest(keypair), Guid.NewGuid(), caps, keypair);
                 identity.VerifyTrust();
             } 
             catch (Exception e) 
@@ -79,57 +98,58 @@ namespace ShiftEverywhere.DiMETest
         public void VerifyTrustTest2()
         {
             IdentityTests.SetTrustedIdentity();
-            Identity identity = Identity.IssueIdentity(IdentityIssuingRequest.GenerateRequest(Keypair.GenerateKeypair(KeypairType.IdentityKey)), Guid.NewGuid(), IdentityTests.rootKeypair);
+            Identity.Capability[] caps = new Identity.Capability[1] { Identity.Capability.Authorize };
+            Identity identity = Identity.IssueIdentity(IdentityIssuingRequest.GenerateRequest(Keypair.GenerateKeypair(KeypairType.Identity)), Guid.NewGuid(), caps, IdentityTests.rootKeypair, Identity.TrustedIdentity);
             identity.VerifyTrust();
         }
 
         [TestMethod]
         public void VerifyTrustTest3()
         {
-            try
-            {
-                IdentityTests.SetTrustedIdentity();
-                Keypair keypair = Keypair.GenerateKeypair(KeypairType.IdentityKey);
-                Identity identity = Identity.IssueIdentity(IdentityIssuingRequest.GenerateRequest(keypair), Guid.NewGuid(), keypair);
+            Identity.Capability[] caps = new Identity.Capability[1] { Identity.Capability.Authorize };
+            Keypair keypair = Keypair.GenerateKeypair(KeypairType.Identity);
+            Identity identity = Identity.IssueIdentity(IdentityIssuingRequest.GenerateRequest(keypair), Guid.NewGuid(), caps, keypair);
+            IdentityTests.SetTrustedIdentity();
+            try {
                 identity.VerifyTrust();
-            }
-            catch (UntrustedIdentityException)
-            {
-                // All is well
-            }
+            } catch (UntrustedIdentityException) { return; } // All is well
+            Assert.IsTrue(false, "This should not happen.");
         }
 
         [TestMethod]
         public void ExportTest1()
         {
-            Keypair keypair = Crypto.GenerateKeyPair(1, KeypairType.IdentityKey);
-            Identity identity = Identity.IssueIdentity(IdentityIssuingRequest.GenerateRequest(keypair), Guid.NewGuid(), keypair);
+            Identity.Capability[] caps = new Identity.Capability[1] { Identity.Capability.Authorize };
+            Keypair keypair = Crypto.GenerateKeyPair(1, KeypairType.Identity);
+            Identity identity = Identity.IssueIdentity(IdentityIssuingRequest.GenerateRequest(keypair), Guid.NewGuid(), caps, keypair);
             string encoded = identity.Export();
             Assert.IsNotNull(encoded);
             Assert.IsTrue(encoded.Length > 0);
-            Assert.IsTrue(encoded.StartsWith("I" + identity.profile.ToString()));
+            Assert.IsTrue(encoded.StartsWith("I" + identity.Profile.ToString()));
             Assert.IsTrue(encoded.Split(new char[] { '.' }).Length == 3);
         }
 
         [TestMethod]
         public void ImportTest1()
         {
-            string encoded = "I1.eyJzdWIiOiI5OGFkZTRhYy02YzExLTQzYWYtYjQ3NS1hOGQ5MjMwN2JmOTQiLCJpc3MiOiI5OGFkZTRhYy02YzExLTQzYWYtYjQ3NS1hOGQ5MjMwN2JmOTQiLCJpYXQiOjE2MjE1Mzc1MjksImV4cCI6MTY1MzA3MzUyOSwiaWt5IjoiTUNvd0JRWURLMlZ3QXlFQXFYL014XHUwMDJCRkcxNUFEbnVPVGIwWENLVi9CMG5aSzFrN21GY3NJU2twczJWdyJ9.NBWnpkewhWgNUfs6SMAM9oFNvnYpn4rmFcW8DdeKe0gVMft4vfjMoJP9ydraE1aw1807GCK60Sk5svblpYP7DQ";
+            string encoded = "I1.eyJzdWIiOiI0NjFiNTI5Yy1iNjk0LTQxODItOGU5My0xNjliMjg1MjRlNWEiLCJpc3MiOiI0NjFiNTI5Yy1iNjk0LTQxODItOGU5My0xNjliMjg1MjRlNWEiLCJpYXQiOjE2MjE4OTEwMDcsImV4cCI6MTY1MzQyNzAwNywiaWt5IjoiTUNvd0JRWURLMlZ3QXlFQXVzR0FcdTAwMkI1aTU5a0k3SmlUTXY5VlJcdTAwMkJsNkkzNXIzbmw4VlphVmhGdWpKTWlRIiwiY2FwIjpbImF1dGhvcml6ZSJdfQ.NSQJoG/E2qke3/BCK9M9qGa+p+vB0qYuFbG149uyEhDJ9eKVrSoTEsVAY736SW0O+a1eY8cuxABWguvCq4OXBQ";
             Identity identity = Identity.Import(encoded);
             Assert.IsNotNull(identity);
-            Assert.AreEqual(identity.profile, 1);
-            Assert.AreEqual(new Guid("98ade4ac-6c11-43af-b475-a8d92307bf94"), identity.subjectId);
-            Assert.AreEqual(1621537529, identity.issuedAt);
-            Assert.AreEqual(1653073529, identity.expiresAt);
-            Assert.AreEqual(new Guid("98ade4ac-6c11-43af-b475-a8d92307bf94"), identity.issuerId);
-            Assert.AreEqual(identity.identityKey, "MCowBQYDK2VwAyEAqX/Mx\u002BFG15ADnuOTb0XCKV/B0nZK1k7mFcsISkps2Vw");
+            Assert.AreEqual(identity.Profile, 1);
+            Assert.AreEqual(new Guid("461b529c-b694-4182-8e93-169b28524e5a"), identity.SubjectId);
+            Assert.AreEqual(1621891007, identity.IssuedAt);
+            Assert.AreEqual(1653427007, identity.ExpiresAt);
+            Assert.AreEqual(new Guid("461b529c-b694-4182-8e93-169b28524e5a"), identity.IssuerId);
+            Assert.AreEqual(identity.identityKey, "MCowBQYDK2VwAyEAusGA\u002B5i59kI7JiTMv9VR\u002Bl6I35r3nl8VZaVhFujJMiQ");
+            Assert.IsTrue(identity.HasCapability(Identity.Capability.Authorize));
         }
 
         private static void SetTrustedIdentity()
         {
-            IdentityTests.rootKeypair = Keypair.GenerateKeypair(KeypairType.IdentityKey);
-            IdentityIssuingRequest irr = IdentityIssuingRequest.GenerateRequest(IdentityTests.rootKeypair);
-            Identity.trustedIdentity = Identity.IssueIdentity(irr, Guid.NewGuid(), IdentityTests.rootKeypair);
+            Identity.Capability[] caps = new Identity.Capability[2] { Identity.Capability.Issue, Identity.Capability.Authorize };
+            IdentityTests.rootKeypair = Keypair.GenerateKeypair(KeypairType.Identity);
+            IdentityIssuingRequest irr = IdentityIssuingRequest.GenerateRequest(IdentityTests.rootKeypair, caps);
+            Identity.TrustedIdentity = Identity.IssueIdentity(irr, Guid.NewGuid(), caps, IdentityTests.rootKeypair);
         }
 
         private static Keypair rootKeypair;

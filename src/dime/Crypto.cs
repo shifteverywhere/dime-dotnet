@@ -41,10 +41,10 @@ namespace ShiftEverywhere.DiME
             parameters.ExportPolicy = KeyExportPolicies.AllowPlaintextExport;
             switch (type)
             {
-                case KeypairType.IdentityKey:
+                case KeypairType.Identity:
                     key = new Key(SignatureAlgorithm.Ed25519, parameters);
                     break;
-                case KeypairType.ExchangeKey:
+                case KeypairType.Exchange:
                     key = new Key(KeyAgreementAlgorithm.X25519, parameters);
                     break;
                 default:

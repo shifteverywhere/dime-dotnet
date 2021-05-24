@@ -21,7 +21,7 @@ namespace ShiftEverywhere.DiME
         {
             if (!Crypto.SupportedProfile(profile)) { throw new ArgumentException("Unsupported cryptography profile."); }
             this.identity = issuerIdentity;
-            this.json = new JSONData(Guid.NewGuid(), subjectId, issuerIdentity.subjectId, issuedAt, expiresAt);
+            this.json = new JSONData(Guid.NewGuid(), subjectId, issuerIdentity.SubjectId, issuedAt, expiresAt);
             this.profile = profile;
         }
 

@@ -39,6 +39,7 @@ namespace ShiftEverywhere.DiME
         public IntegrityException(SerializationInfo info, StreamingContext context) : base(info, context) { }
     }
 
+    [Serializable]
     public class DateExpirationException : Exception
     {
         public DateExpirationException() : base() { }
@@ -47,6 +48,7 @@ namespace ShiftEverywhere.DiME
         public DateExpirationException(SerializationInfo info, StreamingContext context) : base(info, context) { }
     }
 
+    [Serializable]
     public class KeyMissmatchException : Exception
     {
         public KeyMissmatchException() : base() { }
@@ -55,12 +57,22 @@ namespace ShiftEverywhere.DiME
         public KeyMissmatchException(SerializationInfo info, StreamingContext context) : base(info, context) { }
     }
 
-        public class ImmutableException : Exception
-        {
-            public ImmutableException() : base() { }
-            public ImmutableException(string message) : base(message) { }
-            public ImmutableException(string message, Exception innerException) : base(message, innerException) { }
-            public ImmutableException(SerializationInfo info, StreamingContext context) : base(info, context) { }
-            }
+    [Serializable]
+    public class ImmutableException : Exception
+    {
+        public ImmutableException() : base() { }
+        public ImmutableException(string message) : base(message) { }
+        public ImmutableException(string message, Exception innerException) : base(message, innerException) { }
+        public ImmutableException(SerializationInfo info, StreamingContext context) : base(info, context) { }
+    }
+
+    [Serializable]
+    public class IdentityCapabilityException : Exception
+    {
+        public IdentityCapabilityException() : base() { }
+        public IdentityCapabilityException(string message) : base(message) { }
+        public IdentityCapabilityException(string message, Exception innerException) : base(message, innerException) { }
+        public IdentityCapabilityException(SerializationInfo info, StreamingContext context) : base(info, context) { }
+    }
 
 }

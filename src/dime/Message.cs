@@ -7,29 +7,29 @@ namespace ShiftEverywhere.DiME
 {
     public class Message
     {
-        /* PUBLIC */
-        public int profile { get; private set; }
-        public Identity identity { get; private set; }
-        public byte[] state;
-        public Guid id { get { return this.json.uid; } }
-        public Guid subjectId { get { return this.json.sub; } }
-        public Guid issuerId { get { return this.json.iss; } }
-        public long issuedAt { get { return this.json.iat; } }
-        public long expiresAt { get { return this.json.exp; } }
-        public string exchangeKey { get { return this.json.xky; } }
-        public string linkedTo { get { return this.json.lnk; } }
-        public bool isImmutable { get; private set; } = false;
+        #region -- PUBLIC --
+        public int Profile { get; private set; }
+        public Identity Identity { get; private set; }
+        public byte[] State;
+        public Guid Id { get { return this.json.uid; } }
+        public Guid SubjectId { get { return this.json.sub; } }
+        public Guid IssuerId { get { return this.json.iss; } }
+        public long IssuedAt { get { return this.json.iat; } }
+        public long ExpiresAt { get { return this.json.exp; } }
+        public string ExchangeKey { get { return this.json.xky; } }
+        public string LinkedTo { get { return this.json.lnk; } }
+        public bool IsImmutable { get; private set; } = false;
 
         public Message(Guid subjectId, Identity issuerIdentity, byte[] payload, long validFor)
         {
-            if (!Crypto.SupportedProfile(issuerIdentity.profile)) { throw new UnsupportedProfileException(); }
+            if (!Crypto.SupportedProfile(issuerIdentity.Profile)) { throw new UnsupportedProfileException(); }
             if (issuerIdentity == null || payload == null) { throw new NullReferenceException(); }
             long now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
             if (validFor <= 0) { throw new DateExpirationException("Message must be valid for at least 1 second."); }
-            this.profile = issuerIdentity.profile;
-            this.identity = issuerIdentity;
+            this.Profile = issuerIdentity.Profile;
+            this.Identity = issuerIdentity;
             this.payload = payload;
-            this.json = new Message.JSONData(Guid.NewGuid(), subjectId, issuerIdentity.subjectId, now, (now + validFor));
+            this.json = new Message.JSONData(Guid.NewGuid(), subjectId, issuerIdentity.SubjectId, now, (now + validFor));
         }
 
         public static Message Import(string encoded, Message linkedMessage = null)
@@ -49,29 +49,29 @@ namespace ShiftEverywhere.DiME
             message.payload = Utility.FromBase64(components[3]);
             if(components.Length == 6)
             {
-                message.state = Utility.FromBase64(components[4]);
+                message.State = Utility.FromBase64(components[4]);
             }
             message.encoded = messagePart;
             message.signature = signature;
             message.Verify(linkedMessage != null ? linkedMessage.Export() : null);
-            message.isImmutable = true;
+            message.IsImmutable = true;
             return message;
         }
 
         public string Export(string issuerIdentityPrivateKey = null)
         {
-            if (!this.isImmutable) {
+            if (!this.IsImmutable) {
                 // TODO: encrypt payload here
                 this.encoded = Encode();
                 if (this.signature == null && issuerIdentityPrivateKey == null) { throw new NullReferenceException("Need private key to sign message for export."); }
                 if (issuerIdentityPrivateKey != null)
                 {
-                    this.signature = Crypto.GenerateSignature(this.profile, this.encoded, issuerIdentityPrivateKey);
-                    this.isImmutable = true;
+                    this.signature = Crypto.GenerateSignature(this.Profile, this.encoded, issuerIdentityPrivateKey);
+                    this.IsImmutable = true;
                 }
             }
             if (this.signature == null) { throw new IntegrityException("Missing signature."); }
-            Crypto.VerifySignature(this.profile, this.encoded, this.signature, this.identity.identityKey);
+            Crypto.VerifySignature(this.Profile, this.encoded, this.signature, this.Identity.identityKey);
             return this.encoded + "." + this.signature;
         }
 
@@ -93,12 +93,12 @@ namespace ShiftEverywhere.DiME
 
         public void LinkMessage(Message message)
         {
-            if (this.isImmutable) { throw new ArgumentException("Message is immutable and cannot be changed."); } // TODO: another exception
+            if (this.IsImmutable) { throw new ArgumentException("Message is immutable and cannot be changed."); } // TODO: another exception
             if (message == null) { throw new ArgumentException("Message to link must not be null."); }
-            this.json.lnk = Crypto.GenerateHash(this.profile, message.Export());
+            this.json.lnk = Crypto.GenerateHash(this.Profile, message.Export());
         }
-
-        /* PRIVATE */
+        #endregion
+        #region -- PRIVATE --
         private const string HEADER = "M";
         private byte[] payload { get; set; }
         private string signature;
@@ -134,11 +134,11 @@ namespace ShiftEverywhere.DiME
         private Message(Identity issuerIdentity, Message.JSONData parameters, byte[] payload, int profile = Crypto.DEFUALT_PROFILE)
         {
             if ( issuerIdentity == null || payload == null ) { throw new ArgumentNullException(); }
-            this.identity = issuerIdentity;
-            this.identity = issuerIdentity;
+            this.Identity = issuerIdentity;
+            this.Identity = issuerIdentity;
             this.json = parameters;
             this.payload = payload;
-            this.profile = profile;
+            this.Profile = profile;
         }
 
         private string Encode()
@@ -148,8 +148,8 @@ namespace ShiftEverywhere.DiME
                 var builder = new StringBuilder(); 
                 builder.AppendFormat("{0}{1}.{2}.{3}", 
                                     Message.HEADER,
-                                    this.profile,
-                                    Utility.ToBase64(this.identity.Export()),
+                                    this.Profile,
+                                    Utility.ToBase64(this.Identity.Export()),
                                     Utility.ToBase64(JsonSerializer.Serialize(this.json)));
                 if ( this.json.xky != null )
                 {
@@ -160,9 +160,9 @@ namespace ShiftEverywhere.DiME
                 {
                     builder.AppendFormat(".{0}", Utility.ToBase64(this.payload));
                 }
-                if ( this.state != null)
+                if ( this.State != null)
                 {
-                    builder.AppendFormat(".{0}", Utility.ToBase64(this.state));
+                    builder.AppendFormat(".{0}", Utility.ToBase64(this.State));
                 }
                 this.encoded = builder.ToString();
             }
@@ -175,11 +175,12 @@ namespace ShiftEverywhere.DiME
             if (now < this.json.iat || now > this.json.exp) { throw new DateExpirationException(); }
             if (this.json.lnk != null && linkedMessage != null)
             {
-                string msgHash = Crypto.GenerateHash(this.profile, linkedMessage);
+                string msgHash = Crypto.GenerateHash(this.Profile, linkedMessage);
                 if (msgHash != this.json.lnk) { throw new IntegrityException("Linked message mismatch."); }
             }
-            Crypto.VerifySignature(this.profile, this.Encode(), this.signature, this.identity.identityKey);
+            Crypto.VerifySignature(this.Profile, this.Encode(), this.signature, this.Identity.identityKey);
         }
+        #endregion
 
     }
 

@@ -7,27 +7,25 @@ namespace ShiftEverywhere.DiME
 {
     public enum KeypairType: int
     {
-        IdentityKey = 1,
-        ExchangeKey = 2
+        Identity = 1,
+        Exchange = 2
     }
 
     public struct Keypair
     {
-        /* PUBLIC */
-        [JsonIgnore(Condition = JsonIgnoreCondition.Always)]
-        public int profile { get; private set; }
-        public Guid id { get { return this.json.kid; } }
-        public KeypairType type { get { return this.json.kty; } }
-        public string publicKey { get { return this.json.pub; } }
-        public string privateKey { get { return this.json.prv; } }
+        #region -- PUBLIC --
+        public int Profile { get; private set; }
+        public Guid Id { get { return this.json.kid; } }
+        public KeypairType Type { get { return this.json.kty; } }
+        public string PublicKey { get { return this.json.pub; } }
+        public string PrivateKey { get { return this.json.prv; } }
 
-        [JsonConstructor]
         internal Keypair(Guid id, KeypairType type, string publicKey, string privateKey, int profile)
         {
             if (!Crypto.SupportedProfile(profile)) { throw new UnsupportedProfileException(); }
-            if (id == null || publicKey == null || privateKey == null) { throw new ArgumentNullException(); }
+            if (publicKey == null || privateKey == null) { throw new ArgumentNullException(); }
             this.json = new Keypair.JSONData(id, type, publicKey, privateKey);
-            this.profile = profile;
+            this.Profile = profile;
             this.encoded = null;
         }
 
@@ -53,8 +51,8 @@ namespace ShiftEverywhere.DiME
         {
             return Encode();
         } 
-
-        /* PRIVATE */
+        #endregion
+        #region -- PRIVATE --
         private const string HEADER = "k";
         private string encoded;
 
@@ -80,7 +78,7 @@ namespace ShiftEverywhere.DiME
         {
             if (!Crypto.SupportedProfile(profile)) { throw new UnsupportedProfileException(); }
             this.json = parameters;
-            this.profile = profile;
+            this.Profile = profile;
             this.encoded = null;
         }
 
@@ -91,12 +89,13 @@ namespace ShiftEverywhere.DiME
                 var builder = new StringBuilder(); 
                 builder.AppendFormat("{0}{1}.{2}", 
                                     Keypair.HEADER,
-                                    this.profile, 
+                                    this.Profile, 
                                     Utility.ToBase64(JsonSerializer.Serialize(this.json)));
                 this.encoded = builder.ToString();
             }
             return this.encoded;
         }
+        #endregion
     }
 
 }
