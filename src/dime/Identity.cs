@@ -13,6 +13,7 @@ namespace ShiftEverywhere.DiME
         {
             Issue, Authorize, Authenticate
         }
+        public const long VALID_FOR_1_YEAR = 365 * 24 * 60 * 60;
         public static Identity TrustedIdentity;
         /// <summary>The cryptography profile that is used with the identity.</summary>
         public int Profile { get; private set; }
@@ -68,12 +69,12 @@ namespace ShiftEverywhere.DiME
         /// <param name="issuerKeypair">The key pair of the issuer.</param>
         /// <param name="issuerIdentitys">The identity of the issuer (optional).</param>
         /// <returns>Returns an imutable Identity instance.</returns>
-        public static Identity IssueIdentity(string iir, Guid subjectId, Identity.Capability[] allowedCapabilities, Keypair issuerKeypair, Identity issuerIdentity = null)
+        public static Identity Issue(string iir, Guid subjectId, Identity.Capability[] allowedCapabilities, long validFor, Keypair issuerKeypair, Identity issuerIdentity)
         {
-            return Identity.IssueIdentity(IdentityIssuingRequest.Import(iir), subjectId, allowedCapabilities, issuerKeypair, issuerIdentity);
+            return Identity.Issue(IdentityIssuingRequest.Import(iir), subjectId, allowedCapabilities, validFor, issuerKeypair, issuerIdentity);
         }
 
-        public static Identity IssueIdentity(IdentityIssuingRequest iir, Guid subjectId, Identity.Capability[] allowedCapabilities, Keypair issuerIdentityKeypair, Identity issuerIdentity = null) 
+        public static Identity Issue(IdentityIssuingRequest iir, Guid subjectId, Identity.Capability[] allowedCapabilities, long validFor, Keypair issuerKeypair, Identity issuerIdentity) 
         {    
             if (allowedCapabilities == null) {
                 allowedCapabilities = new Identity.Capability[] { Identity.Capability.Authorize };
@@ -84,8 +85,8 @@ namespace ShiftEverywhere.DiME
             {
                 long now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
                 Guid issuerId = issuerIdentity != null ? issuerIdentity.SubjectId : subjectId;
-                Identity identity = new Identity(subjectId, iir.IdentityKey, now, now + Identity.DEFAULT_VALID_FOR, issuerId, iir.capabilities, iir.Profile);
-                identity.signature = Crypto.GenerateSignature(identity.Profile, identity.Encode(), issuerIdentityKeypair.PrivateKey);
+                Identity identity = new Identity(subjectId, iir.IdentityKey, now, (now + validFor), issuerId, iir.capabilities, iir.Profile);
+                identity.signature = Crypto.GenerateSignature(identity.Profile, identity.Encode(), issuerKeypair.PrivateKey);
                 if (Identity.TrustedIdentity != null && issuerIdentity.SubjectId != Identity.TrustedIdentity.SubjectId)
                 {
                     // The chain will only be set if this is not the trusted identity (and as long as one is set)
@@ -158,7 +159,6 @@ namespace ShiftEverywhere.DiME
         #region -- PRIVATE --
 
         private const string HEADER = "I";
-        private const long DEFAULT_VALID_FOR = 365 * 24 * 60 * 60;
         private string signature;
         private string encoded;
         private struct JSONData

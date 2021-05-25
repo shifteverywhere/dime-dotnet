@@ -194,7 +194,7 @@ namespace ShiftEverywhere.DiMETest
             issuerMessage1.AddPayload(Encoding.UTF8.GetBytes("Racecar is racecar backwards."));
             Message issuerMessage2 = new Message(receiver.SubjectId, issuer, 100);
             issuerMessage2.AddPayload(Encoding.UTF8.GetBytes("Racecar is racecar backwards."));
-
+            // TODO: something missing?
         }
 
         #region -- PRIVATE --
@@ -206,14 +206,14 @@ namespace ShiftEverywhere.DiMETest
             {
                 Identity.Capability[] caps = new Identity.Capability[2] { Identity.Capability.Issue, Identity.Capability.Authorize };
                 this.trustedKeypair = Keypair.GenerateKeypair(KeypairType.Identity);
-                this.trustedIdentity = Identity.IssueIdentity(IdentityIssuingRequest.GenerateRequest(this.trustedKeypair, caps), Guid.NewGuid(), caps, this.trustedKeypair);
+                this.trustedIdentity = Identity.Issue(IdentityIssuingRequest.GenerateRequest(this.trustedKeypair, caps), Guid.NewGuid(), caps, 100, this.trustedKeypair, null);
             }
             Identity.TrustedIdentity = this.trustedIdentity;
         }
         private Identity GetIdentity(Keypair keypair)
         {
             Identity.Capability[] caps = new Identity.Capability[1] { Identity.Capability.Authorize };
-            return Identity.IssueIdentity(IdentityIssuingRequest.GenerateRequest(keypair), Guid.NewGuid(), caps, this.trustedKeypair, Identity.TrustedIdentity);
+            return Identity.Issue(IdentityIssuingRequest.GenerateRequest(keypair), Guid.NewGuid(), caps, 100, this.trustedKeypair, Identity.TrustedIdentity);
         }
         #endregion
         

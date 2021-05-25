@@ -28,7 +28,7 @@ namespace ShiftEverywhere.DiMEConsole
         {
             Identity.Capability[] caps = new Identity.Capability[2] {Identity.Capability.Authorize, Identity.Capability.Authorize};
             IdentityIssuingRequest iir = IdentityIssuingRequest.GenerateRequest(keypair, caps);            
-            return Identity.IssueIdentity(iir, Guid.NewGuid(), caps, this.trustedKeypair, this.trustedIdentity);
+            return Identity.Issue(iir, Guid.NewGuid(), caps, Identity.DEFAULT_VALID_FOR, this.trustedKeypair, this.trustedIdentity);
         }
 
         public Message GenerateMessage(Guid subjectId, Identity issuerIdentity, string payload)
