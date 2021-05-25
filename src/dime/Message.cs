@@ -5,121 +5,154 @@ using System.Text.Json.Serialization;
 
 namespace ShiftEverywhere.DiME
 {
+    /// <summary></summary>
     public class Message
     {
         #region -- PUBLIC --
-        public int Profile { get; private set; }
-        public Identity Identity { get; private set; }
-        public byte[] State;
-        public Guid Id { get { return this.json.uid; } }
-        public Guid SubjectId { get { return this.json.sub; } }
-        public Guid IssuerId { get { return this.json.iss; } }
-        public long IssuedAt { get { return this.json.iat; } }
-        public long ExpiresAt { get { return this.json.exp; } }
-        public string ExchangeKey { get { return this.json.xky; } }
-        public string LinkedTo { get { return this.json.lnk; } }
-        public bool IsImmutable { get; private set; } = false;
+        /// <summary></summary>
+        public int Profile { get { return this._profile; } set { Reset(); this._profile = value; } }
+        /// <summary></summary>
+        public Identity Identity { get { return this._identity; } set { Reset(); this._identity = value; } }
+        /// <summary></summary>
+        public byte[] State { get { return this._state != null ? Utility.FromBase64(this._state) : null; } set { Reset(); this._state = value != null ? Utility.ToBase64(value) : null; } }
+        /// <summary>A unique identity for the message. If a message is modfied after it has been sealed, then this id changes.</summary>
+        public Guid Id { get { return this._data.uid; } }
+        /// <summary></summary>
+        public Guid SubjectId { get { return this._data.sub; } set { Reset(); this._data.sub = value; } }
+        /// <summary></summary>
+        public Guid IssuerId { get { return this._data.iss; } set { Reset(); this._data.iss = value; } }
+        /// <summary></summary>
+        public long IssuedAt { get { return this._data.iat; } set { Reset(); this._data.iat = value; } }
+        /// <summary></summary>
+        public long ExpiresAt { get { return this._data.exp; } set { Reset(); this._data.exp = value; } }
+        /// <summary></summary>
+        public string ExchangeKey { get { return this._data.xky; } set { Reset(); this._data.xky = value; } }
+        /// <summary></summary>
+        public string LinkedTo { get { return this._data.lnk; } set { Reset(); this._data.lnk = value; } }
+        /// <summary></summary>
+        public bool IsSealed { get { return this._signature != null; } }
 
-        public Message(Guid subjectId, Identity issuerIdentity, byte[] payload, long validFor)
+        /// <summary></summary>
+        public Message(Guid subjectId, Identity issuerIdentity, long validFor)
         {
-            if (!Crypto.SupportedProfile(issuerIdentity.Profile)) { throw new UnsupportedProfileException(); }
-            if (issuerIdentity == null || payload == null) { throw new NullReferenceException(); }
+            if (issuerIdentity == null) { throw new ArgumentNullException("issuerIdentity cannot be null"); }
             long now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-            if (validFor <= 0) { throw new DateExpirationException("Message must be valid for at least 1 second."); }
             this.Profile = issuerIdentity.Profile;
             this.Identity = issuerIdentity;
-            this.payload = payload;
-            this.json = new Message.JSONData(Guid.NewGuid(), subjectId, issuerIdentity.SubjectId, now, (now + validFor));
+            this._data = new Message.InternalData(Guid.NewGuid(), subjectId, issuerIdentity.SubjectId, now, (now + validFor));
         }
 
+        /// <summary></summary>
         public static Message Import(string encoded, Message linkedMessage = null)
         {
-            if (!encoded.StartsWith(Message.HEADER)) { throw new ArgumentException("Unexpected data format."); }
+            if (!encoded.StartsWith(Message._HEADER)) { throw new ArgumentException("Unexpected data format."); }
             string[] components = encoded.Split(new char[] { '.' });
             if (components.Length != 5 && components.Length != 6) { throw new ArgumentException("Unexpected number of components found when decoding identity."); }
             int profile = int.Parse(components[0].Substring(1));
             if (!Crypto.SupportedProfile(profile)) { throw new ArgumentException("Unsupported cryptography profile."); }
             byte[] identityBytes = Utility.FromBase64(components[1]);
             Identity identity = Identity.Import(System.Text.Encoding.UTF8.GetString(identityBytes, 0, identityBytes.Length));
-            identity.VerifyTrust();
             string messagePart = encoded.Substring(0, encoded.LastIndexOf('.'));
             string signature = components[components.Length - 1];
-            Message.JSONData parameters = JsonSerializer.Deserialize<Message.JSONData>(Utility.FromBase64(components[2]));
-            Message message = new Message(identity, parameters, Utility.FromBase64(components[2]), profile);
-            message.payload = Utility.FromBase64(components[3]);
+            Message.InternalData parameters = JsonSerializer.Deserialize<Message.InternalData>(Utility.FromBase64(components[2]));
+            Message message = new Message(identity, parameters, profile);
+            message._payload = components[3];
             if(components.Length == 6)
             {
-                message.State = Utility.FromBase64(components[4]);
+                message._state = components[4];
             }
-            message.encoded = messagePart;
-            message.signature = signature;
+            message._encoded = messagePart;
+            message._signature = signature;
             message.Verify(linkedMessage != null ? linkedMessage.Export() : null);
-            message.IsImmutable = true;
             return message;
         }
 
         public string Export(string issuerIdentityPrivateKey = null)
         {
-            if (!this.IsImmutable) {
-                // TODO: encrypt payload here
-                this.encoded = Encode();
-                if (this.signature == null && issuerIdentityPrivateKey == null) { throw new NullReferenceException("Need private key to sign message for export."); }
-                if (issuerIdentityPrivateKey != null)
-                {
-                    this.signature = Crypto.GenerateSignature(this.Profile, this.encoded, issuerIdentityPrivateKey);
-                    this.IsImmutable = true;
-                }
-            }
-            if (this.signature == null) { throw new IntegrityException("Missing signature."); }
-            Crypto.VerifySignature(this.Profile, this.encoded, this.signature, this.Identity.identityKey);
-            return this.encoded + "." + this.signature;
+            if (!this.IsSealed) { throw new IntegrityException("Signature missing, unable to export."); }
+            Verify();
+            return Encode() + "." + this._signature;
         }
 
-        public bool HasSignature()
+        public void Verify(string linkedMessage = null)
         {
-            return (this.signature != null && this.signature.Length > 0);
-        }
-
-        public byte[] GetPayload(string exchangePrivateKey = null)
-        {
-            if (this.json.xky != null && exchangePrivateKey == null) { throw new ArgumentNullException("Private key must be provided for encrypted payload."); } 
-            if (this.json.xky != null)
+            if (!Crypto.SupportedProfile(this.Profile)) { throw new UnsupportedProfileException("Unsupported cryptography profile version."); }
+            // Verify IssuedAt and ExpiresAt
+            long now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+            if (this.IssuedAt > now) { throw new DateExpirationException("Issuing date in the future."); }
+            if (this.IssuedAt > this.ExpiresAt) { throw new DateExpirationException("Expiration before issuing date."); }
+            if (this.ExpiresAt < now) { throw new DateExpirationException("Passed expiration date."); }
+            // Verify identity
+            this.Identity.VerifyTrust();
+            // Verify linkedMessage
+            if (this._data.lnk != null && linkedMessage != null)
             {
-                // TODO: decrypt payload
-                return this.payload;
+                string msgHash = Crypto.GenerateHash(this.Profile, linkedMessage);
+                if (msgHash != this._data.lnk) { throw new IntegrityException("Linked message mismatch."); }
             }
-            return this.payload;
+            // Verify signature
+            if (this._signature == null) { throw new IntegrityException("Signature missing."); }
+            if (this.Identity.SubjectId == this.IssuerId) { throw new IntegrityException("Issuing identity subject id does not match issuer id of the envelope."); }
+            Crypto.VerifySignature(this.Profile, Encode(), this._signature, this.Identity.identityKey);
+        }
+
+        public void Seal(string identityPrivateKey)
+        {
+            if (!this.IsSealed)
+            {
+                if (identityPrivateKey == null) { throw new ArgumentNullException("Private key for signing cannot be null."); }
+                this._signature = Crypto.GenerateSignature(this.Profile, Encode(), identityPrivateKey);
+            }
+        }
+
+        public static bool IsMessage(string encoded)
+        {
+            return encoded.StartsWith(Message._HEADER);
+        }
+
+        public void AddPayload(byte[] payload)
+        {
+            Reset();
+            // TODO: E2EE
+            this._payload = Utility.ToBase64(payload);
+        }
+
+        public byte[] GetPayload()
+        {
+            // TODO: E2EE
+            return Utility.FromBase64(this._payload);
         }
 
         public void LinkMessage(Message message)
         {
-            if (this.IsImmutable) { throw new ArgumentException("Message is immutable and cannot be changed."); } // TODO: another exception
-            if (message == null) { throw new ArgumentException("Message to link must not be null."); }
-            this.json.lnk = Crypto.GenerateHash(this.Profile, message.Export());
+            Reset();
+            if (message == null) { throw new ArgumentNullException("Message to link must not be null."); }
+            this._data.lnk = Crypto.GenerateHash(this.Profile, message.Export());
         }
         #endregion
-        #region -- PRIVATE --
-        private const string HEADER = "M";
-        private byte[] payload { get; set; }
-        private string signature;
-        private string encoded;
-        private struct JSONData
-        {
-            public Guid uid {get; set; }
-            public Guid sub {get; set; }
-            public Guid iss {get; set; }
-            public long iat {get; set; }
-            public long exp {get; set; }
-            [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-            public string xky {get; set; }
-            [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-            public string lnk {get; set; }
 
-            //[JsonConstructor]
-            public JSONData(Guid uid, Guid sub, Guid iss, long iat, long exp, string xky = null, string lnk = null)
+        #region -- PRIVATE --
+        private const string _HEADER = "M";
+        private int _profile;
+        private Identity _identity;
+        private string _state;
+        private string _payload;
+        private string _signature;
+        private string _encoded;
+        private struct InternalData
+        {
+            public Guid uid { get; set; }
+            public Guid sub { get; set; }
+            public Guid iss { get; set; }
+            public long iat { get; set; }
+            public long exp { get; set; }
+            [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+            public string xky { get; set; }
+            [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+            public string lnk { get; set; }
+
+            public InternalData(Guid uid, Guid sub, Guid iss, long iat, long exp, string xky = null, string lnk = null)
             {
-                if (DateTimeOffset.UtcNow.ToUnixTimeSeconds() > exp) { throw new ArgumentException("Expiration must be in the future."); }
-                if (iat > exp) { throw new ArgumentException("Expiration must be after issue date."); }
                 this.uid = uid;
                 this.sub = sub;
                 this.iss = iss;
@@ -129,56 +162,50 @@ namespace ShiftEverywhere.DiME
                 this.lnk = lnk;
             }
         }
-        private Message.JSONData json;
+        private Message.InternalData _data;
 
-        private Message(Identity issuerIdentity, Message.JSONData parameters, byte[] payload, int profile = Crypto.DEFUALT_PROFILE)
+        private Message(Identity issuerIdentity, Message.InternalData parameters, int profile = Crypto.DEFUALT_PROFILE)
         {
-            if ( issuerIdentity == null || payload == null ) { throw new ArgumentNullException(); }
+            if (issuerIdentity == null) { throw new ArgumentNullException("issuerIdentity cannot be null"); }
             this.Identity = issuerIdentity;
             this.Identity = issuerIdentity;
-            this.json = parameters;
-            this.payload = payload;
+            this._data = parameters;
             this.Profile = profile;
         }
 
         private string Encode()
         {
-            if ( this.encoded == null ) 
+            if ( this._encoded == null ) 
             {  
+                // TODO: verify all values (payload == null ??)
                 var builder = new StringBuilder(); 
                 builder.AppendFormat("{0}{1}.{2}.{3}", 
-                                    Message.HEADER,
+                                    Message._HEADER,
                                     this.Profile,
                                     Utility.ToBase64(this.Identity.Export()),
-                                    Utility.ToBase64(JsonSerializer.Serialize(this.json)));
-                if ( this.json.xky != null )
+                                    Utility.ToBase64(JsonSerializer.Serialize(this._data)));
+                if ( this._data.xky != null )
                 {
-                    // TODO: encrypt payplaod
-                    builder.AppendFormat(".{0}", Utility.ToBase64(this.payload));
+                    builder.AppendFormat(".{0}", Utility.ToBase64(this._payload));
                 }
                 else
                 {
-                    builder.AppendFormat(".{0}", Utility.ToBase64(this.payload));
+                    builder.AppendFormat(".{0}", Utility.ToBase64(this._payload));
                 }
                 if ( this.State != null)
                 {
                     builder.AppendFormat(".{0}", Utility.ToBase64(this.State));
                 }
-                this.encoded = builder.ToString();
+                this._encoded = builder.ToString();
             }
-            return this.encoded;
+            return this._encoded;
         }
 
-        private void Verify(string linkedMessage = null)
+        private void Reset()
         {
-            long now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-            if (now < this.json.iat || now > this.json.exp) { throw new DateExpirationException(); }
-            if (this.json.lnk != null && linkedMessage != null)
-            {
-                string msgHash = Crypto.GenerateHash(this.Profile, linkedMessage);
-                if (msgHash != this.json.lnk) { throw new IntegrityException("Linked message mismatch."); }
-            }
-            Crypto.VerifySignature(this.Profile, this.Encode(), this.signature, this.Identity.identityKey);
+            this._data.uid = Guid.NewGuid();
+            this._encoded = null;
+            this._signature = null;
         }
         #endregion
 

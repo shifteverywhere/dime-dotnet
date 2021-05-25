@@ -75,4 +75,13 @@ namespace ShiftEverywhere.DiME
         public IdentityCapabilityException(SerializationInfo info, StreamingContext context) : base(info, context) { }
     }
 
+    [Serializable]
+    public class DataFormatException : Exception
+    {
+        public DataFormatException() : base() { }
+        public DataFormatException(string message) : base(message) { }
+        public DataFormatException(string message, Exception innerException) : base(message, innerException) { }
+        public DataFormatException(SerializationInfo info, StreamingContext context) : base(info, context) { }
+    }
+
 }

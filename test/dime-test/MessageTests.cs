@@ -18,7 +18,8 @@ namespace ShiftEverywhere.DiMETest
             Identity issuer = this.GetIdentity(keypair);
             byte[] payload = Encoding.UTF8.GetBytes("Racecar is racecar backwards.");
             long now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-            Message message = new Message(subjectId, issuer, payload, 10);
+            Message message = new Message(subjectId, issuer, 10);
+            message.AddPayload(payload);
             Assert.IsTrue(1 == message.Profile);
             Assert.IsNotNull(message.Id);
             Assert.AreEqual(subjectId, message.SubjectId);
@@ -36,8 +37,10 @@ namespace ShiftEverywhere.DiMETest
             Identity issuer = this.GetIdentity(Keypair.GenerateKeypair(KeypairType.Identity));
             byte[] payload = Encoding.UTF8.GetBytes("Racecar is racecar backwards.");
             long validFor = 10;
-            Message message1 = new Message(subjectId, issuer, payload, validFor);
-            Message message2 = new Message(subjectId, issuer, payload, validFor);
+            Message message1 = new Message(subjectId, issuer, validFor);
+            message1.AddPayload(payload);
+            Message message2 = new Message(subjectId, issuer, validFor);
+            message2.AddPayload(payload);
             Assert.AreNotEqual(message1.Id, message2.Id);
         }
 
@@ -47,14 +50,9 @@ namespace ShiftEverywhere.DiMETest
             this.SetTrustedIdentity();
             Identity identity = this.GetIdentity(Keypair.GenerateKeypair(KeypairType.Identity));
             try {
-                Message message = new Message(Guid.NewGuid(), null, Encoding.UTF8.GetBytes("Racecar is racecar backwards."), 10);
-            } catch (NullReferenceException) { /* All is well */ }            
-            try {
-                Message message = new Message(Guid.NewGuid(), identity, null, 10);
-            } catch (NullReferenceException) { /* All is well */ }            
-            try {
-                Message message = new Message(Guid.NewGuid(), null, null, 10);
-            } catch (NullReferenceException) { /* All is well */ }            
+                Message message = new Message(Guid.NewGuid(), null, 10);
+            } catch (NullReferenceException) { return; } // All is well
+            Assert.IsTrue(false, "Should not happen.");         
         }
 
         [TestMethod]
@@ -62,8 +60,9 @@ namespace ShiftEverywhere.DiMETest
         {
             this.SetTrustedIdentity();
             try{
-                Message message = new Message(Guid.NewGuid(), this.GetIdentity(Keypair.GenerateKeypair(KeypairType.Identity)), Encoding.UTF8.GetBytes("Racecar is racecar backwards."), -10);
-            } catch (DateExpirationException) { /* All is well */ }            
+                Message message = new Message(Guid.NewGuid(), this.GetIdentity(Keypair.GenerateKeypair(KeypairType.Identity)), -10);
+            } catch (DateExpirationException) { return; } // All is well
+            Assert.IsTrue(false, "Should not happen.");     
         }
 
         [TestMethod]
@@ -71,7 +70,7 @@ namespace ShiftEverywhere.DiMETest
         {  
             this.SetTrustedIdentity();
             Keypair keypair = Keypair.GenerateKeypair(KeypairType.Identity);
-            Message message = new Message(Guid.NewGuid(), this.GetIdentity(keypair), Encoding.UTF8.GetBytes("Racecar is racecar backwards."), 10);
+            Message message = new Message(Guid.NewGuid(), this.GetIdentity(keypair), 10);
             string encoded = message.Export(keypair.PrivateKey);
             Assert.IsNotNull(encoded);
             Assert.IsTrue(encoded.Length > 0);
@@ -83,10 +82,11 @@ namespace ShiftEverywhere.DiMETest
         public void MessageExport2()
         {  
             this.SetTrustedIdentity();
-            Message message = new Message(Guid.NewGuid(), this.GetIdentity(Keypair.GenerateKeypair(KeypairType.Identity)), Encoding.UTF8.GetBytes("Racecar is racecar backwards."), 10);
+            Message message = new Message(Guid.NewGuid(), this.GetIdentity(Keypair.GenerateKeypair(KeypairType.Identity)), 10);
             try {
                 message.Export();
-            } catch (NullReferenceException) { /* All is well */ }
+            } catch (IntegrityException) { return; } // All is well
+            Assert.IsTrue(false, "Should not happen.");
         }  
 
         [TestMethod]
@@ -94,7 +94,8 @@ namespace ShiftEverywhere.DiMETest
         {  
             this.SetTrustedIdentity();
             Keypair keypair = Keypair.GenerateKeypair(KeypairType.Identity);
-            Message message = new Message(Guid.NewGuid(), this.GetIdentity(keypair), Encoding.UTF8.GetBytes("Racecar is racecar backwards."), 10);
+            Message message = new Message(Guid.NewGuid(), this.GetIdentity(keypair), 10);
+            message.AddPayload(Encoding.UTF8.GetBytes("Racecar is racecar backwards."));
             message.Export(keypair.PrivateKey);
             message.Export();
         }
@@ -141,10 +142,11 @@ namespace ShiftEverywhere.DiMETest
             this.SetTrustedIdentity();
             Keypair keypair = Keypair.GenerateKeypair(KeypairType.Identity);
             Identity issuer = this.GetIdentity(keypair);
-            Message message = new Message(Guid.NewGuid(), issuer, Encoding.UTF8.GetBytes("Racecar is racecar backwards."), 10);
-            Assert.IsFalse(message.HasSignature());
-            message.Export(keypair.PrivateKey);
-            Assert.IsTrue(message.HasSignature());
+            Message message = new Message(Guid.NewGuid(), issuer, 10);
+            message.AddPayload(Encoding.UTF8.GetBytes("Racecar is racecar backwards."));
+            Assert.IsFalse(message.IsSealed);
+            message.Seal(keypair.PrivateKey);
+            Assert.IsTrue(message.IsSealed);
         }
 
         [TestMethod]
@@ -154,7 +156,8 @@ namespace ShiftEverywhere.DiMETest
             Keypair keypair = Keypair.GenerateKeypair(KeypairType.Identity);
             Identity issuer = this.GetIdentity(keypair);
             byte[] payload = Encoding.UTF8.GetBytes("Racecar is racecar backwards.");
-            Message message = new Message(Guid.NewGuid(), issuer, payload, 10);
+            Message message = new Message(Guid.NewGuid(), issuer, 10);
+            message.AddPayload(payload);
             Assert.AreEqual(payload, message.GetPayload());
             message.Export(keypair.PrivateKey);
             Assert.AreEqual(payload, message.GetPayload());
@@ -168,11 +171,13 @@ namespace ShiftEverywhere.DiMETest
             Identity issuer = this.GetIdentity(issuerKeypair);
             Keypair receiverKeypair = Keypair.GenerateKeypair(KeypairType.Identity);
             Identity receiver = this.GetIdentity(receiverKeypair);
-            Message issuerMessage = new Message(receiver.SubjectId, issuer, Encoding.UTF8.GetBytes("Racecar is racecar backwards."), 100);
+            Message issuerMessage = new Message(receiver.SubjectId, issuer, 100);
+            issuerMessage.AddPayload(Encoding.UTF8.GetBytes("Racecar is racecar backwards."));
             string issuerEncoded = issuerMessage.Export(issuerKeypair.PrivateKey);
             
             Message receivedMessage = Message.Import(issuerEncoded);
-            Message responseMessage = new Message(issuer.SubjectId, receiver, Encoding.UTF8.GetBytes("It is!"), 100);
+            Message responseMessage = new Message(issuer.SubjectId, receiver, 100);
+            responseMessage.AddPayload(Encoding.UTF8.GetBytes("It is!"));
             responseMessage.LinkMessage(receivedMessage);
             string responseEncoded = responseMessage.Export(receiverKeypair.PrivateKey);
 
@@ -185,13 +190,14 @@ namespace ShiftEverywhere.DiMETest
             Identity issuer = this.GetIdentity(issuerKeypair);
             Keypair receiverKeypair = Keypair.GenerateKeypair(KeypairType.Identity);
             Identity receiver = this.GetIdentity(receiverKeypair);
-            Message issuerMessage1 = new Message(receiver.SubjectId, issuer, Encoding.UTF8.GetBytes("Racecar is racecar backwards."), 100);
-            Message issuerMessage2 = new Message(receiver.SubjectId, issuer, Encoding.UTF8.GetBytes("Racecar is racecar backwards."), 100);
+            Message issuerMessage1 = new Message(receiver.SubjectId, issuer, 100);
+            issuerMessage1.AddPayload(Encoding.UTF8.GetBytes("Racecar is racecar backwards."));
+            Message issuerMessage2 = new Message(receiver.SubjectId, issuer, 100);
+            issuerMessage2.AddPayload(Encoding.UTF8.GetBytes("Racecar is racecar backwards."));
 
         }
 
-
-        /* PRIVATE */
+        #region -- PRIVATE --
         private Identity trustedIdentity;
         private Keypair trustedKeypair;
         private void SetTrustedIdentity()
@@ -209,6 +215,7 @@ namespace ShiftEverywhere.DiMETest
             Identity.Capability[] caps = new Identity.Capability[1] { Identity.Capability.Authorize };
             return Identity.IssueIdentity(IdentityIssuingRequest.GenerateRequest(keypair), Guid.NewGuid(), caps, this.trustedKeypair, Identity.TrustedIdentity);
         }
+        #endregion
         
     }
 
