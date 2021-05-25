@@ -11,20 +11,19 @@ namespace ShiftEverywhere.DiMETest
         [TestMethod]
         public void MessageTest1()
         {
-            this.SetTrustedIdentity();
+            Identity.TrustedIdentity = Commons.TrustedIdentity;
             int profile = 1;
             Guid subjectId = Guid.NewGuid();
-            Keypair keypair = Keypair.GenerateKeypair(KeypairType.Identity, profile);
-            Identity issuer = this.GetIdentity(keypair);
-            byte[] payload = Encoding.UTF8.GetBytes("Racecar is racecar backwards.");
+            Keypair keypair = Keypair.Generate(KeypairType.Identity, profile);
+            Identity issuer = Commons.SenderIdentity;
             long now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
             Message message = new Message(subjectId, issuer, 10);
-            message.AddPayload(payload);
+            message.AddPayload(Encoding.UTF8.GetBytes("Racecar is racecar backwards."));
             Assert.IsTrue(1 == message.Profile);
             Assert.IsNotNull(message.Id);
             Assert.AreEqual(subjectId, message.SubjectId);
-            Assert.AreEqual(issuer.identityKey, message.Identity.identityKey);
-            Assert.AreEqual(payload, message.GetPayload());
+            Assert.AreEqual(issuer.IdentityKey, message.Identity.IdentityKey);
+            Assert.AreEqual("Racecar is racecar backwards.", System.Text.Encoding.UTF8.GetString(message.GetPayload()));
             Assert.IsTrue(message.IssuedAt >= now && message.IssuedAt <= (now + 1));
             Assert.IsTrue(message.ExpiresAt >= (now + 10) && message.ExpiresAt <= (now + 10));
         }
@@ -32,9 +31,9 @@ namespace ShiftEverywhere.DiMETest
         [TestMethod]
         public void MessageTest2()
         {
-            this.SetTrustedIdentity();
+            Identity.TrustedIdentity = Commons.TrustedIdentity;
             Guid subjectId = Guid.NewGuid();
-            Identity issuer = this.GetIdentity(Keypair.GenerateKeypair(KeypairType.Identity));
+            Identity issuer = Commons.SenderIdentity;
             byte[] payload = Encoding.UTF8.GetBytes("Racecar is racecar backwards.");
             long validFor = 10;
             Message message1 = new Message(subjectId, issuer, validFor);
@@ -47,31 +46,20 @@ namespace ShiftEverywhere.DiMETest
         [TestMethod]
         public void MessageTest3()
         {
-            this.SetTrustedIdentity();
-            Identity identity = this.GetIdentity(Keypair.GenerateKeypair(KeypairType.Identity));
             try {
                 Message message = new Message(Guid.NewGuid(), null, 10);
-            } catch (NullReferenceException) { return; } // All is well
+            } catch (ArgumentNullException) { return; } // All is well
             Assert.IsTrue(false, "Should not happen.");         
         }
 
         [TestMethod]
-        public void MessageTest4()
-        {
-            this.SetTrustedIdentity();
-            try{
-                Message message = new Message(Guid.NewGuid(), this.GetIdentity(Keypair.GenerateKeypair(KeypairType.Identity)), -10);
-            } catch (DateExpirationException) { return; } // All is well
-            Assert.IsTrue(false, "Should not happen.");     
-        }
-
-        [TestMethod]
-        public void MessageExport1()
+        public void ExportTest1()
         {  
-            this.SetTrustedIdentity();
-            Keypair keypair = Keypair.GenerateKeypair(KeypairType.Identity);
-            Message message = new Message(Guid.NewGuid(), this.GetIdentity(keypair), 10);
-            string encoded = message.Export(keypair.PrivateKey);
+            Identity.TrustedIdentity = Commons.TrustedIdentity;
+            Message message = new Message(Guid.NewGuid(), Commons.SenderIdentity, 10);
+            message.AddPayload(Encoding.UTF8.GetBytes("Racecar is racecar backwards."));
+            message.Seal(Commons.SenderKeypair.PrivateKey);
+            string encoded = message.Export();
             Assert.IsNotNull(encoded);
             Assert.IsTrue(encoded.Length > 0);
             Assert.IsTrue(encoded.StartsWith("M" + message.Profile.ToString()));
@@ -79,10 +67,10 @@ namespace ShiftEverywhere.DiMETest
         }  
 
         [TestMethod]
-        public void MessageExport2()
+        public void ExportTest2()
         {  
-            this.SetTrustedIdentity();
-            Message message = new Message(Guid.NewGuid(), this.GetIdentity(Keypair.GenerateKeypair(KeypairType.Identity)), 10);
+            Identity.TrustedIdentity = Commons.TrustedIdentity;
+            Message message = new Message(Guid.NewGuid(), Commons.SenderIdentity, 10);
             try {
                 message.Export();
             } catch (IntegrityException) { return; } // All is well
@@ -90,133 +78,120 @@ namespace ShiftEverywhere.DiMETest
         }  
 
         [TestMethod]
-        public void MessageExport3()
+        public void ExportTest3()
         {  
-            this.SetTrustedIdentity();
-            Keypair keypair = Keypair.GenerateKeypair(KeypairType.Identity);
-            Message message = new Message(Guid.NewGuid(), this.GetIdentity(keypair), 10);
+            Identity.TrustedIdentity = Commons.TrustedIdentity;
+            Message message = new Message(Guid.NewGuid(), Commons.SenderIdentity, 10);
             message.AddPayload(Encoding.UTF8.GetBytes("Racecar is racecar backwards."));
-            message.Export(keypair.PrivateKey);
-            message.Export();
+            message.Seal(Commons.SenderKeypair.PrivateKey);
+            Assert.AreEqual(message.Export(), message.Export());
         }
 
         [TestMethod]
-        public void MessageImport1()
+        public void ExportTest4()
+        {
+            Identity.TrustedIdentity = Commons.TrustedIdentity;
+            try{
+                Message message = new Message(Guid.NewGuid(), Commons.SenderIdentity, -10);
+                message.Seal(Commons.SenderKeypair.PrivateKey);
+                message.Export();
+            } catch (DateExpirationException) { return; } // All is well
+            Assert.IsTrue(false, "Should not happen.");     
+        }
+
+        [TestMethod]
+        public void ImportTest1()
         {   
-            // TODO: need a static trusted identity to work
-            /*
+            Identity.TrustedIdentity = Commons.TrustedIdentity;
             string encoded = "M1.STEuZXlKemRXSWlPaUl4TkRRM09XSXdOeTB5TnpCa0xUUTJPRFF0WVRZMlppMWpaR0prT1Rrd1lUUTVaVElpTENKcGMzTWlPaUl4TkRRM09XSXdOeTB5TnpCa0xUUTJPRFF0WVRZMlppMWpaR0prT1Rrd1lUUTVaVElpTENKcFlYUWlPakUyTWpFNE1EQTBNVGNzSW1WNGNDSTZNVFkxTXpNek5qUXhOeXdpYVd0NUlqb2lUVU52ZDBKUldVUkxNbFozUVhsRlFVWm1OalJPWmxWRVkxbElkMHhuV1RFeFdXMVNSQzh6UkM4NGRFTXdZVTh6Uld4U1owWm9SbnBFVGtVaWZRLnVSTDRFbVVyUFlXeXBHcDdQMjN6NUluMnNZQ3JtZlNTWDA0MVR0UmlpckFqVlRzYWY2ODRUR3Z5dzV4UUJCWGRtOUFzcnUvQkMzdDlxeUhBNE9heUJ3.eyJ1aWQiOiIxMTkwMjY0OS1kN2I2LTQxNjYtYWUxMS0zNzUxMjM0YTAwNjAiLCJzdWIiOiJlZjE4ZDYwZi05OWJkLTQ3YmMtYjdjMS1kZGQwMDBjZWVmNGYiLCJpc3MiOiIxNDQ3OWIwNy0yNzBkLTQ2ODQtYTY2Zi1jZGJkOTkwYTQ5ZTIiLCJpYXQiOjE2MjE4MDA0MTcsImV4cCI6MTkzNzE2MDQxN30.UmFjZWNhciBpcyByYWNlY2FyIGJhY2t3YXJkcy4.nPCPXBeZRedCtEGmrOXDSTowdR00MaWMENBQhg7X7qrcySvF7OeIEOvEteOqs0hhpA/5z6qS1bU6kviVriReDg";
             Message message = Message.Import(encoded);
-            Assert.AreEqual(1, message.profile);
-            Assert.AreEqual(new Guid("11902649-d7b6-4166-ae11-3751234a0060"), message.id);
-            Assert.AreEqual(new Guid("ef18d60f-99bd-47bc-b7c1-ddd000ceef4f"), message.subjectId);
-            Assert.AreEqual(new Guid("14479b07-270d-4684-a66f-cdbd990a49e2"), message.issuerId);
+            Assert.AreEqual(1, message.Profile);
+            Assert.AreEqual(new Guid("6d51de7e-0755-4c05-9c20-ef32f0fc5710"), message.Id);
+            Assert.AreEqual(new Guid("e945c60a-9987-4185-b2c0-61b7876180b1"), message.SubjectId);
+            Assert.AreEqual(new Guid("ab5b8c0d-fd28-4c30-842f-347b48c86dbc"), message.IssuerId);
             Assert.AreEqual(Encoding.UTF8.GetBytes("Racecar is racecar backwards."), message.GetPayload());
-            Assert.AreEqual(1621800417, message.issuedAt);
-            Assert.AreEqual(1937160417, message.expiresAt);
-            Assert.IsNull(message.state);
-            Assert.IsNotNull(message.identity);
-            Assert.AreEqual(message.issuerId, message.identity.subjectId);
-            Assert.AreEqual(new Guid("14479b07-270d-4684-a66f-cdbd990a49e2"), message.identity.issuerId);
-            Assert.AreEqual(1621800417, message.identity.issuedAt);
-            Assert.AreEqual(1653336417, message.identity.expiresAt);
-            Assert.AreEqual("MCowBQYDK2VwAyEAFf64NfUDcYHwLgY11YmRD/3D/8tC0aO3ElRgFhFzDNE", message.identity.identityKey);
-            */
+            Assert.AreEqual(1621975130, message.IssuedAt);
+            Assert.AreEqual(1653511130, message.ExpiresAt);
+            Assert.IsNull(message.State);
+            Assert.IsNotNull(message.Identity);
+            Assert.AreEqual(message.IssuerId, message.Identity.SubjectId);
+            Assert.AreEqual(new Guid("71e2be5c-71ed-42b4-bf92-8fbbfe62077c"), message.Identity.IssuerId);
+            Assert.AreEqual(1621972024, message.Identity.IssuedAt);
+            Assert.AreEqual(1653508024, message.Identity.ExpiresAt);
+            Assert.AreEqual("MCowBQYDK2VwAyEAiStduJzpuKjsKJ5\u002BnO9DtGCNKZbpPFM5O4TDG35KEHg", message.Identity.IdentityKey);
         } 
 
         [TestMethod]
-        public void MessageImport2()
+        public void ImportTest2()
         {  
-            // TODO: need a static trusted identity to work
-            /*
-            string encoded = "M1.STEuZXlKemRXSWlPaUprTVRrd05HSTJOeTFsT0dSbExUUTRZVEl0T1RJNE5pMWlZell4WlRKaE9HWmxNaklpTENKcGMzTWlPaUprTVRrd05HSTJOeTFsT0dSbExUUTRZVEl0T1RJNE5pMWlZell4WlRKaE9HWmxNaklpTENKcFlYUWlPakUyTWpFNE1EQTBOakFzSW1WNGNDSTZNVFkxTXpNek5qUTJNQ3dpYVd0NUlqb2lUVU52ZDBKUldVUkxNbFozUVhsRlFVZDViUzlyTlhkY2RUQXdNa0pEZDNWTVpXUnlaSEJUT1U0ME9IZE9ZMDlWY21zM1MycEtOVEo1Y1RONmVUbFJTU0o5Lk1vajE2ZjVwT2VsenhmYUFlTWNtVDZRNnZHdVQ1Ti96aVlqcjJGVjhlWStzOGRMay9ZRnFhMTQ4MWJmZStFcmhXd2ZJU2djUFVEaVRIeGQ2a0x4aUJB.eyJ1aWQiOiJiNmUwNGYxNC1jYzE1LTQzN2QtYTc1Ni1jNTJhYTNiNjk0NTYiLCJzdWIiOiI1Njk1N2NhNS0zOGEzLTQ0YTAtYTNkYS1mZTE3ZmM2NTQzNjEiLCJpc3MiOiJkMTkwNGI2Ny1lOGRlLTQ4YTItOTI4Ni1iYzYxZTJhOGZlMjIiLCJpYXQiOjE2MjE4MDA0NjAsImV4cCI6MTYyMTgwMDQ3MH0.UmFjZWNhciBpcyByYWNlY2FyIGJhY2t3YXJkcy4.Tt4T8XmMqQcl3E5FdYCsqXie3VruuTSGK4UvIIJtTVyAzHQyRcJM6KnMf7vtGV2oI9kshcxFtAksSYg3PQy8AA";
+            Identity.TrustedIdentity = Commons.TrustedIdentity;
+            string encoded = "M1.STEuZXlKemRXSWlPaUpoWWpWaU9HTXdaQzFtWkRJNExUUmpNekF0T0RReVppMHpORGRpTkRoak9EWmtZbU1pTENKcGMzTWlPaUkzTVdVeVltVTFZeTAzTVdWa0xUUXlZalF0WW1ZNU1pMDRabUppWm1VMk1qQTNOMk1pTENKcFlYUWlPakUyTWpFNU56SXdNalFzSW1WNGNDSTZNVFkxTXpVd09EQXlOQ3dpYVd0NUlqb2lUVU52ZDBKUldVUkxNbFozUVhsRlFXbFRkR1IxU25wd2RVdHFjMHRLTlZ4MU1EQXlRbTVQT1VSMFIwTk9TMXBpY0ZCR1RUVlBORlJFUnpNMVMwVklaeUlzSW1OaGNDSTZXeUpoZFhSb2IzSnBlbVVpWFgwLndDV20xT3ExMHFVK3hPYVZVTTJwR1dHUmQxakgxc2FWYXRGMUc2Zy93UFUySHY5dGFSWGhINGtWVWc0NnFjcU0yTTRKd0JVZm8xbWM2dU10Z1JOSkJR.eyJ1aWQiOiI1ZWRkMmFkZS1mZjRiLTQ1YzktODMyMy1iOTE4YWJmYWZkMjEiLCJzdWIiOiJiMzIyNTU3NC1jYTNkLTRlYWItODNlMC03NjU1MDE2ZWEyMmQiLCJpc3MiOiJhYjViOGMwZC1mZDI4LTRjMzAtODQyZi0zNDdiNDhjODZkYmMiLCJpYXQiOjE2MjE5NzU2MzAsImV4cCI6MTYyMTk3NTY0MH0.UmFjZWNhciBpcyByYWNlY2FyIGJhY2t3YXJkcy4.Ci96jemhp5bsuwyEmbh8nKOwFa5YPnQ28+CqHfc3rfE4EOlQdAEGCrknctXsMv4FRoASwQy9P+yEjb4AF44aBA";
             try {
                 Message message = Message.Import(encoded);
-            } catch (DateExpirationException) { /* All is well *//* }
-            */
+            } catch (DateExpirationException) { return; } // All is well
+            Assert.IsTrue(false, "Should not happen.");
         }
 
         [TestMethod]
-        public void MessageHasSignatureTest1()
+        public void IsSealedTest1()
         {
-            this.SetTrustedIdentity();
-            Keypair keypair = Keypair.GenerateKeypair(KeypairType.Identity);
-            Identity issuer = this.GetIdentity(keypair);
+            Identity.TrustedIdentity = Commons.TrustedIdentity;
+            Identity issuer = Commons.SenderIdentity;
             Message message = new Message(Guid.NewGuid(), issuer, 10);
             message.AddPayload(Encoding.UTF8.GetBytes("Racecar is racecar backwards."));
             Assert.IsFalse(message.IsSealed);
-            message.Seal(keypair.PrivateKey);
+            message.Seal(Commons.SenderKeypair.PrivateKey);
             Assert.IsTrue(message.IsSealed);
         }
 
         [TestMethod]
-        public void MessageGetPayloadTest1()
+        public void GetPayloadTest1()
         {
-            this.SetTrustedIdentity();
-            Keypair keypair = Keypair.GenerateKeypair(KeypairType.Identity);
-            Identity issuer = this.GetIdentity(keypair);
-            byte[] payload = Encoding.UTF8.GetBytes("Racecar is racecar backwards.");
-            Message message = new Message(Guid.NewGuid(), issuer, 10);
-            message.AddPayload(payload);
-            Assert.AreEqual(payload, message.GetPayload());
-            message.Export(keypair.PrivateKey);
-            Assert.AreEqual(payload, message.GetPayload());
+            Identity.TrustedIdentity = Commons.TrustedIdentity;
+            Identity issuer = Commons.SenderIdentity;
+            Message message1 = new Message(Guid.NewGuid(), issuer, 100);
+            message1.AddPayload(Encoding.UTF8.GetBytes("Racecar is racecar backwards."));
+            Assert.AreEqual("Racecar is racecar backwards.", System.Text.Encoding.UTF8.GetString(message1.GetPayload()));
+            message1.Seal(Commons.SenderKeypair.PrivateKey);
+            string encoded = message1.Export();
+            Message message2 = Message.Import(encoded);
+            Assert.AreEqual("Racecar is racecar backwards.", System.Text.Encoding.UTF8.GetString(message2.GetPayload()));
         }
 
         [TestMethod]
-        public void MessageLinkMessageTest1()
+        public void LinkMessageTest1()
         {
-            this.SetTrustedIdentity();
-            Keypair issuerKeypair = Keypair.GenerateKeypair(KeypairType.Identity);
-            Identity issuer = this.GetIdentity(issuerKeypair);
-            Keypair receiverKeypair = Keypair.GenerateKeypair(KeypairType.Identity);
-            Identity receiver = this.GetIdentity(receiverKeypair);
+            Identity.TrustedIdentity = Commons.TrustedIdentity;
+            Identity issuer = Commons.SenderIdentity;
+            Identity receiver = Commons.ReceiverIdentity;
             Message issuerMessage = new Message(receiver.SubjectId, issuer, 100);
             issuerMessage.AddPayload(Encoding.UTF8.GetBytes("Racecar is racecar backwards."));
-            string issuerEncoded = issuerMessage.Export(issuerKeypair.PrivateKey);
+            issuerMessage.Seal(Commons.SenderKeypair.PrivateKey);
+            string issuerEncoded = issuerMessage.Export();
             
             Message receivedMessage = Message.Import(issuerEncoded);
             Message responseMessage = new Message(issuer.SubjectId, receiver, 100);
             responseMessage.AddPayload(Encoding.UTF8.GetBytes("It is!"));
             responseMessage.LinkMessage(receivedMessage);
-            string responseEncoded = responseMessage.Export(receiverKeypair.PrivateKey);
+            responseMessage.Seal(Commons.ReceiverKeypair.PrivateKey);
+            string responseEncoded = responseMessage.Export();
 
             Message finalMessage = Message.Import(responseEncoded, issuerMessage);
         }
 
-        public void MessageLinkMessageTest2()
+        [TestMethod]
+        public void LinkMessageTest2()
         {
-            Keypair issuerKeypair = Keypair.GenerateKeypair(KeypairType.Identity);
-            Identity issuer = this.GetIdentity(issuerKeypair);
-            Keypair receiverKeypair = Keypair.GenerateKeypair(KeypairType.Identity);
-            Identity receiver = this.GetIdentity(receiverKeypair);
+            Identity.TrustedIdentity = Commons.TrustedIdentity;
+            Identity issuer = Commons.SenderIdentity;
+            Identity receiver = Commons.ReceiverIdentity;
             Message issuerMessage1 = new Message(receiver.SubjectId, issuer, 100);
             issuerMessage1.AddPayload(Encoding.UTF8.GetBytes("Racecar is racecar backwards."));
             Message issuerMessage2 = new Message(receiver.SubjectId, issuer, 100);
             issuerMessage2.AddPayload(Encoding.UTF8.GetBytes("Racecar is racecar backwards."));
             // TODO: something missing?
         }
-
-        #region -- PRIVATE --
-        private Identity trustedIdentity;
-        private Keypair trustedKeypair;
-        private void SetTrustedIdentity()
-        {
-            if ( this.trustedIdentity == null)
-            {
-                Identity.Capability[] caps = new Identity.Capability[2] { Identity.Capability.Issue, Identity.Capability.Authorize };
-                this.trustedKeypair = Keypair.GenerateKeypair(KeypairType.Identity);
-                this.trustedIdentity = Identity.Issue(IdentityIssuingRequest.GenerateRequest(this.trustedKeypair, caps), Guid.NewGuid(), caps, 100, this.trustedKeypair, null);
-            }
-            Identity.TrustedIdentity = this.trustedIdentity;
-        }
-        private Identity GetIdentity(Keypair keypair)
-        {
-            Identity.Capability[] caps = new Identity.Capability[1] { Identity.Capability.Authorize };
-            return Identity.Issue(IdentityIssuingRequest.GenerateRequest(keypair), Guid.NewGuid(), caps, 100, this.trustedKeypair, Identity.TrustedIdentity);
-        }
-        #endregion
-        
+ 
     }
 
 }

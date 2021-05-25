@@ -157,8 +157,8 @@ namespace ShiftEverywhere.DiME
             }
             // Verify signature
             if (this._signature == null) { throw new IntegrityException("Signature missing."); }
-            if (this.Identity.SubjectId == this.IssuerId) { throw new IntegrityException("Issuing identity subject id does not match issuer id of the envelope."); }
-            Crypto.VerifySignature(this.Profile, Encode(), this._signature, this.Identity.identityKey);
+            if (this.Identity.SubjectId != this.IssuerId) { throw new IntegrityException("Issuing identity subject id does not match issuer id of the envelope."); }
+            Crypto.VerifySignature(this.Profile, Encode(), this._signature, this.Identity.IdentityKey);
         }
 
         #endregion

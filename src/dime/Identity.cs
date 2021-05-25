@@ -18,18 +18,17 @@ namespace ShiftEverywhere.DiME
         /// <summary>The cryptography profile that is used with the identity.</summary>
         public int Profile { get; private set; }
         /// <summary>A unique UUID (GUID) of the identity. Same as the "sub" field.</summary>
-        public Guid SubjectId { get { return this.json.sub; } }        
+        public Guid SubjectId { get { return this._data.sub; } }        
         /// <summary>The date when the identity was issued, i.e. approved by the issuer. Same as the "iat" field.</summary>
-        public long IssuedAt { get { return this.json.iat; } }
+        public long IssuedAt { get { return this._data.iat; } }
         /// <summary>The date when the identity will expire and should not be accepted anymore. Same as the "exp" field.</summary>
-        public long ExpiresAt { get { return this.json.exp; } } 
+        public long ExpiresAt { get { return this._data.exp; } } 
         /// <summary>A unique UUID (GUID) of the issuer of the identity. Same as the "iss" field. If same value as subjectId, then this is a self-issued identity.</summary>
-        public Guid IssuerId { get { return this.json.iss; } }
+        public Guid IssuerId { get { return this._data.iss; } }
         /// <summary>The public key associated with the identity. Same as the "iky" field.</summary>
-        public string identityKey { get { return this.json.iky; } }
+        public string IdentityKey { get { return this._data.iky; } }
         /// <summary>The trust chain of signed public keys.</summary>
         public Identity TrustChain { get; private set; }
-        public bool IsMutable { get; private set; } = true;
 
         #region -- Import/Export --
         /// <summary>Imports an identity from a DiME encoded string.</summary>
@@ -37,16 +36,16 @@ namespace ShiftEverywhere.DiME
         /// <returns>Returns an imutable Identity instance.</returns>
         public static Identity Import(string encoded) 
         {
-            if (!encoded.StartsWith(Identity.HEADER)) { throw new ArgumentException("Unexpected data format."); }
+            if (!encoded.StartsWith(Identity._HEADER)) { throw new ArgumentException("Unexpected data format."); }
             string[] components = encoded.Split(new char[] { '.' });
             if (components.Length != 3) { throw new ArgumentException("Unexpected number of components found then decoding identity."); }
             int profile = int.Parse(components[0].Substring(1));
             if (!Crypto.SupportedProfile(profile)) { throw new ArgumentException("Unsupported cryptography profile."); }
             byte[] json = Utility.FromBase64(components[1]);
-            Identity.JSONData parameters = JsonSerializer.Deserialize<Identity.JSONData>(json);
+            Identity.InternalData parameters = JsonSerializer.Deserialize<Identity.InternalData>(json);
             Identity identity = new Identity(parameters, components[components.Length - 1], profile);
-            identity.encoded = encoded.Substring(0, encoded.LastIndexOf('.'));
-            identity.IsMutable = false;
+            identity._encoded = encoded.Substring(0, encoded.LastIndexOf('.'));
+            identity._signature = components[components.Length - 1];
             return identity;
         }
 
@@ -54,7 +53,7 @@ namespace ShiftEverywhere.DiME
         /// <returns>A DiME encoded sting of the identity.</returns>
         public string Export() 
         {
-            return Encode() + "." + this.signature;
+            return Encode() + "." + this._signature;
         }
 
         #endregion
@@ -86,7 +85,7 @@ namespace ShiftEverywhere.DiME
                 long now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
                 Guid issuerId = issuerIdentity != null ? issuerIdentity.SubjectId : subjectId;
                 Identity identity = new Identity(subjectId, iir.IdentityKey, now, (now + validFor), issuerId, iir.capabilities, iir.Profile);
-                identity.signature = Crypto.GenerateSignature(identity.Profile, identity.Encode(), issuerKeypair.PrivateKey);
+                identity._signature = Crypto.GenerateSignature(identity.Profile, identity.Encode(), issuerKeypair.PrivateKey);
                 if (Identity.TrustedIdentity != null && issuerIdentity.SubjectId != Identity.TrustedIdentity.SubjectId)
                 {
                     // The chain will only be set if this is not the trusted identity (and as long as one is set)
@@ -109,7 +108,7 @@ namespace ShiftEverywhere.DiME
         {
             if ( this.SubjectId != this.IssuerId) { return false; }
             try {
-                Crypto.VerifySignature(this.Profile, this.Encode(), this.signature, this.identityKey);
+                Crypto.VerifySignature(this.Profile, Encode(), this._signature, this.IdentityKey);
             } catch (IntegrityException)
             {
                 return false;
@@ -122,7 +121,7 @@ namespace ShiftEverywhere.DiME
             if (Identity.TrustedIdentity == null) { throw new ArgumentNullException("No trusted identity set."); }
             try 
             {
-                Crypto.VerifySignature(this.Profile, this.Encode(), this.signature, Identity.TrustedIdentity.identityKey);
+                Crypto.VerifySignature(this.Profile, Encode(), this._signature, Identity.TrustedIdentity.IdentityKey);
             } 
             catch (IntegrityException) 
             {
@@ -130,16 +129,24 @@ namespace ShiftEverywhere.DiME
             }
         }
 
+        /// <summary>Helper function to quickly check if a string is potentially a DiME encoded identity object.</summary>
+        /// <param name="encoded">The string to validate.</param>
+        /// <returns>An indication if the string is a DiME encoded identity.</returns>
+        public static bool IsEnvelope(string encoded)
+        {
+            return encoded.StartsWith(Identity._HEADER);
+        }
+
         public bool HasCapability(Identity.Capability capability)
         {
-            return this.json.cap.Any(s => s.ToLower().Equals(Identity.CapabilityToString(capability)));
+            return this._data.cap.Any(s => s.ToLower().Equals(Identity.CapabilityToString(capability)));
         }
         #region -- INTERNAL --
         internal static Identity.Capability CapabilityFromString(string capability)
         {
-            if (capability.Equals(Identity.JSONData.CAP_ISSUE)) { return Identity.Capability.Issue; }
-            if (capability.Equals(Identity.JSONData.CAP_AUTHORIZE)) { return Identity.Capability.Authorize; }
-            if (capability.Equals(Identity.JSONData.CAP_AUTHENTICATE)) { return Identity.Capability.Authenticate; }
+            if (capability.Equals(Identity.InternalData.CAP_ISSUE)) { return Identity.Capability.Issue; }
+            if (capability.Equals(Identity.InternalData.CAP_AUTHORIZE)) { return Identity.Capability.Authorize; }
+            if (capability.Equals(Identity.InternalData.CAP_AUTHENTICATE)) { return Identity.Capability.Authenticate; }
             throw new IdentityCapabilityException("Unknown capability.");
         }
 
@@ -147,9 +154,9 @@ namespace ShiftEverywhere.DiME
         {
             switch (capability)
             {
-                case Identity.Capability.Issue: return Identity.JSONData.CAP_ISSUE;
-                case Identity.Capability.Authorize: return Identity.JSONData.CAP_AUTHORIZE;
-                case Identity.Capability.Authenticate: return Identity.JSONData.CAP_AUTHENTICATE;
+                case Identity.Capability.Issue: return Identity.InternalData.CAP_ISSUE;
+                case Identity.Capability.Authorize: return Identity.InternalData.CAP_AUTHORIZE;
+                case Identity.Capability.Authenticate: return Identity.InternalData.CAP_AUTHENTICATE;
             }
             return null;
         }
@@ -158,10 +165,10 @@ namespace ShiftEverywhere.DiME
         #endregion
         #region -- PRIVATE --
 
-        private const string HEADER = "I";
-        private string signature;
-        private string encoded;
-        private struct JSONData
+        private const string _HEADER = "I";
+        private string _signature;
+        private string _encoded;
+        private struct InternalData
         {
             public static string CAP_ISSUE = "issue";
             public static string CAP_AUTHORIZE = "authorize";
@@ -174,7 +181,7 @@ namespace ShiftEverywhere.DiME
             [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
             public string[] cap { get; set; }
 
-            public JSONData(Guid sub, Guid iss, long iat, long exp, string iky, string[] cap = null)
+            public InternalData(Guid sub, Guid iss, long iat, long exp, string iky, string[] cap = null)
             {
                 if (DateTimeOffset.UtcNow.ToUnixTimeSeconds() > exp) { throw new ArgumentException("Expiration must be in the future."); }
                 if (iat > exp) { throw new ArgumentException("Expiration must be after issue date."); }
@@ -186,38 +193,38 @@ namespace ShiftEverywhere.DiME
                 this.cap = cap;
             }
         }
-        private Identity.JSONData json;
+        private Identity.InternalData _data;
 
         private Identity(Guid subjectId, string identityKey, long issuedAt, long expiresAt, Guid issuerId, string[] capabilities, int profile = Crypto.DEFUALT_PROFILE) 
         {
             if (!Crypto.SupportedProfile(profile)) { throw new ArgumentException("Unsupported cryptography profile."); }
             this.Profile = profile;
-            this.json = new Identity.JSONData(subjectId, issuerId, issuedAt, expiresAt, identityKey, capabilities);
+            this._data = new Identity.InternalData(subjectId, issuerId, issuedAt, expiresAt, identityKey, capabilities);
         }
 
-        private Identity(Identity.JSONData parameters, string signature = null, int profile = Crypto.DEFUALT_PROFILE) 
+        private Identity(Identity.InternalData parameters, string signature = null, int profile = Crypto.DEFUALT_PROFILE) 
         {
             this.Profile = profile;
-            this.json = parameters;
-            this.signature = signature;
+            this._data = parameters;
+            this._signature = signature;
         }
 
         private string Encode()
         {
-            if (this.encoded == null) 
+            if (this._encoded == null) 
             {  
                 var builder = new StringBuilder(); 
                 builder.AppendFormat("{0}{1}.{2}", 
-                                    Identity.HEADER,
+                                    Identity._HEADER,
                                     this.Profile, 
-                                    Utility.ToBase64(JsonSerializer.Serialize(this.json)));
+                                    Utility.ToBase64(JsonSerializer.Serialize(this._data)));
                 if (this.TrustChain != null)
                 {
                     builder.AppendFormat(".{0}", Utility.ToBase64(this.TrustChain.Export()));
                 }
-                this.encoded = builder.ToString();
+                this._encoded = builder.ToString();
             }
-            return this.encoded;
+            return this._encoded;
         }
 
         #endregion

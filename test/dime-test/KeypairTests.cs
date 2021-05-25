@@ -10,7 +10,7 @@ namespace ShiftEverywhere.DiMETest
         [TestMethod]
         public void KeypairTest1()
         {
-            Keypair keypair = Keypair.GenerateKeypair(KeypairType.Identity);
+            Keypair keypair = Keypair.Generate(KeypairType.Identity);
             Assert.IsTrue(keypair.Profile == 1);
             Assert.IsTrue(keypair.Type == KeypairType.Identity);
             Assert.IsNotNull(keypair.Id);
@@ -34,7 +34,7 @@ namespace ShiftEverywhere.DiMETest
         public void KeypairTest3()
         {
             try {
-                Keypair keypair = Keypair.GenerateKeypair(KeypairType.Identity, 0);
+                Keypair keypair = Keypair.Generate(KeypairType.Identity, 0);
             } catch (UnsupportedProfileException) { return; } // All is well
             Assert.IsTrue(false, "This should not happen.");
         }

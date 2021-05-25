@@ -12,7 +12,7 @@ namespace ShiftEverywhere.DiMETest
         {
             try 
             {
-                IdentityIssuingRequest iir = IdentityIssuingRequest.GenerateRequest(Keypair.GenerateKeypair(KeypairType.Exchange));
+                IdentityIssuingRequest iir = IdentityIssuingRequest.Generate(Keypair.Generate(KeypairType.Exchange));
             } 
             catch (Exception e) 
             {
@@ -25,21 +25,21 @@ namespace ShiftEverywhere.DiMETest
         [TestMethod]
         public void GenerateRequestTest3()
         {
-            IdentityIssuingRequest iir = IdentityIssuingRequest.GenerateRequest(Keypair.GenerateKeypair(KeypairType.Identity));
+            IdentityIssuingRequest iir = IdentityIssuingRequest.Generate(Keypair.Generate(KeypairType.Identity));
         }
 
         [TestMethod]
         public void VerifyTest1()
         {
             Identity.Capability[] caps = new Identity.Capability[1] { Identity.Capability.Authorize };
-            IdentityIssuingRequest iir = IdentityIssuingRequest.GenerateRequest(Keypair.GenerateKeypair(KeypairType.Identity));
+            IdentityIssuingRequest iir = IdentityIssuingRequest.Generate(Keypair.Generate(KeypairType.Identity));
             iir.Verify(caps);
         }
 
         [TestMethod]
         public void ThumbprintTest1()
         {
-            IdentityIssuingRequest iir = IdentityIssuingRequest.GenerateRequest(Keypair.GenerateKeypair(KeypairType.Identity));
+            IdentityIssuingRequest iir = IdentityIssuingRequest.Generate(Keypair.Generate(KeypairType.Identity));
             string thumbprint = iir.Thumbprint();
             Assert.IsNotNull(thumbprint);
             Assert.IsTrue(thumbprint.Length > 0, "Thumbprint should not be empty string");
@@ -49,15 +49,15 @@ namespace ShiftEverywhere.DiMETest
         [TestMethod]
         public void ThumbprintTest2()
         {
-            IdentityIssuingRequest iir1 = IdentityIssuingRequest.GenerateRequest(Keypair.GenerateKeypair(KeypairType.Identity));
-            IdentityIssuingRequest iir2 = IdentityIssuingRequest.GenerateRequest(Keypair.GenerateKeypair(KeypairType.Identity));
+            IdentityIssuingRequest iir1 = IdentityIssuingRequest.Generate(Keypair.Generate(KeypairType.Identity));
+            IdentityIssuingRequest iir2 = IdentityIssuingRequest.Generate(Keypair.Generate(KeypairType.Identity));
             Assert.IsFalse(iir1.Thumbprint() == iir2.Thumbprint(), "Thumbprints of diffrent iirs should not be the same");
         }
 
         [TestMethod]
         public void ExportTest1()
         {
-            IdentityIssuingRequest iir = IdentityIssuingRequest.GenerateRequest(Keypair.GenerateKeypair(KeypairType.Identity));
+            IdentityIssuingRequest iir = IdentityIssuingRequest.Generate(Keypair.Generate(KeypairType.Identity));
             string encoded = iir.Export();
             Assert.IsNotNull(encoded);
             Assert.IsTrue(encoded.Length > 0);

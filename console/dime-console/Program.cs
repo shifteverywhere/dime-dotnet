@@ -15,11 +15,11 @@ namespace ShiftEverywhere.DiMEConsole
 
         public Program()
         {
-            this.trustedKeypair = Keypair.GenerateKeypair(KeypairType.Identity);
+            this.trustedKeypair = Keypair.Generate(KeypairType.Identity);
             this.trustedIdentity = GenerateIdentity(this.trustedKeypair);
-            this.serviceProviderKeypair = Keypair.GenerateKeypair(KeypairType.Identity);
+            this.serviceProviderKeypair = Keypair.Generate(KeypairType.Identity);
             this.serviceProviderIdentity = GenerateIdentity(this.serviceProviderKeypair);
-            this.mobileKeypair = Keypair.GenerateKeypair(KeypairType.Identity);
+            this.mobileKeypair = Keypair.Generate(KeypairType.Identity);
             this.mobileIdentity = GenerateIdentity(this.mobileKeypair);
             Identity.TrustedIdentity = this.trustedIdentity;
         }
@@ -27,8 +27,8 @@ namespace ShiftEverywhere.DiMEConsole
         public Identity GenerateIdentity(Keypair keypair)
         {
             Identity.Capability[] caps = new Identity.Capability[2] {Identity.Capability.Authorize, Identity.Capability.Authorize};
-            IdentityIssuingRequest iir = IdentityIssuingRequest.GenerateRequest(keypair, caps);            
-            return Identity.Issue(iir, Guid.NewGuid(), caps, Identity.DEFAULT_VALID_FOR, this.trustedKeypair, this.trustedIdentity);
+            IdentityIssuingRequest iir = IdentityIssuingRequest.Generate(keypair, caps);            
+            return Identity.Issue(iir, Guid.NewGuid(), caps, Identity.VALID_FOR_1_YEAR, this.trustedKeypair, this.trustedIdentity);
         }
 
         public Message GenerateMessage(Guid subjectId, Identity issuerIdentity, string payload)
@@ -44,7 +44,8 @@ namespace ShiftEverywhere.DiMEConsole
             Program prg = new Program();
             // At service provider
             Message serviceProviderMessage = prg.GenerateMessage(prg.mobileIdentity.SubjectId, prg.serviceProviderIdentity, "Racecar is racecar backwards.");
-            string serviceProviderMessageEncoded = serviceProviderMessage.Export(prg.serviceProviderKeypair.PrivateKey);
+            serviceProviderMessage.Seal(prg.serviceProviderKeypair.PrivateKey);
+            string serviceProviderMessageEncoded = serviceProviderMessage.Export();
             // Send 'serviceProviderMessageEncoded' to back-end
             Message serviceProviderMessageAtBackEnd = Message.Import(serviceProviderMessageEncoded);
             Envelope backEndEnvelope = new Envelope(prg.trustedIdentity, prg.mobileIdentity.SubjectId, 120);

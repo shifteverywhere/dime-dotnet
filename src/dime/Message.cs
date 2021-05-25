@@ -52,8 +52,6 @@ namespace ShiftEverywhere.DiME
             if (!Crypto.SupportedProfile(profile)) { throw new ArgumentException("Unsupported cryptography profile."); }
             byte[] identityBytes = Utility.FromBase64(components[1]);
             Identity identity = Identity.Import(System.Text.Encoding.UTF8.GetString(identityBytes, 0, identityBytes.Length));
-            string messagePart = encoded.Substring(0, encoded.LastIndexOf('.'));
-            string signature = components[components.Length - 1];
             Message.InternalData parameters = JsonSerializer.Deserialize<Message.InternalData>(Utility.FromBase64(components[2]));
             Message message = new Message(identity, parameters, profile);
             message._payload = components[3];
@@ -61,13 +59,13 @@ namespace ShiftEverywhere.DiME
             {
                 message._state = components[4];
             }
-            message._encoded = messagePart;
-            message._signature = signature;
+            message._encoded = encoded.Substring(0, encoded.LastIndexOf('.'));
+            message._signature = components[components.Length - 1];
             message.Verify(linkedMessage != null ? linkedMessage.Export() : null);
             return message;
         }
 
-        public string Export(string issuerIdentityPrivateKey = null)
+        public string Export()
         {
             if (!this.IsSealed) { throw new IntegrityException("Signature missing, unable to export."); }
             Verify();
@@ -92,8 +90,8 @@ namespace ShiftEverywhere.DiME
             }
             // Verify signature
             if (this._signature == null) { throw new IntegrityException("Signature missing."); }
-            if (this.Identity.SubjectId == this.IssuerId) { throw new IntegrityException("Issuing identity subject id does not match issuer id of the envelope."); }
-            Crypto.VerifySignature(this.Profile, Encode(), this._signature, this.Identity.identityKey);
+            if (this.Identity.SubjectId != this.IssuerId) { throw new IntegrityException("Issuing identity subject id does not match issuer id of the message."); }
+            Crypto.VerifySignature(this.Profile, Encode(), this._signature, this.Identity.IdentityKey);
         }
 
         public void Seal(string identityPrivateKey)
@@ -184,17 +182,10 @@ namespace ShiftEverywhere.DiME
                                     this.Profile,
                                     Utility.ToBase64(this.Identity.Export()),
                                     Utility.ToBase64(JsonSerializer.Serialize(this._data)));
-                if ( this._data.xky != null )
-                {
-                    builder.AppendFormat(".{0}", Utility.ToBase64(this._payload));
-                }
-                else
-                {
-                    builder.AppendFormat(".{0}", Utility.ToBase64(this._payload));
-                }
+                builder.AppendFormat(".{0}", this._payload);
                 if ( this.State != null)
                 {
-                    builder.AppendFormat(".{0}", Utility.ToBase64(this.State));
+                    builder.AppendFormat(".{0}", this._state);
                 }
                 this._encoded = builder.ToString();
             }
