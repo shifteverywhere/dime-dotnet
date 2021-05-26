@@ -29,6 +29,8 @@ namespace ShiftEverywhere.DiME
         public long ExpiresAt { get { return this._data.exp; } set { this.Reset(); this._data.exp = value; } }
         /// <summary>Indicates if the envelope is sealed or not (signed).</summary>
         public bool IsSealed { get { return this._signature != null; } }
+        /// <summary>const string to improve performance</summary>
+        public const string delimiter = ".";
 
         /// <summar>Constructs a new Envelope object from the provided parameters. The issued at will be set
         /// to the current time. </summary>
@@ -85,10 +87,18 @@ namespace ShiftEverywhere.DiME
         public string Export()
         {
             if (!this.IsSealed) { throw new IntegrityException("Signature missing, unable to export."); }
+            
+            //verify the fields in the envelope object
             Verify();
-            return Encode() + "." + this._signature;
-        }
 
+            StringBuilder sb = new StringBuilder();
+            sb.Append(Encode());
+            sb.Append(delimiter);
+            sb.Append(_signature);
+
+            return sb.ToString();
+        }
+        
         /// <summary>This will seal an envelope by signing it using the provided private key (of key type 'Identity').
         /// The provided private key must be associated with the public key in the Idenity object inside the envelope
         /// object to be signed.</summary>

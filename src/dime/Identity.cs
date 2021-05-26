@@ -29,6 +29,8 @@ namespace ShiftEverywhere.DiME
         public string IdentityKey { get { return this._data.iky; } }
         /// <summary>The trust chain of signed public keys.</summary>
         public Identity TrustChain { get; private set; }
+        /// <summary>const string to improve performance</summary>
+        public const string delimiter = ".";
 
         #region -- Import/Export --
         /// <summary>Imports an identity from a DiME encoded string.</summary>
@@ -53,7 +55,12 @@ namespace ShiftEverywhere.DiME
         /// <returns>A DiME encoded sting of the identity.</returns>
         public string Export() 
         {
-            return Encode() + "." + this._signature;
+            StringBuilder sb = new StringBuilder();
+            sb.Append(Encode());
+            sb.Append(delimiter);
+            sb.Append(_signature);
+
+            return sb.ToString();
         }
 
         #endregion
@@ -118,7 +125,7 @@ namespace ShiftEverywhere.DiME
 
         public void VerifyTrust()
         {
-            if (Identity.TrustedIdentity == null) { throw new ArgumentNullException("No trusted identity set."); }
+            if (Identity.TrustedIdentity == null) { throw new ArgumentNullException("Identity.TrustedIdentity", "No trusted identity set."); }
             try 
             {
                 Crypto.VerifySignature(this.Profile, Encode(), this._signature, Identity.TrustedIdentity.IdentityKey);

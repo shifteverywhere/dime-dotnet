@@ -31,6 +31,8 @@ namespace ShiftEverywhere.DiME
         public string LinkedTo { get { return this._data.lnk; } set { Reset(); this._data.lnk = value; } }
         /// <summary></summary>
         public bool IsSealed { get { return this._signature != null; } }
+        /// <summary>const string to improve performance</summary>
+        public const string delimiter = ".";
 
         /// <summary></summary>
         public Message(Guid subjectId, Identity issuerIdentity, long validFor)
@@ -68,10 +70,21 @@ namespace ShiftEverywhere.DiME
         public string Export()
         {
             if (!this.IsSealed) { throw new IntegrityException("Signature missing, unable to export."); }
+            
             Verify();
-            return Encode() + "." + this._signature;
+
+            StringBuilder sb = new StringBuilder();
+            sb.Append(Encode());
+            sb.Append(delimiter);
+            sb.Append(_signature);
+
+            return sb.ToString();
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="linkedMessage"></param>
         public void Verify(string linkedMessage = null)
         {
             if (!Crypto.SupportedProfile(this.Profile)) { throw new UnsupportedProfileException("Unsupported cryptography profile version."); }

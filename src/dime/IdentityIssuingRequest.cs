@@ -12,6 +12,8 @@ namespace ShiftEverywhere.DiME
         public int Profile {get; private set; }
         public long IssuedAt { get { return this._data.iat;} }
         public string IdentityKey { get { return this._data.iky; } }
+        /// <summary>const string to improve performance</summary>
+        public const string delimiter = ".";
 
         public static IdentityIssuingRequest Generate(Keypair keypair, Identity.Capability[] capabilities = null) 
         {
@@ -53,7 +55,12 @@ namespace ShiftEverywhere.DiME
 
         public string Export() 
         {
-             return this.Encode() + "." + this._signature;
+            StringBuilder sb = new StringBuilder();
+            sb.Append(Encode());
+            sb.Append(delimiter);
+            sb.Append(_signature);
+
+            return sb.ToString();
         }
 
         /// <summary>Helper function to quickly check if a string is potentially a DiME encoded identity issuing request object.</summary>
