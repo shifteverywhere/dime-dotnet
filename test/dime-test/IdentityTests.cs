@@ -88,14 +88,15 @@ namespace ShiftEverywhere.DiMETest
                 Identity.Capability[] caps = new Identity.Capability[1] { Identity.Capability.Authorize };
                 Keypair keypair = Keypair.Generate(KeypairType.Identity);
                 Identity identity = Identity.Issue(IdentityIssuingRequest.Generate(keypair), Guid.NewGuid(), caps, 100, keypair, null);
+                Assert.IsTrue(identity.IsSelfSigned());
                 identity.VerifyTrust();
             } 
             catch (Exception e) 
             {
-                if (e is ArgumentException) { return; }
+                if (e is UntrustedIdentityException) { return; }
                 throw e;
             } 
-            Assert.IsTrue(false, "Expected ArgumentException not thrown");
+            Assert.IsTrue(false, "This should not happen.");
         }
 
         [TestMethod]

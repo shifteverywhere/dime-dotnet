@@ -86,7 +86,6 @@ namespace ShiftEverywhere.DiME
                 allowedCapabilities = new Identity.Capability[] { Identity.Capability.Authorize };
             }
             iir.Verify(allowedCapabilities);
-            if (issuerIdentity != null) { issuerIdentity.VerifyTrust(); }
             if (issuerIdentity == null || issuerIdentity.HasCapability(Identity.Capability.Issue))
             {
                 long now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
@@ -115,8 +114,8 @@ namespace ShiftEverywhere.DiME
         {
             if ( this.SubjectId != this.IssuerId) { return false; }
             try {
-                Crypto.VerifySignature(this.Profile, Encode(), this._signature, this.IdentityKey);
-            } catch (IntegrityException)
+                Verify(this.IdentityKey);
+            } catch (UntrustedIdentityException)
             {
                 return false;
             }
@@ -125,15 +124,9 @@ namespace ShiftEverywhere.DiME
 
         public void VerifyTrust()
         {
+            if (this.SubjectId == this.IssuerId) { throw new UntrustedIdentityException("Identity is self-signed."); }
             if (Identity.TrustedIdentity == null) { throw new ArgumentNullException("Identity.TrustedIdentity", "No trusted identity set."); }
-            try 
-            {
-                Crypto.VerifySignature(this.Profile, Encode(), this._signature, Identity.TrustedIdentity.IdentityKey);
-            } 
-            catch (IntegrityException) 
-            {
-                throw new UntrustedIdentityException();
-            }
+            Verify(Identity.TrustedIdentity.IdentityKey);
         }
 
         /// <summary>Helper function to quickly check if a string is potentially a DiME encoded identity object.</summary>
@@ -214,6 +207,18 @@ namespace ShiftEverywhere.DiME
             this.Profile = profile;
             this._data = parameters;
             this._signature = signature;
+        }
+        
+        private void Verify(string publicKey)
+        {
+            try 
+            {
+                Crypto.VerifySignature(this.Profile, Encode(), this._signature, publicKey);
+            } 
+            catch (IntegrityException) 
+            {
+                throw new UntrustedIdentityException();
+            }
         }
 
         private string Encode()
