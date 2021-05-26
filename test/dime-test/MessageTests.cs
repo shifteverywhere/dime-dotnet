@@ -103,15 +103,15 @@ namespace ShiftEverywhere.DiMETest
         public void ImportTest1()
         {   
             Identity.TrustedIdentity = Commons.TrustedIdentity;
-            string encoded = "M1.STEuZXlKemRXSWlPaUl4TkRRM09XSXdOeTB5TnpCa0xUUTJPRFF0WVRZMlppMWpaR0prT1Rrd1lUUTVaVElpTENKcGMzTWlPaUl4TkRRM09XSXdOeTB5TnpCa0xUUTJPRFF0WVRZMlppMWpaR0prT1Rrd1lUUTVaVElpTENKcFlYUWlPakUyTWpFNE1EQTBNVGNzSW1WNGNDSTZNVFkxTXpNek5qUXhOeXdpYVd0NUlqb2lUVU52ZDBKUldVUkxNbFozUVhsRlFVWm1OalJPWmxWRVkxbElkMHhuV1RFeFdXMVNSQzh6UkM4NGRFTXdZVTh6Uld4U1owWm9SbnBFVGtVaWZRLnVSTDRFbVVyUFlXeXBHcDdQMjN6NUluMnNZQ3JtZlNTWDA0MVR0UmlpckFqVlRzYWY2ODRUR3Z5dzV4UUJCWGRtOUFzcnUvQkMzdDlxeUhBNE9heUJ3.eyJ1aWQiOiIxMTkwMjY0OS1kN2I2LTQxNjYtYWUxMS0zNzUxMjM0YTAwNjAiLCJzdWIiOiJlZjE4ZDYwZi05OWJkLTQ3YmMtYjdjMS1kZGQwMDBjZWVmNGYiLCJpc3MiOiIxNDQ3OWIwNy0yNzBkLTQ2ODQtYTY2Zi1jZGJkOTkwYTQ5ZTIiLCJpYXQiOjE2MjE4MDA0MTcsImV4cCI6MTkzNzE2MDQxN30.UmFjZWNhciBpcyByYWNlY2FyIGJhY2t3YXJkcy4.nPCPXBeZRedCtEGmrOXDSTowdR00MaWMENBQhg7X7qrcySvF7OeIEOvEteOqs0hhpA/5z6qS1bU6kviVriReDg";
+            string encoded = "M1.STEuZXlKemRXSWlPaUpoWWpWaU9HTXdaQzFtWkRJNExUUmpNekF0T0RReVppMHpORGRpTkRoak9EWmtZbU1pTENKcGMzTWlPaUkzTVdVeVltVTFZeTAzTVdWa0xUUXlZalF0WW1ZNU1pMDRabUppWm1VMk1qQTNOMk1pTENKcFlYUWlPakUyTWpFNU56SXdNalFzSW1WNGNDSTZNVFkxTXpVd09EQXlOQ3dpYVd0NUlqb2lUVU52ZDBKUldVUkxNbFozUVhsRlFXbFRkR1IxU25wd2RVdHFjMHRLTlZ4MU1EQXlRbTVQT1VSMFIwTk9TMXBpY0ZCR1RUVlBORlJFUnpNMVMwVklaeUlzSW1OaGNDSTZXeUpoZFhSb2IzSnBlbVVpWFgwLndDV20xT3ExMHFVK3hPYVZVTTJwR1dHUmQxakgxc2FWYXRGMUc2Zy93UFUySHY5dGFSWGhINGtWVWc0NnFjcU0yTTRKd0JVZm8xbWM2dU10Z1JOSkJR.eyJ1aWQiOiIyMzdlNWVlMi1hMDIwLTQ0YmYtOTZlZC02ZWVmNmZjZTE5NWMiLCJzdWIiOiIzODAxOTVkOC01ZjUyLTQzZmItOGVjNi0zN2RiYWRhZWNiNDkiLCJpc3MiOiJhYjViOGMwZC1mZDI4LTRjMzAtODQyZi0zNDdiNDhjODZkYmMiLCJpYXQiOjE2MjIwNjEwMjgsImV4cCI6MTY1MzU5NzAyOH0.UmFjZWNhciBpcyByYWNlY2FyIGJhY2t3YXJkcy4.w66UHVASUtiIZAEbNTMel9VSFpiJ+IkuBiB2xZFQRZxi+7Xp4D+Ti9v5WF93Dqf0Jd20Wa9mFPsdhitWoPa/Bg";
             Message message = Message.Import(encoded);
             Assert.AreEqual(1, message.Profile);
-            Assert.AreEqual(new Guid("6d51de7e-0755-4c05-9c20-ef32f0fc5710"), message.Id);
-            Assert.AreEqual(new Guid("e945c60a-9987-4185-b2c0-61b7876180b1"), message.SubjectId);
+            Assert.AreEqual(new Guid("237e5ee2-a020-44bf-96ed-6eef6fce195c"), message.Id);
+            Assert.AreEqual(new Guid("380195d8-5f52-43fb-8ec6-37dbadaecb49"), message.SubjectId);
             Assert.AreEqual(new Guid("ab5b8c0d-fd28-4c30-842f-347b48c86dbc"), message.IssuerId);
-            Assert.AreEqual(Encoding.UTF8.GetBytes("Racecar is racecar backwards."), message.GetPayload());
-            Assert.AreEqual(1621975130, message.IssuedAt);
-            Assert.AreEqual(1653511130, message.ExpiresAt);
+            Assert.AreEqual("Racecar is racecar backwards.", System.Text.Encoding.UTF8.GetString(message.GetPayload()));
+            Assert.AreEqual(1622061028, message.IssuedAt);
+            Assert.AreEqual(1653597028, message.ExpiresAt);
             Assert.IsNull(message.State);
             Assert.IsNotNull(message.Identity);
             Assert.AreEqual(message.IssuerId, message.Identity.SubjectId);
@@ -133,15 +133,37 @@ namespace ShiftEverywhere.DiMETest
         }
 
         [TestMethod]
+        public void ImportTest3()
+        {
+            Identity.TrustedIdentity = Commons.TrustedIdentity;
+            string encoded = "E1.STEuZXlKemRXSWlPaUpoWWpWaU9HTXdaQzFtWkRJNExUUmpNekF0T0RReVppMHpORGRpTkRoak9EWmtZbU1pTENKcGMzTWlPaUkzTVdVeVltVTFZeTAzTVdWa0xUUXlZalF0WW1ZNU1pMDRabUppWm1VMk1qQTNOMk1pTENKcFlYUWlPakUyTWpFNU56SXdNalFzSW1WNGNDSTZNVFkxTXpVd09EQXlOQ3dpYVd0NUlqb2lUVU52ZDBKUldVUkxNbFozUVhsRlFXbFRkR1IxU25wd2RVdHFjMHRLTlZ4MU1EQXlRbTVQT1VSMFIwTk9TMXBpY0ZCR1RUVlBORlJFUnpNMVMwVklaeUlzSW1OaGNDSTZXeUpoZFhSb2IzSnBlbVVpWFgwLndDV20xT3ExMHFVK3hPYVZVTTJwR1dHUmQxakgxc2FWYXRGMUc2Zy93UFUySHY5dGFSWGhINGtWVWc0NnFjcU0yTTRKd0JVZm8xbWM2dU10Z1JOSkJR.TTEuU1RFdVpYbEtlbVJYU1dsUGFVcG9XV3BXYVU5SFRYZGFRekZ0V2tSSk5FeFVVbXBOZWtGMFQwUlJlVnBwTUhwT1JHUnBUa1JvYWs5RVdtdFpiVTFwVEVOS2NHTXpUV2xQYVVrelRWZFZlVmx0VlRGWmVUQXpUVmRXYTB4VVVYbFphbEYwV1cxWk5VMXBNRFJhYlVwcFdtMVZNazFxUVROT01rMXBURU5LY0ZsWVVXbFBha1V5VFdwRk5VNTZTWGROYWxGelNXMVdOR05EU1RaTlZGa3hUWHBWZDA5RVFYbE9RM2RwWVZkME5VbHFiMmxVVlU1MlpEQktVbGRWVWt4TmJGb3pVVmhzUmxGWGJGUmtSMUl4VTI1d2QyUlZkSEZqTUhSTFRsWjRNVTFFUVhsUmJUVlFUMVZTTUZJd1RrOVRNWEJwWTBaQ1IxUlVWbEJPUmxKRlVucE5NVk13VmtsYWVVbHpTVzFPYUdORFNUWlhlVXBvWkZoU2IySXpTbkJsYlZWcFdGZ3dMbmREVjIweFQzRXhNSEZWSzNoUFlWWlZUVEp3UjFkSFVtUXhha2d4YzJGV1lYUkdNVWMyWnk5M1VGVXlTSFk1ZEdGU1dHaElOR3RXVldjME5uRmpjVTB5VFRSS2QwSlZabTh4YldNMmRVMTBaMUpPU2tKUi5leUoxYVdRaU9pSmpZamd5TVdVNE15MHdaV0l4TFRSbVlUQXRZVGc0TUMweU5HVXpaREl6WmpRMlltSWlMQ0p6ZFdJaU9pSm1OREl5T1RVek1pMWhNelV5TFRRM05qZ3RPV0k0WWkxaE5UWTBZemRqWWpKalpEWWlMQ0pwYzNNaU9pSmhZalZpT0dNd1pDMW1aREk0TFRSak16QXRPRFF5Wmkwek5EZGlORGhqT0Raa1ltTWlMQ0pwWVhRaU9qRTJNakl3TlRrek9URXNJbVY0Y0NJNk1UWXlNakExT1RRd01YMC5VbUZqWldOaGNpQnBjeUJ5WVdObFkyRnlJR0poWTJ0M1lYSmtjeTQuV3VKMTRkY0d3bmJwamFiYjkwOHA2SVdCTGdoS3d2REhWRzNoc1dQV3Q1ZFVVQjNub2JwLzBPUHJUM09VcitENHhEemtBcXpvRUVQM2cyeUNCU2djQ1E.eyJ1aWQiOiI1YTdmY2ZmZS01NGRhLTQwZDQtOGY2My1hMDA5MmIwNTdkOWMiLCJzdWIiOiJmNDIyOTUzMi1hMzUyLTQ3NjgtOWI4Yi1hNTY0YzdjYjJjZDYiLCJpc3MiOiJhYjViOGMwZC1mZDI4LTRjMzAtODQyZi0zNDdiNDhjODZkYmMiLCJpYXQiOjE2MjIwNTkzOTEsImV4cCI6MTYyMjA1OTQwMX0.Zz+c1e3H2jrdqmhzoacUnrr3Wz1KaR//JRLQeEmQ4hmQrSszwg/vEvYZo+3KK4xl/cNh2A2YOyXwzD+o8Lm/Aw";
+            try {
+                Message.Import(encoded);
+            } catch (DataFormatException) { return; } // All is well
+            Assert.IsTrue(false, "Should not happen.");
+        }
+
+        [TestMethod]
         public void IsSealedTest1()
         {
             Identity.TrustedIdentity = Commons.TrustedIdentity;
-            Identity issuer = Commons.SenderIdentity;
-            Message message = new Message(Guid.NewGuid(), issuer, 10);
+            Message message = new Message(Guid.NewGuid(), Commons.SenderIdentity, 10);
             message.AddPayload(Encoding.UTF8.GetBytes("Racecar is racecar backwards."));
             Assert.IsFalse(message.IsSealed);
             message.Seal(Commons.SenderKeypair.PrivateKey);
             Assert.IsTrue(message.IsSealed);
+        }
+        
+        [TestMethod]
+        public void IdTest1()
+        {
+            Identity.TrustedIdentity = Commons.TrustedIdentity;
+            Message message = new Message(Guid.NewGuid(), Commons.SenderIdentity, 10);
+            message.AddPayload(Encoding.UTF8.GetBytes("Racecar is racecar backwards."));
+            message.Seal(Commons.SenderKeypair.PrivateKey);
+            Guid uid1 = message.Id;
+            message.ExpiresAt = message.ExpiresAt + 100;
+            Assert.AreNotEqual(uid1, message.Id);
         }
 
         [TestMethod]

@@ -51,9 +51,9 @@ namespace ShiftEverywhere.DiMETest
         public void IssueIdentityTest3()
         {
             Identity.TrustedIdentity = Commons.TrustedIdentity;
-            Identity.Capability[] caps = new Identity.Capability[1] { Identity.Capability.Issue };
             IdentityIssuingRequest iir = IdentityIssuingRequest.Generate(Keypair.Generate(KeypairType.Identity));
             try {
+                Identity.Capability[] caps = new Identity.Capability[1] { Identity.Capability.Issue };
                 Identity identity = Identity.Issue(iir, Guid.NewGuid(), caps, 100, Commons.TrustedKeypair, Commons.TrustedIdentity);
             } catch (IdentityCapabilityException) { return; } // All is well
             Assert.IsTrue(false, "Should not happen.");

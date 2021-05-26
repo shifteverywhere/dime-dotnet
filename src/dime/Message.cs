@@ -39,19 +39,19 @@ namespace ShiftEverywhere.DiME
         {
             if (issuerIdentity == null) { throw new ArgumentNullException("issuerIdentity cannot be null"); }
             long now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-            this.Profile = issuerIdentity.Profile;
-            this.Identity = issuerIdentity;
+            this._profile = issuerIdentity.Profile;
+            this._identity = issuerIdentity;
             this._data = new Message.InternalData(Guid.NewGuid(), subjectId, issuerIdentity.SubjectId, now, (now + validFor));
         }
 
         /// <summary></summary>
         public static Message Import(string encoded, Message linkedMessage = null)
         {
-            if (!encoded.StartsWith(Message._HEADER)) { throw new ArgumentException("Unexpected data format."); }
+            if (!encoded.StartsWith(Message._HEADER)) { throw new DataFormatException("Unexpected data format."); }
             string[] components = encoded.Split(new char[] { '.' });
-            if (components.Length != 5 && components.Length != 6) { throw new ArgumentException("Unexpected number of components found when decoding identity."); }
+            if (components.Length != 5 && components.Length != 6) { throw new DataFormatException("Unexpected number of components found when decoding identity."); }
             int profile = int.Parse(components[0].Substring(1));
-            if (!Crypto.SupportedProfile(profile)) { throw new ArgumentException("Unsupported cryptography profile."); }
+            if (!Crypto.SupportedProfile(profile)) { throw new UnsupportedProfileException("Unsupported cryptography profile."); }
             byte[] identityBytes = Utility.FromBase64(components[1]);
             Identity identity = Identity.Import(System.Text.Encoding.UTF8.GetString(identityBytes, 0, identityBytes.Length));
             Message.InternalData parameters = JsonSerializer.Deserialize<Message.InternalData>(Utility.FromBase64(components[2]));
@@ -70,9 +70,7 @@ namespace ShiftEverywhere.DiME
         public string Export()
         {
             if (!this.IsSealed) { throw new IntegrityException("Signature missing, unable to export."); }
-            
             Verify();
-
             StringBuilder sb = new StringBuilder();
             sb.Append(Encode());
             sb.Append(delimiter);
@@ -177,11 +175,9 @@ namespace ShiftEverywhere.DiME
 
         private Message(Identity issuerIdentity, Message.InternalData parameters, int profile = Crypto.DEFUALT_PROFILE)
         {
-            if (issuerIdentity == null) { throw new ArgumentNullException("issuerIdentity cannot be null"); }
-            this.Identity = issuerIdentity;
-            this.Identity = issuerIdentity;
+            this._identity = issuerIdentity;
             this._data = parameters;
-            this.Profile = profile;
+            this._profile = profile;
         }
 
         private string Encode()
@@ -207,9 +203,12 @@ namespace ShiftEverywhere.DiME
 
         private void Reset()
         {
-            this._data.uid = Guid.NewGuid();
-            this._encoded = null;
-            this._signature = null;
+            if (this.IsSealed)
+            {
+                this._data.uid = Guid.NewGuid();
+                this._encoded = null;
+                this._signature = null;
+            }
         }
         #endregion
 

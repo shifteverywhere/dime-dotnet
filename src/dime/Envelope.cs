@@ -40,10 +40,10 @@ namespace ShiftEverywhere.DiME
         /// <param name="profile">The cryptographic profile version to use (optional)</param>
         public Envelope(Identity issuerIdentity, Guid subjectId, long validFor, int profile = Crypto.DEFUALT_PROFILE)
         {
-            this.Identity = issuerIdentity;
+            this._identity = issuerIdentity;
             long now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
             this._data = new InternalData(Guid.NewGuid(), subjectId, issuerIdentity.SubjectId, now, (now + validFor));
-            this.Profile = profile;
+            this._profile = profile;
         }
 
         /// <summary>Creates an envelope object from a DiME encoded string. It will also verify field values and
@@ -68,10 +68,11 @@ namespace ShiftEverywhere.DiME
             Envelope envelope = new Envelope(identity, parameters, profile);
             byte[] msgBytes = Utility.FromBase64(components[2]);
             string[] msgArray = System.Text.Encoding.UTF8.GetString(msgBytes, 0, msgBytes.Length).Split(new char[] { ';' }); ;
+            envelope.Messages = new List<Message>();
             foreach(string msg in msgArray)
             {
                 Message message = Message.Import(msg);
-                envelope.AddMessage(message);
+                envelope.Messages.Add(message); 
             }
             envelope._encoded = envPart;
             envelope._signature = signature;
@@ -87,15 +88,11 @@ namespace ShiftEverywhere.DiME
         public string Export()
         {
             if (!this.IsSealed) { throw new IntegrityException("Signature missing, unable to export."); }
-            
-            //verify the fields in the envelope object
             Verify();
-
             StringBuilder sb = new StringBuilder();
             sb.Append(Encode());
             sb.Append(delimiter);
             sb.Append(_signature);
-
             return sb.ToString();
         }
         
@@ -104,11 +101,13 @@ namespace ShiftEverywhere.DiME
         /// object to be signed.</summary>
         /// <param name="identityPrivateKey">The private key that should be used to sign the envelope.</param>
         /// <exception cref="ArgumentNullException">If the passed private key is null.</exception> 
+        /// <exception cref="ArgumentException">If required data is missing in the envelope.</exception> 
         public void Seal(string identityPrivateKey)
         {
             if (this._signature == null)
             {
-                if (identityPrivateKey == null) { throw new ArgumentNullException("Private key for signing cannot be null."); }
+                if (identityPrivateKey == null) { throw new ArgumentNullException("Private key for signing cannot be null.", "identityPrivateKey"); }
+                if (this.Messages == null || this.Messages.Count == 0) { throw new ArgumentException("No messages added to the envelope.", "Messages"); } 
                 this._signature = Crypto.GenerateSignature(this.Profile, Encode(), identityPrivateKey);
             }
         }
@@ -128,7 +127,7 @@ namespace ShiftEverywhere.DiME
         public void AddMessage(Message message)
         {
             if (!message.IsSealed) { throw new IntegrityException("Message must be sealed before being added to an envelope."); }
-            this.Reset();
+            Reset();
             if (this.Messages == null) { this.Messages = new List<Message>(); }
             this.Messages.Add(message);            
         }
@@ -137,7 +136,7 @@ namespace ShiftEverywhere.DiME
         /// needs to be sealed again.</summary>
         public void RemoveAllMessages()
         {
-            this.Reset();
+            Reset();
             this.Messages = null;
         }
 
@@ -162,6 +161,7 @@ namespace ShiftEverywhere.DiME
                 this.Identity.VerifyTrust();
                 foreach(Message message in this.Messages)
                 {
+                    // TODO: verify messages here (includng linked messages??)
                     //message.Verify();
                 }
             }
@@ -200,9 +200,9 @@ namespace ShiftEverywhere.DiME
 
         private Envelope(Identity issuerIdentity, Envelope.InternalData parameters, int profile = Crypto.DEFUALT_PROFILE)
         {
-            this.Identity = issuerIdentity;
+            this._identity = issuerIdentity;
             this._data = parameters;
-            this.Profile = profile;
+            this._profile = profile;
         }
 
         private string Encode()
@@ -231,9 +231,12 @@ namespace ShiftEverywhere.DiME
 
         private void Reset()
         {
-            this._data.uid = Guid.NewGuid();
-            this._encoded = null;
-            this._signature = null;
+            if (this.IsSealed)
+            {
+                this._data.uid = Guid.NewGuid();
+                this._encoded = null;
+                this._signature = null;
+            }
         }
         #endregion
     }
