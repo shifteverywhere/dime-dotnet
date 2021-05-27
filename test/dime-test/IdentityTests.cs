@@ -9,7 +9,7 @@ namespace ShiftEverywhere.DiMETest
     {
 
         [TestMethod]
-        public void IssueIdentityTest1()
+        public void IssueTest1()
         {
             Identity.TrustedIdentity = null;
             int profile = 1;
@@ -29,7 +29,7 @@ namespace ShiftEverywhere.DiMETest
         }
 
         [TestMethod]
-        public void IssueIdentityTest2()
+        public void IssueTest2()
         {
             Identity.TrustedIdentity = Commons.TrustedIdentity;
             int profile = 1;
@@ -37,18 +37,18 @@ namespace ShiftEverywhere.DiMETest
             Keypair keypair = Keypair.Generate(KeypairType.Identity, profile);
             Identity.Capability[] caps = new Identity.Capability[1] { Identity.Capability.Authorize };
             IdentityIssuingRequest iir = IdentityIssuingRequest.Generate(keypair);
-            Identity identity = Identity.Issue(iir, subjectId, caps, 100, Commons.TrustedKeypair, Commons.TrustedIdentity);
+            Identity identity = Identity.Issue(iir, subjectId, caps, 100, Commons.IntermediateKeypair, Commons.IntermediateIdentity);
             Assert.IsTrue(profile == identity.Profile);
             Assert.IsTrue(subjectId == identity.SubjectId);
             Assert.IsTrue(identity.HasCapability(caps[0]));
             Assert.IsTrue(keypair.PublicKey == identity.IdentityKey);
             Assert.IsTrue(identity.IssuedAt != 0);
             Assert.IsTrue(identity.IssuedAt < identity.ExpiresAt);
-            Assert.IsTrue(Identity.TrustedIdentity.SubjectId == identity.IssuerId);
+            Assert.IsTrue(Commons.IntermediateIdentity.SubjectId == identity.IssuerId);
         }
 
        [TestMethod]
-        public void IssueIdentityTest3()
+        public void IssueTest3()
         {
             Identity.TrustedIdentity = Commons.TrustedIdentity;
             IdentityIssuingRequest iir = IdentityIssuingRequest.Generate(Keypair.Generate(KeypairType.Identity));
@@ -57,6 +57,17 @@ namespace ShiftEverywhere.DiMETest
                 Identity identity = Identity.Issue(iir, Guid.NewGuid(), caps, 100, Commons.TrustedKeypair, Commons.TrustedIdentity);
             } catch (IdentityCapabilityException) { return; } // All is well
             Assert.IsTrue(false, "Should not happen.");
+        }
+
+        [TestMethod]
+        public void IssueTest4()
+        {
+            Identity.TrustedIdentity = Commons.TrustedIdentity;
+            Keypair keypair = Keypair.Generate(KeypairType.Identity);
+            Identity.Capability[] caps = new Identity.Capability[2] { Identity.Capability.Issue, Identity.Capability.Authorize };
+            Identity identity = Identity.Issue(IdentityIssuingRequest.Generate(keypair, caps), Guid.NewGuid(), caps, 100, Commons.TrustedKeypair, Commons.TrustedIdentity);
+            Assert.IsTrue(identity.HasCapability(Identity.Capability.Issue));
+            Assert.IsTrue(identity.HasCapability(Identity.Capability.Authorize));
         }
 
         [TestMethod]
@@ -120,6 +131,13 @@ namespace ShiftEverywhere.DiMETest
                 identity.VerifyTrust();
             } catch (UntrustedIdentityException) { return; } // All is well
             Assert.IsTrue(false, "This should not happen.");
+        }
+
+        [TestMethod]
+        public void VerifyTrustTest4()
+        {
+            Identity.TrustedIdentity = Commons.TrustedIdentity;
+            Commons.IntermediateIdentity.VerifyTrust();
         }
 
         [TestMethod]

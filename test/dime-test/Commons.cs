@@ -8,6 +8,8 @@ namespace ShiftEverywhere.DiMETest
         #region -- PUBLIC --
         public static Keypair TrustedKeypair { get { if (!Commons._trustedKeypair.HasValue) { Commons._trustedKeypair = Keypair.Import(Commons._encodedTrustedKeypair); } return Commons._trustedKeypair.Value; } }
         public static Identity TrustedIdentity { get { if (Commons._trustedIdentity == null) { Commons._trustedIdentity = Identity.Import(Commons._encodedTrustedIdentity); } return Commons._trustedIdentity; } }
+        public static Keypair IntermediateKeypair { get { if (!Commons._intermediateKeypair.HasValue) { Commons._intermediateKeypair = Keypair.Import(Commons._encodedIntermediateKeypair); } return Commons._intermediateKeypair.Value; } }
+        public static Identity IntermediateIdentity { get { if (Commons._intermediateIdentity == null) { Commons._intermediateIdentity = Identity.Import(Commons._encodedIntermediateIdentity); } return Commons._intermediateIdentity; } }
         public static Keypair SenderKeypair { get { if (!Commons._senderKeypair.HasValue) { Commons._senderKeypair = Keypair.Import(Commons._encodedSenderKeypair); } return Commons._senderKeypair.Value; } }
         public static Identity SenderIdentity { get { if (Commons._senderIdentity == null) { Commons._senderIdentity = Identity.Import(Commons._encodedSenderIdentity); } return Commons._senderIdentity; } }
         public static Keypair ReceiverKeypair { get { if (!Commons._receiverKeypair.HasValue) { Commons._receiverKeypair = Keypair.Import(Commons._encodedReceiverKeypair); } return Commons._receiverKeypair.Value; } }
@@ -19,6 +21,13 @@ namespace ShiftEverywhere.DiMETest
         private const string _encodedTrustedIdentity = "I1.eyJzdWIiOiI3MWUyYmU1Yy03MWVkLTQyYjQtYmY5Mi04ZmJiZmU2MjA3N2MiLCJpc3MiOiI3MWUyYmU1Yy03MWVkLTQyYjQtYmY5Mi04ZmJiZmU2MjA3N2MiLCJpYXQiOjE2MjE5Njg5NjIsImV4cCI6MTkzNzMyODk2MiwiaWt5IjoiTUNvd0JRWURLMlZ3QXlFQUJGaUFjeDd0ZEk3a28vc2ZGdVx1MDAyQmxBdUlldUNoSlBENklXeU55TjEvb3M5RSIsImNhcCI6WyJpc3N1ZSJdfQ.GJGMslLqgT+S4ATRKkJUIJCI4vmAICnlg04843s38tOL1U+44REiTeb5jGgOmGQP4zujLqrxXbyu+W55xHGqCg";
         private static Keypair? _trustedKeypair;
         private static Identity _trustedIdentity;
+        #endregion
+
+        #region -- INTERMEDIATE IDENTITY --
+        private const string _encodedIntermediateKeypair = "k1.eyJraWQiOiJhODAwMTAwZi1jYzdiLTQ3YzAtYjUxMS02MDQ2M2UwMDQ5MWMiLCJrdHkiOjEsInB1YiI6Ik1Db3dCUVlESzJWd0F5RUFhMTNsU0VrZlp6OFNvbzN2ckxwY0drNkhWeW10NkFcdTAwMkI4QVRGYzF4MllndXciLCJwcnYiOiJNQzRDQVFBd0JRWURLMlZ3QkNJRUlKWGF2TlFaTlN6ZkdxYldSczJNazhFUVB5ZnBJOVZHbnFOa25TVVx1MDAyQkx6WUoifQ";
+        private const string _encodedIntermediateIdentity = "I1.eyJzdWIiOiJmZjczYjMzNC05MGRlLTRmYTUtOGFiZi0yZTgwMjg4MzE5ZmQiLCJpc3MiOiI3MWUyYmU1Yy03MWVkLTQyYjQtYmY5Mi04ZmJiZmU2MjA3N2MiLCJpYXQiOjE2MjIxNDE3MTEsImV4cCI6MTc3OTgyMTcxMSwiaWt5IjoiTUNvd0JRWURLMlZ3QXlFQWExM2xTRWtmWno4U29vM3ZyTHBjR2s2SFZ5bXQ2QVx1MDAyQjhBVEZjMXgyWWd1dyIsImNhcCI6WyJpc3N1ZSIsImF1dGhvcml6ZSJdfQ.RQq1eT/MXLSJn2Dby+k8QWW09uhzVaFeRH32glxoN/V01fAHUm+/Ofrz9XA1DC/n9LSVdO018/NTorTJEBbmCQ";
+        private static Keypair? _intermediateKeypair;
+        private static Identity _intermediateIdentity;
         #endregion
 
         #region -- SENDER IDENTITY --

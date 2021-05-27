@@ -91,12 +91,13 @@ namespace ShiftEverywhere.DiME
                 long now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
                 Guid issuerId = issuerIdentity != null ? issuerIdentity.SubjectId : subjectId;
                 Identity identity = new Identity(subjectId, iir.IdentityKey, now, (now + validFor), issuerId, iir.capabilities, iir.Profile);
-                identity._signature = Crypto.GenerateSignature(identity.Profile, identity.Encode(), issuerKeypair.PrivateKey);
-                if (Identity.TrustedIdentity != null && issuerIdentity.SubjectId != Identity.TrustedIdentity.SubjectId)
+                if (Identity.TrustedIdentity != null && issuerIdentity != null && issuerIdentity.SubjectId != Identity.TrustedIdentity.SubjectId)
                 {
+                    issuerIdentity.VerifyTrust();
                     // The chain will only be set if this is not the trusted identity (and as long as one is set)
                     identity.TrustChain = issuerIdentity;
                 }
+                identity._signature = Crypto.GenerateSignature(identity.Profile, identity.Encode(), issuerKeypair.PrivateKey);
                 return identity;
             }
             throw new IdentityCapabilityException("Issuing identity missing 'issue' capability.");
@@ -126,7 +127,12 @@ namespace ShiftEverywhere.DiME
         {
             if (this.SubjectId == this.IssuerId) { throw new UntrustedIdentityException("Identity is self-signed."); }
             if (Identity.TrustedIdentity == null) { throw new ArgumentNullException("Identity.TrustedIdentity", "No trusted identity set."); }
-            Verify(Identity.TrustedIdentity.IdentityKey);
+            if (this.TrustChain != null)
+            {
+                this.TrustChain.VerifyTrust();
+            } 
+            string publicKey = this.TrustChain != null ? this.TrustChain.IdentityKey : Identity.TrustedIdentity.IdentityKey;
+            Verify(publicKey);
         }
 
         /// <summary>Helper function to quickly check if a string is potentially a DiME encoded identity object.</summary>
