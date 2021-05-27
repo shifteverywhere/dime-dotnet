@@ -5,8 +5,8 @@ using System.Collections.Generic;
 
 namespace ShiftEverywhere.DiME
 {
-    ///<summary>Acts as acontainer object for Message instances. Several messages, independent on their origin
-    /// may be added to an envelope. The entity that created the envelope signs it at export and thus sealing
+    ///<summary>Acts as a container object for Message instances. Several messages, independent on their origin
+    /// may be added to an envelope. The entity that created the envelope signs it before exporting and thus sealing
     /// it's content. </summary>
     public class Envelope
     {
@@ -29,11 +29,9 @@ namespace ShiftEverywhere.DiME
         public long ExpiresAt { get { return this._data.exp; } set { this.Reset(); this._data.exp = value; } }
         /// <summary>Indicates if the envelope is sealed or not (signed).</summary>
         public bool IsSealed { get { return this._signature != null; } }
-        /// <summary>const string to improve performance</summary>
-        public const string delimiter = ".";
 
-        /// <summar>Constructs a new Envelope object from the provided parameters. The issued at will be set
-        /// to the current time. </summary>
+        /// <summar>Constructs a new Envelope object from the provided parameters. The envelope will be valid from the time of creation until
+        /// the seconds set in 'validFor' have passed.</summary>
         /// <param name="issuerIdentity">The identity of the issuer.</param>
         /// <param name="subjectId">The id of the receiving subject.</param>
         /// <param name="validFor">The number of seconds before the envelope expires.</param>
@@ -51,7 +49,7 @@ namespace ShiftEverywhere.DiME
         /// <param name="encoded">The DiME encoded envelope string to import.</param>
         /// <exception cref="DataFormatException">If the format of the encoded string is invalid.</exception>
         /// <exception cref="UnsupportedProfileException">If an invalid cryptographic profile version is set.</exception>
-        /// <exception cref="DateExpirationException">If 'IssuedAt' and/or 'ExpiresAt' contain invalid values, or has the envelope has expired.</exception>
+        /// <exception cref="DateExpirationException">If 'IssuedAt' and/or 'ExpiresAt' contain invalid values, or the envelope has expired.</exception>
         /// <exception cref="IntegrityException">If the signature failes validation, or cannot be validated.</exception>
         /// <returns>An initialized and verified Envelope object.</returns>
         public static Envelope Import(string encoded)
@@ -83,22 +81,23 @@ namespace ShiftEverywhere.DiME
         /// <summary>This function encodes and exports the envelope object in the DiME format. It will verify 
         /// the data inside the envelope, as well as the signature attached.</summary>
         /// <exception cref="UnsupportedProfileException">If an invalid cryptographic profile version is set.</exception>
-        /// <exception cref="DateExpirationException">If 'IssuedAt' and/or 'ExpiresAt' contain invalid values, or has the envelope has expired.</exception>
+        /// <exception cref="DateExpirationException">If 'IssuedAt' and/or 'ExpiresAt' contain invalid values, or the message has expired.</exception>
         /// <exception cref="IntegrityException">If the signature failes validation, or cannot be validated.</exception>
+        /// <returns>A DiME encoded string.</returns>
         public string Export()
         {
             if (!this.IsSealed) { throw new IntegrityException("Signature missing, unable to export."); }
             Verify();
             StringBuilder sb = new StringBuilder();
             sb.Append(Encode());
-            sb.Append(delimiter);
+            sb.Append(_delimiter);
             sb.Append(_signature);
             return sb.ToString();
         }
         
         /// <summary>This will seal an envelope by signing it using the provided private key (of key type 'Identity').
-        /// The provided private key must be associated with the public key in the Idenity object inside the envelope
-        /// object to be signed.</summary>
+        /// The provided private key must be associated with the public key in the 'Idenity' object inside the envelope
+        /// object to be signed. If not, then the envelope will not be trusted by the receiving party.</summary>
         /// <param name="identityPrivateKey">The private key that should be used to sign the envelope.</param>
         /// <exception cref="ArgumentNullException">If the passed private key is null.</exception> 
         /// <exception cref="ArgumentException">If required data is missing in the envelope.</exception> 
@@ -142,10 +141,10 @@ namespace ShiftEverywhere.DiME
 
         /// <summary>Will verify the data in the fields in the evelope object. It will also verify all underlaying
         /// objects if 'shallowVerification' is set to true (or omitted). The signature of the envelope object will
-        /// be verified with the public key from the 'Identity' property.</summary>
+        /// be verified with the public key from the 'Identity.TrustedIdentity' property.</summary>
         /// <param name="shallowVerification">Indicate if a deep verification of all encapsulated objects should be skipped.</param>
         /// <exception cref="UnsupportedProfileException">If an invalid cryptographic profile version is set.</exception>
-        /// <exception cref="DateExpirationException">If 'IssuedAt' and/or 'ExpiresAt' contain invalid values, or has the envelope has expired.</exception>
+        /// <exception cref="DateExpirationException">If 'IssuedAt' and/or 'ExpiresAt' contain invalid values, or the envelope has expired.</exception>
         /// <exception cref="IntegrityException">If the signature failes validation, or cannot be validated.</exception>
         public void Verify(bool shallowVerification = false)
         {
@@ -179,6 +178,8 @@ namespace ShiftEverywhere.DiME
         private Identity _identity;
         private string _signature;
         private string _encoded;
+        private const string _delimiter = ".";
+
         private struct InternalData
         {
             public Guid uid { get; set; }

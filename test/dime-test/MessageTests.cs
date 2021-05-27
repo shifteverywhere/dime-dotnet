@@ -18,7 +18,7 @@ namespace ShiftEverywhere.DiMETest
             Identity issuer = Commons.SenderIdentity;
             long now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
             Message message = new Message(subjectId, issuer, 10);
-            message.AddPayload(Encoding.UTF8.GetBytes("Racecar is racecar backwards."));
+            message.SetPayload(Encoding.UTF8.GetBytes("Racecar is racecar backwards."));
             Assert.IsTrue(1 == message.Profile);
             Assert.IsNotNull(message.Id);
             Assert.AreEqual(subjectId, message.SubjectId);
@@ -37,9 +37,9 @@ namespace ShiftEverywhere.DiMETest
             byte[] payload = Encoding.UTF8.GetBytes("Racecar is racecar backwards.");
             long validFor = 10;
             Message message1 = new Message(subjectId, issuer, validFor);
-            message1.AddPayload(payload);
+            message1.SetPayload(payload);
             Message message2 = new Message(subjectId, issuer, validFor);
-            message2.AddPayload(payload);
+            message2.SetPayload(payload);
             Assert.AreNotEqual(message1.Id, message2.Id);
         }
 
@@ -57,7 +57,7 @@ namespace ShiftEverywhere.DiMETest
         {  
             Identity.TrustedIdentity = Commons.TrustedIdentity;
             Message message = new Message(Guid.NewGuid(), Commons.SenderIdentity, 10);
-            message.AddPayload(Encoding.UTF8.GetBytes("Racecar is racecar backwards."));
+            message.SetPayload(Encoding.UTF8.GetBytes("Racecar is racecar backwards."));
             message.Seal(Commons.SenderKeypair.PrivateKey);
             string encoded = message.Export();
             Assert.IsNotNull(encoded);
@@ -82,7 +82,7 @@ namespace ShiftEverywhere.DiMETest
         {  
             Identity.TrustedIdentity = Commons.TrustedIdentity;
             Message message = new Message(Guid.NewGuid(), Commons.SenderIdentity, 10);
-            message.AddPayload(Encoding.UTF8.GetBytes("Racecar is racecar backwards."));
+            message.SetPayload(Encoding.UTF8.GetBytes("Racecar is racecar backwards."));
             message.Seal(Commons.SenderKeypair.PrivateKey);
             Assert.AreEqual(message.Export(), message.Export());
         }
@@ -148,7 +148,7 @@ namespace ShiftEverywhere.DiMETest
         {
             Identity.TrustedIdentity = Commons.TrustedIdentity;
             Message message = new Message(Guid.NewGuid(), Commons.SenderIdentity, 10);
-            message.AddPayload(Encoding.UTF8.GetBytes("Racecar is racecar backwards."));
+            message.SetPayload(Encoding.UTF8.GetBytes("Racecar is racecar backwards."));
             Assert.IsFalse(message.IsSealed);
             message.Seal(Commons.SenderKeypair.PrivateKey);
             Assert.IsTrue(message.IsSealed);
@@ -159,7 +159,7 @@ namespace ShiftEverywhere.DiMETest
         {
             Identity.TrustedIdentity = Commons.TrustedIdentity;
             Message message = new Message(Guid.NewGuid(), Commons.SenderIdentity, 10);
-            message.AddPayload(Encoding.UTF8.GetBytes("Racecar is racecar backwards."));
+            message.SetPayload(Encoding.UTF8.GetBytes("Racecar is racecar backwards."));
             message.Seal(Commons.SenderKeypair.PrivateKey);
             Guid uid1 = message.Id;
             message.ExpiresAt = message.ExpiresAt + 100;
@@ -172,7 +172,7 @@ namespace ShiftEverywhere.DiMETest
             Identity.TrustedIdentity = Commons.TrustedIdentity;
             Identity issuer = Commons.SenderIdentity;
             Message message1 = new Message(Guid.NewGuid(), issuer, 100);
-            message1.AddPayload(Encoding.UTF8.GetBytes("Racecar is racecar backwards."));
+            message1.SetPayload(Encoding.UTF8.GetBytes("Racecar is racecar backwards."));
             Assert.AreEqual("Racecar is racecar backwards.", System.Text.Encoding.UTF8.GetString(message1.GetPayload()));
             message1.Seal(Commons.SenderKeypair.PrivateKey);
             string encoded = message1.Export();
@@ -187,13 +187,13 @@ namespace ShiftEverywhere.DiMETest
             Identity issuer = Commons.SenderIdentity;
             Identity receiver = Commons.ReceiverIdentity;
             Message issuerMessage = new Message(receiver.SubjectId, issuer, 100);
-            issuerMessage.AddPayload(Encoding.UTF8.GetBytes("Racecar is racecar backwards."));
+            issuerMessage.SetPayload(Encoding.UTF8.GetBytes("Racecar is racecar backwards."));
             issuerMessage.Seal(Commons.SenderKeypair.PrivateKey);
             string issuerEncoded = issuerMessage.Export();
             
             Message receivedMessage = Message.Import(issuerEncoded);
             Message responseMessage = new Message(issuer.SubjectId, receiver, 100);
-            responseMessage.AddPayload(Encoding.UTF8.GetBytes("It is!"));
+            responseMessage.SetPayload(Encoding.UTF8.GetBytes("It is!"));
             responseMessage.LinkMessage(receivedMessage);
             responseMessage.Seal(Commons.ReceiverKeypair.PrivateKey);
             string responseEncoded = responseMessage.Export();
@@ -208,9 +208,9 @@ namespace ShiftEverywhere.DiMETest
             Identity issuer = Commons.SenderIdentity;
             Identity receiver = Commons.ReceiverIdentity;
             Message issuerMessage1 = new Message(receiver.SubjectId, issuer, 100);
-            issuerMessage1.AddPayload(Encoding.UTF8.GetBytes("Racecar is racecar backwards."));
+            issuerMessage1.SetPayload(Encoding.UTF8.GetBytes("Racecar is racecar backwards."));
             Message issuerMessage2 = new Message(receiver.SubjectId, issuer, 100);
-            issuerMessage2.AddPayload(Encoding.UTF8.GetBytes("Racecar is racecar backwards."));
+            issuerMessage2.SetPayload(Encoding.UTF8.GetBytes("Racecar is racecar backwards."));
             // TODO: something missing?
         }
  

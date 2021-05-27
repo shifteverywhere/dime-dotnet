@@ -147,7 +147,7 @@ namespace ShiftEverywhere.DiMETest
         private Message GetMessage(string payload)
         {
             Message message = new Message(Commons.ReceiverIdentity.SubjectId, Commons.SenderIdentity, 10);
-            message.AddPayload(Encoding.UTF8.GetBytes(payload));
+            message.SetPayload(Encoding.UTF8.GetBytes(payload));
             message.Seal(Commons.SenderKeypair.PrivateKey);
             return message;
         }

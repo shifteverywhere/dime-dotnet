@@ -35,7 +35,7 @@ namespace ShiftEverywhere.DiMEConsole
         {
             long expiresAt = DateTimeOffset.UtcNow.ToUnixTimeSeconds() + 120;
             Message msg = new Message(subjectId, issuerIdentity, expiresAt);
-            msg.AddPayload(Encoding.UTF8.GetBytes(payload));
+            msg.SetPayload(Encoding.UTF8.GetBytes(payload));
             return msg;
         }
 
