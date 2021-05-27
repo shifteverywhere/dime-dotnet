@@ -106,6 +106,8 @@ namespace ShiftEverywhere.DiME
         #endregion
         #region -- Public support --
 
+        /// <summary>Generates a cryptographically unique thumbprint of the identity.</summary>
+        /// <returns>An unique thumbprint.</returns>
         public string Thumbprint() 
         {
             return Crypto.GenerateHash(this.Profile, Encode());

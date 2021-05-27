@@ -79,25 +79,21 @@ namespace ShiftEverywhere.DiME
             }
             message._encoded = encoded.Substring(0, encoded.LastIndexOf('.'));
             message._signature = components[components.Length - 1];
-            message.Verify(linkedMessage != null ? linkedMessage.Export() : null);
+            message.Verify(linkedMessage != null ? linkedMessage : null);
             return message;
         }
 
         /// <summary>This function encodes and exports the message object in the DiME format. It will verify 
         /// the data inside the message, as well as the signature attached.</summary>
-        /// <exception cref="UnsupportedProfileException">If an invalid cryptographic profile version is set.</exception>
-        /// <exception cref="DateExpirationException">If 'IssuedAt' and/or 'ExpiresAt' contain invalid values, or the message has expired.</exception>
         /// <exception cref="IntegrityException">If the signature failes validation, or cannot be validated.</exception>
         /// <returns>A DiME encoded string.</returns>
         public string Export()
         {
             if (!this.IsSealed) { throw new IntegrityException("Signature missing, unable to export."); }
-            Verify();
             StringBuilder sb = new StringBuilder();
             sb.Append(Encode());
             sb.Append(_delimiter);
             sb.Append(_signature);
-
             return sb.ToString();
         }
 
@@ -106,11 +102,13 @@ namespace ShiftEverywhere.DiME
         /// the 'Identity.TrustedIdentity' property.</summary>
         /// <param name="linkedMessage">A linked message that should be considred during verification.</param>
         /// <exception cref="UnsupportedProfileException">If an invalid cryptographic profile version is set.</exception>
+        /// <exception cref="DataFormatException">If no payload has been set in the message.</exception>
         /// <exception cref="DateExpirationException">If 'IssuedAt' and/or 'ExpiresAt' contain invalid values, or the message has expired.</exception>
         /// <exception cref="IntegrityException">If the signature failes validation, or cannot be validated.</exception>
-        public void Verify(string linkedMessage = null)
+        public void Verify(Message linkedMessage = null)
         {
             if (!Crypto.SupportedProfile(this.Profile)) { throw new UnsupportedProfileException("Unsupported cryptography profile version."); }
+            if (this._payload == null || this._payload.Length == 0) { throw new DataFormatException("Missing payload in message."); }
             // Verify IssuedAt and ExpiresAt
             long now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
             if (this.IssuedAt > now) { throw new DateExpirationException("Issuing date in the future."); }
@@ -121,8 +119,9 @@ namespace ShiftEverywhere.DiME
             // Verify linkedMessage
             if (this._data.lnk != null && linkedMessage != null)
             {
-                string msgHash = Crypto.GenerateHash(this.Profile, linkedMessage);
-                if (msgHash != this._data.lnk) { throw new IntegrityException("Linked message mismatch."); }
+                string uid = this._data.lnk.Split(new char[] { '.' })[0];
+                string msgHash = Crypto.GenerateHash(this.Profile, linkedMessage.Thumbprint());
+                if (uid != linkedMessage.Id.ToString() || msgHash != this._data.lnk) { throw new IntegrityException("Linked message mismatch."); }
             }
             // Verify signature
             if (this._signature == null) { throw new IntegrityException("Signature missing."); }
@@ -136,12 +135,16 @@ namespace ShiftEverywhere.DiME
         /// <param name="identityPrivateKey">The private key that should be used to sign the message.</param>
         /// <exception cref="ArgumentNullException">If the passed private key is null.</exception> 
         /// <exception cref="ArgumentException">If required data is missing in the envelope.</exception> 
+        /// <exception cref="UnsupportedProfileException">If an invalid cryptographic profile version is set.</exception>
+        /// <exception cref="DataFormatException">If no payload has been set in the message.</exception>
+        /// <exception cref="DateExpirationException">If 'IssuedAt' and/or 'ExpiresAt' contain invalid values, or the message has expired.</exception>
         public void Seal(string identityPrivateKey)
         {
             if (!this.IsSealed)
             {
                 if (identityPrivateKey == null) { throw new ArgumentNullException("identityPrivateKey", "Private key for signing cannot be null."); }
                 this._signature = Crypto.GenerateSignature(this.Profile, Encode(), identityPrivateKey);
+                Verify();
             }
         }
 
@@ -180,7 +183,16 @@ namespace ShiftEverywhere.DiME
         {
             Reset();
             if (message == null) { throw new ArgumentNullException("message", "Message to link must not be null."); }
-            this._data.lnk = Crypto.GenerateHash(this.Profile, message.Export());
+            this._data.lnk = string.Format("{0}.{1}",
+                                           message.Id.ToString(),
+                                           this.Thumbprint());
+        }
+
+        /// <summary>Generates a cryptographically unique thumbprint of the message.</summary>
+        /// <returns>An unique thumbprint.</returns>
+        public string Thumbprint() 
+        {
+            return Crypto.GenerateHash(this.Profile, Encode());
         }
         #endregion
 

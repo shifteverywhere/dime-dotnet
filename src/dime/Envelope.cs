@@ -80,14 +80,11 @@ namespace ShiftEverywhere.DiME
 
         /// <summary>This function encodes and exports the envelope object in the DiME format. It will verify 
         /// the data inside the envelope, as well as the signature attached.</summary>
-        /// <exception cref="UnsupportedProfileException">If an invalid cryptographic profile version is set.</exception>
-        /// <exception cref="DateExpirationException">If 'IssuedAt' and/or 'ExpiresAt' contain invalid values, or the message has expired.</exception>
         /// <exception cref="IntegrityException">If the signature failes validation, or cannot be validated.</exception>
         /// <returns>A DiME encoded string.</returns>
         public string Export()
         {
             if (!this.IsSealed) { throw new IntegrityException("Signature missing, unable to export."); }
-            Verify();
             StringBuilder sb = new StringBuilder();
             sb.Append(Encode());
             sb.Append(_delimiter);
@@ -101,6 +98,8 @@ namespace ShiftEverywhere.DiME
         /// <param name="identityPrivateKey">The private key that should be used to sign the envelope.</param>
         /// <exception cref="ArgumentNullException">If the passed private key is null.</exception> 
         /// <exception cref="ArgumentException">If required data is missing in the envelope.</exception> 
+        /// <exception cref="UnsupportedProfileException">If an invalid cryptographic profile version is set.</exception>
+        /// <exception cref="DateExpirationException">If 'IssuedAt' and/or 'ExpiresAt' contain invalid values, or the message has expired.</exception>
         public void Seal(string identityPrivateKey)
         {
             if (this._signature == null)
@@ -108,6 +107,7 @@ namespace ShiftEverywhere.DiME
                 if (identityPrivateKey == null) { throw new ArgumentNullException("Private key for signing cannot be null.", "identityPrivateKey"); }
                 if (this.Messages == null || this.Messages.Count == 0) { throw new ArgumentException("No messages added to the envelope.", "Messages"); } 
                 this._signature = Crypto.GenerateSignature(this.Profile, Encode(), identityPrivateKey);
+                Verify();
             }
         }
 
@@ -170,6 +170,12 @@ namespace ShiftEverywhere.DiME
             Crypto.VerifySignature(this.Profile, Encode(), this._signature, this.Identity.IdentityKey);
         }
 
+        /// <summary>Generates a cryptographically unique thumbprint of the envelope.</summary>
+        /// <returns>An unique thumbprint.</returns>
+        public string Thumbprint() 
+        {
+            return Crypto.GenerateHash(this.Profile, Encode());
+        }
         #endregion
         #region -- PRIVATE --
 
