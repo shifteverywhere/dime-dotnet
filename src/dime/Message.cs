@@ -102,7 +102,7 @@ namespace ShiftEverywhere.DiME
         /// the 'Identity.TrustedIdentity' property.</summary>
         /// <param name="linkedMessage">A linked message that should be considred during verification.</param>
         /// <exception cref="UnsupportedProfileException">If an invalid cryptographic profile version is set.</exception>
-        /// <exception cref="DataFormatException">If no payload has been set in the message.</exception>
+        /// <exception cref="DataFormatException">If no payload has been set in the message, or linked message value is invalid.</exception>
         /// <exception cref="DateExpirationException">If 'IssuedAt' and/or 'ExpiresAt' contain invalid values, or the message has expired.</exception>
         /// <exception cref="IntegrityException">If the signature failes validation, or cannot be validated.</exception>
         public void Verify(Message linkedMessage = null)
@@ -119,9 +119,10 @@ namespace ShiftEverywhere.DiME
             // Verify linkedMessage
             if (this._data.lnk != null && linkedMessage != null)
             {
-                string uid = this._data.lnk.Split(new char[] { '.' })[0];
-                string msgHash = Crypto.GenerateHash(this.Profile, linkedMessage.Thumbprint());
-                if (uid != linkedMessage.Id.ToString() || msgHash != this._data.lnk) { throw new IntegrityException("Linked message mismatch."); }
+                string[] components = this._data.lnk.Split(new char[] { ':' });
+                if (components == null || components.Length != 2) { throw new DataFormatException("Invalid message link."); }
+                string msgHash = linkedMessage.Thumbprint();
+                if (components[0] != linkedMessage.Id.ToString() || components[1] != msgHash) { throw new IntegrityException("Linked message mismatch."); }
             }
             // Verify signature
             if (this._signature == null) { throw new IntegrityException("Signature missing."); }
@@ -183,15 +184,17 @@ namespace ShiftEverywhere.DiME
         {
             Reset();
             if (message == null) { throw new ArgumentNullException("message", "Message to link must not be null."); }
-            this._data.lnk = string.Format("{0}.{1}",
+            this._data.lnk = string.Format("{0}:{1}",
                                            message.Id.ToString(),
-                                           this.Thumbprint());
+                                           message.Thumbprint());
         }
 
         /// <summary>Generates a cryptographically unique thumbprint of the message.</summary>
+        /// <exception cref="IntegrityException">If message is not sealed (signed).</exception> 
         /// <returns>An unique thumbprint.</returns>
         public string Thumbprint() 
         {
+            if(!this.IsSealed) { throw new IntegrityException("Message not sealed."); }
             return Crypto.GenerateHash(this.Profile, Encode());
         }
         #endregion

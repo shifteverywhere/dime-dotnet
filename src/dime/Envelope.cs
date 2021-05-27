@@ -160,8 +160,12 @@ namespace ShiftEverywhere.DiME
                 this.Identity.VerifyTrust();
                 foreach(Message message in this.Messages)
                 {
-                    // TODO: verify messages here (includng linked messages??)
-                    //message.Verify();
+                    Message linkedMessage = null;
+                    if (message.LinkedTo != null)
+                    {
+                        linkedMessage = this.Messages.Find(element => message.LinkedTo.StartsWith(element.Id.ToString()));
+                    }
+                    message.Verify(linkedMessage);
                 }
             }
             // Verify signature
@@ -171,9 +175,11 @@ namespace ShiftEverywhere.DiME
         }
 
         /// <summary>Generates a cryptographically unique thumbprint of the envelope.</summary>
+        /// <exception cref="IntegrityException">If message is not sealed (signed).</exception> 
         /// <returns>An unique thumbprint.</returns>
         public string Thumbprint() 
         {
+            if(!this.IsSealed) { throw new IntegrityException("Message not sealed."); }
             return Crypto.GenerateHash(this.Profile, Encode());
         }
         #endregion

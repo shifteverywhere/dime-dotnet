@@ -156,6 +156,18 @@ namespace ShiftEverywhere.DiMETest
         }
 
         [TestMethod]
+        public void SealTest2()
+        {  
+            Identity.TrustedIdentity = Commons.TrustedIdentity;
+            Message message = new Message(Guid.NewGuid(), Commons.SenderIdentity, 10);
+            message.SetPayload(Encoding.UTF8.GetBytes("Racecar is racecar backwards."));
+            try {
+                message.Seal(Commons.ReceiverKeypair.PrivateKey);
+            } catch (IntegrityException) { return; } // All is well
+            Assert.IsTrue(false, "Should not happen.");
+        }
+
+        [TestMethod]
         public void IsSealedTest1()
         {
             Identity.TrustedIdentity = Commons.TrustedIdentity;
@@ -214,16 +226,44 @@ namespace ShiftEverywhere.DiMETest
         }
 
         [TestMethod]
-        public void LinkMessageTest2()
+        public void ThumbprintTest1()
+        {
+            Identity.TrustedIdentity = Commons.TrustedIdentity;
+            Message message1 = new Message(Commons.ReceiverIdentity.SubjectId, Commons.SenderIdentity, 100);
+            message1.SetPayload(Encoding.UTF8.GetBytes("Racecar is racecar backwards."));
+            message1.Seal(Commons.SenderKeypair.PrivateKey);
+            string thumbprint1 = message1.Thumbprint();
+            string encoded = message1.Export();
+            Message message2 = Message.Import(encoded);
+            string thumbprint2 = message2.Thumbprint();
+            Assert.AreEqual(thumbprint1, thumbprint2);
+        }
+
+        [TestMethod]
+        public void ThumbprintTest2()
         {
             Identity.TrustedIdentity = Commons.TrustedIdentity;
             Identity issuer = Commons.SenderIdentity;
             Identity receiver = Commons.ReceiverIdentity;
             Message issuerMessage1 = new Message(receiver.SubjectId, issuer, 100);
             issuerMessage1.SetPayload(Encoding.UTF8.GetBytes("Racecar is racecar backwards."));
+            issuerMessage1.Seal(Commons.SenderKeypair.PrivateKey);
             Message issuerMessage2 = new Message(receiver.SubjectId, issuer, 100);
             issuerMessage2.SetPayload(Encoding.UTF8.GetBytes("Racecar is racecar backwards."));
-            // TODO: something missing?
+            issuerMessage2.Seal(Commons.SenderKeypair.PrivateKey);
+            Assert.AreNotEqual(issuerMessage1.Thumbprint(), issuerMessage2.Thumbprint());
+        }
+
+        [TestMethod]
+        public void ThumbprintTest3()
+        {
+            Identity.TrustedIdentity = Commons.TrustedIdentity;
+            Message message = new Message(Commons.ReceiverIdentity.SubjectId, Commons.SenderIdentity, 100);
+            message.SetPayload(Encoding.UTF8.GetBytes("Racecar is racecar backwards."));
+            try {
+                message.Thumbprint();
+            } catch (IntegrityException) { return; } // All is well
+            Assert.IsTrue(false, "Should not happen.");
         }
  
     }

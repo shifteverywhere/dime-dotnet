@@ -71,6 +71,31 @@ namespace ShiftEverywhere.DiMETest
         }
 
         [TestMethod]
+        public void SealTest2()
+        {  
+            Identity.TrustedIdentity = Commons.TrustedIdentity;
+            Envelope envelope = new Envelope(Commons.SenderIdentity, Commons.ReceiverIdentity.SubjectId, 10);
+            envelope.AddMessage(GetMessage("Racecar is racecar backwards."));
+            try {
+                envelope.Seal(Commons.ReceiverKeypair.PrivateKey);
+            } catch (IntegrityException) { return; } // All is well
+            Assert.IsTrue(false, "Should not happen.");
+        }
+
+
+        [TestMethod]
+        public void SealTest3()
+        {
+            Identity.TrustedIdentity = Commons.TrustedIdentity;
+            Message message = GetMessage("Racecar is racecar backwards.");
+            Message response = GetResponse("It is!", message);
+            Envelope envelope = new Envelope(Commons.SenderIdentity, Commons.ReceiverIdentity.SubjectId, 120);
+            envelope.AddMessage(message);
+            envelope.AddMessage(response);
+            envelope.Seal(Commons.SenderKeypair.PrivateKey);
+        } 
+
+        [TestMethod]
         public void ImportTest1()
         {  
             Identity.TrustedIdentity = Commons.TrustedIdentity;
@@ -134,21 +159,85 @@ namespace ShiftEverywhere.DiMETest
         public void AddMessageTest1()
         {
             Identity.TrustedIdentity = Commons.TrustedIdentity;
-            Envelope envelope1 = new Envelope(Commons.SenderIdentity, Commons.ReceiverIdentity.SubjectId, 10);
+            Envelope envelope1 = new Envelope(Commons.SenderIdentity, Commons.ReceiverIdentity.SubjectId, 100);
             envelope1.AddMessage(GetMessage("Racecar is racecar backwards."));
             envelope1.Seal(Commons.SenderKeypair.PrivateKey);
             string encoded = envelope1.Export();
 
             Envelope envelope2 = Envelope.Import(encoded);
             Assert.AreEqual("Racecar is racecar backwards.", System.Text.Encoding.UTF8.GetString(envelope2.Messages[0].GetPayload()));
-        }        
+        }  
+
+        [TestMethod]
+        public void VerifyTest1()
+        {
+            Identity.TrustedIdentity = Commons.TrustedIdentity;
+            Envelope envelope = new Envelope(Commons.SenderIdentity, Commons.ReceiverIdentity.SubjectId, 100);
+            envelope.AddMessage(GetMessage("Racecar is racecar backwards."));
+            try {
+                envelope.Verify(false);
+            } catch (IntegrityException) { return; } // All is well
+            Assert.IsTrue(false, "Should not happen");
+        }
+
+        [TestMethod]
+        public void ThumbprintTest1()
+        {
+            Identity.TrustedIdentity = Commons.TrustedIdentity;
+            Envelope envelope1 = new Envelope(Commons.SenderIdentity, Commons.ReceiverIdentity.SubjectId, 120);
+            envelope1.AddMessage(GetMessage("Racecar is racecar backwards."));
+            envelope1.Seal(Commons.SenderKeypair.PrivateKey);
+            string thumbprint1 = envelope1.Thumbprint();
+            string encoded = envelope1.Export();
+            Envelope envelope2 = Envelope.Import(encoded);
+            string thumbprint2 = envelope2.Thumbprint();
+            Assert.AreEqual(thumbprint1, thumbprint2);
+        }
+
+        [TestMethod]
+        public void ThumbprintTest2()
+        {   
+            Identity.TrustedIdentity = Commons.TrustedIdentity;
+            Message message = GetMessage("Racecar is racecar backwards.");
+            Envelope envelope1 = new Envelope(Commons.SenderIdentity, Commons.ReceiverIdentity.SubjectId, 120);
+            envelope1.AddMessage(message);
+            envelope1.Seal(Commons.SenderKeypair.PrivateKey);
+            Envelope envelope2 = new Envelope(Commons.SenderIdentity, Commons.ReceiverIdentity.SubjectId, 120);
+            envelope2.AddMessage(message);
+            envelope2.Seal(Commons.SenderKeypair.PrivateKey);
+            Assert.AreNotEqual(envelope1.Thumbprint(), envelope2.Thumbprint());
+        }
+
+        [TestMethod]
+        public void ThumbprintTest3()
+        {
+            Identity.TrustedIdentity = Commons.TrustedIdentity;
+            Envelope envelope = new Envelope(Commons.SenderIdentity, Commons.ReceiverIdentity.SubjectId, 120);
+            envelope.AddMessage(GetMessage("Racecar is racecar backwards."));
+            try {
+                envelope.Thumbprint();
+            } catch (IntegrityException) { return; } // All is well
+            Assert.IsTrue(false, "Should not happen.");
+        }
 
         #region -- PRIVATE --
         private Message GetMessage(string payload)
         {
-            Message message = new Message(Commons.ReceiverIdentity.SubjectId, Commons.SenderIdentity, 10);
+            Message message = new Message(Commons.ReceiverIdentity.SubjectId, Commons.SenderIdentity, 120);
             message.SetPayload(Encoding.UTF8.GetBytes(payload));
             message.Seal(Commons.SenderKeypair.PrivateKey);
+            return message;
+        }
+
+        private Message GetResponse(string payload, Message linkedMessage = null)
+        {
+            Message message = new Message(Commons.SenderIdentity.SubjectId, Commons.ReceiverIdentity, 120);
+            message.SetPayload(Encoding.UTF8.GetBytes(payload));
+            if (linkedMessage != null)
+            {
+                message.LinkMessage(linkedMessage);
+            }
+            message.Seal(Commons.ReceiverKeypair.PrivateKey);
             return message;
         }
         #endregion
