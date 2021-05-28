@@ -44,7 +44,7 @@ namespace ShiftEverywhere.DiME
         /// <exception cref="ArgumentNullException">If issuer identity is null.</exception>
         public Message(Guid subjectId, Identity issuerIdentity, long validFor)
         {
-            if (issuerIdentity == null) { throw new ArgumentNullException("issuerIdentity", "issuerIdentity cannot be null"); }
+            if (issuerIdentity == null) { throw new ArgumentNullException(nameof(issuerIdentity), "Issuing identity cannot be null"); }
             long now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
             this._profile = issuerIdentity.Profile;
             this._identity = issuerIdentity;
@@ -64,7 +64,7 @@ namespace ShiftEverywhere.DiME
         public static Message Import(string encoded, Message linkedMessage = null)
         {
             if (!encoded.StartsWith(Message._HEADER)) { throw new DataFormatException("Unexpected data format."); }
-            string[] components = encoded.Split(new char[] { '.' });
+            string[] components = encoded.Split(new char[] { Message._MAIN_DELIMITER });
             if (components.Length != 5 && components.Length != 6) { throw new DataFormatException("Unexpected number of components found when decoding identity."); }
             int profile = int.Parse(components[0].Substring(1));
             if (!Crypto.SupportedProfile(profile)) { throw new UnsupportedProfileException("Unsupported cryptography profile."); }
@@ -77,7 +77,7 @@ namespace ShiftEverywhere.DiME
             {
                 message._state = components[4];
             }
-            message._encoded = encoded.Substring(0, encoded.LastIndexOf('.'));
+            message._encoded = encoded.Substring(0, encoded.LastIndexOf(Message._MAIN_DELIMITER));
             message._signature = components[components.Length - 1];
             message.Verify(linkedMessage != null ? linkedMessage : null);
             return message;
@@ -92,8 +92,8 @@ namespace ShiftEverywhere.DiME
             if (!this.IsSealed) { throw new IntegrityException("Signature missing, unable to export."); }
             StringBuilder sb = new StringBuilder();
             sb.Append(Encode());
-            sb.Append(_delimiter);
-            sb.Append(_signature);
+            sb.Append(Message._MAIN_DELIMITER);
+            sb.Append(this._signature);
             return sb.ToString();
         }
 
@@ -143,7 +143,7 @@ namespace ShiftEverywhere.DiME
         {
             if (!this.IsSealed)
             {
-                if (identityPrivateKey == null) { throw new ArgumentNullException("identityPrivateKey", "Private key for signing cannot be null."); }
+                if (identityPrivateKey == null) { throw new ArgumentNullException(nameof(identityPrivateKey), "Private key for signing cannot be null."); }
                 this._signature = Crypto.GenerateSignature(this.Profile, Encode(), identityPrivateKey);
                 Verify();
             }
@@ -183,7 +183,7 @@ namespace ShiftEverywhere.DiME
         public void LinkMessage(Message message)
         {
             Reset();
-            if (message == null) { throw new ArgumentNullException("message", "Message to link must not be null."); }
+            if (message == null) { throw new ArgumentNullException(nameof(message), "Message to link must not be null."); }
             this._data.lnk = string.Format("{0}:{1}",
                                            message.Id.ToString(),
                                            message.Thumbprint());
@@ -201,13 +201,13 @@ namespace ShiftEverywhere.DiME
 
         #region -- PRIVATE --
         private const string _HEADER = "M";
+        private const char _MAIN_DELIMITER = '.';
         private int _profile;
         private Identity _identity;
         private string _state;
         private string _payload;
         private string _signature;
         private string _encoded;
-        private const string _delimiter = ".";
 
         private struct InternalData
         {
@@ -221,6 +221,7 @@ namespace ShiftEverywhere.DiME
             [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
             public string lnk { get; set; }
 
+            [JsonConstructor]
             public InternalData(Guid uid, Guid sub, Guid iss, long iat, long exp, string xky = null, string lnk = null)
             {
                 this.uid = uid;

@@ -3,7 +3,7 @@ using System.Text;
 
 namespace ShiftEverywhere.DiME
 {
-    public class Utility
+    public static class Utility
     {
         public static String ToHex(byte[] bytes)
         {

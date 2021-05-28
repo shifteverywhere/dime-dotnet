@@ -1,6 +1,7 @@
 using System;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Collections.Generic;
 
 namespace ShiftEverywhere.DiME
@@ -55,17 +56,17 @@ namespace ShiftEverywhere.DiME
         public static Envelope Import(string encoded)
         {
             if (!Envelope.IsEnvelope(encoded)) { throw new DataFormatException("Unexpected data format."); }
-            string[] components = encoded.Split(new char[] { '.' });
+            string[] components = encoded.Split(new char[] { Envelope._MAIN_DELIMITER });
             if (components.Length != 5) { throw new DataFormatException("Unexpected number of components found then decoding identity."); }
             int profile = int.Parse(components[0].Substring(1));
             byte[] identityBytes = Utility.FromBase64(components[1]);
             Identity identity = Identity.Import(System.Text.Encoding.UTF8.GetString(identityBytes, 0, identityBytes.Length));
-            string envPart = encoded.Substring(0, encoded.LastIndexOf('.'));
+            string envPart = encoded.Substring(0, encoded.LastIndexOf(Envelope._MAIN_DELIMITER));
             string signature = components[components.Length - 1];
             Envelope.InternalData parameters = JsonSerializer.Deserialize<Envelope.InternalData>(Utility.FromBase64(components[3]));
             Envelope envelope = new Envelope(identity, parameters, profile);
             byte[] msgBytes = Utility.FromBase64(components[2]);
-            string[] msgArray = System.Text.Encoding.UTF8.GetString(msgBytes, 0, msgBytes.Length).Split(new char[] { ';' }); ;
+            string[] msgArray = System.Text.Encoding.UTF8.GetString(msgBytes, 0, msgBytes.Length).Split(new char[] { ';' });
             envelope.Messages = new List<Message>();
             foreach(string msg in msgArray)
             {
@@ -87,8 +88,8 @@ namespace ShiftEverywhere.DiME
             if (!this.IsSealed) { throw new IntegrityException("Signature missing, unable to export."); }
             StringBuilder sb = new StringBuilder();
             sb.Append(Encode());
-            sb.Append(_delimiter);
-            sb.Append(_signature);
+            sb.Append(Envelope._MAIN_DELIMITER);
+            sb.Append(this._signature);
             return sb.ToString();
         }
         
@@ -97,15 +98,14 @@ namespace ShiftEverywhere.DiME
         /// object to be signed. If not, then the envelope will not be trusted by the receiving party.</summary>
         /// <param name="identityPrivateKey">The private key that should be used to sign the envelope.</param>
         /// <exception cref="ArgumentNullException">If the passed private key is null.</exception> 
-        /// <exception cref="ArgumentException">If required data is missing in the envelope.</exception> 
+        /// <exception cref="DataFormatException">If required data is missing in the envelope.</exception> 
         /// <exception cref="UnsupportedProfileException">If an invalid cryptographic profile version is set.</exception>
         /// <exception cref="DateExpirationException">If 'IssuedAt' and/or 'ExpiresAt' contain invalid values, or the message has expired.</exception>
         public void Seal(string identityPrivateKey)
         {
             if (this._signature == null)
             {
-                if (identityPrivateKey == null) { throw new ArgumentNullException("Private key for signing cannot be null.", "identityPrivateKey"); }
-                if (this.Messages == null || this.Messages.Count == 0) { throw new ArgumentException("No messages added to the envelope.", "Messages"); } 
+                if (this.Messages == null || this.Messages.Count == 0) { throw new DataFormatException("No messages added to the envelope."); } 
                 this._signature = Crypto.GenerateSignature(this.Profile, Encode(), identityPrivateKey);
                 Verify();
             }
@@ -186,11 +186,11 @@ namespace ShiftEverywhere.DiME
         #region -- PRIVATE --
 
         private const string _HEADER = "E";
+        private const char _MAIN_DELIMITER = '.';
         private int _profile;
         private Identity _identity;
         private string _signature;
-        private string _encoded;
-        private const string _delimiter = ".";
+        private string _encoded; 
 
         private struct InternalData
         {
@@ -200,6 +200,7 @@ namespace ShiftEverywhere.DiME
             public long iat { get; set; }
             public long exp { get; set; }
 
+            [JsonConstructor]
             public InternalData(Guid uid, Guid sub, Guid iss, long iat, long exp)
             {
                 this.uid = uid;

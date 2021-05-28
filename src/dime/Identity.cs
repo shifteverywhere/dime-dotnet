@@ -14,7 +14,7 @@ namespace ShiftEverywhere.DiME
             Issue, Authorize, Authenticate
         }
         public const long VALID_FOR_1_YEAR = 365 * 24 * 60 * 60;
-        public static Identity TrustedIdentity;
+        public static Identity TrustedIdentity; // TODO: make this thread safe
         /// <summary>The cryptography profile that is used with the identity.</summary>
         public int Profile { get; private set; }
         /// <summary>A unique UUID (GUID) of the identity. Same as the "sub" field.</summary>
@@ -29,8 +29,6 @@ namespace ShiftEverywhere.DiME
         public string IdentityKey { get { return this._data.iky; } }
         /// <summary>The trust chain of signed public keys.</summary>
         public Identity TrustChain { get; private set; }
-        /// <summary>const string to improve performance</summary>
-        public const string delimiter = ".";
 
         #region -- Import/Export --
         /// <summary>Imports an identity from a DiME encoded string.</summary>
@@ -39,14 +37,14 @@ namespace ShiftEverywhere.DiME
         public static Identity Import(string encoded) 
         {
             if (!encoded.StartsWith(Identity._HEADER)) { throw new ArgumentException("Unexpected data format."); }
-            string[] components = encoded.Split(new char[] { '.' });
+            string[] components = encoded.Split(new char[] { Identity._MAIN_DELIMITER });
             if (components.Length != 3) { throw new ArgumentException("Unexpected number of components found then decoding identity."); }
             int profile = int.Parse(components[0].Substring(1));
             if (!Crypto.SupportedProfile(profile)) { throw new ArgumentException("Unsupported cryptography profile."); }
             byte[] json = Utility.FromBase64(components[1]);
             Identity.InternalData parameters = JsonSerializer.Deserialize<Identity.InternalData>(json);
             Identity identity = new Identity(parameters, components[components.Length - 1], profile);
-            identity._encoded = encoded.Substring(0, encoded.LastIndexOf('.'));
+            identity._encoded = encoded.Substring(0, encoded.LastIndexOf(Identity._MAIN_DELIMITER));
             identity._signature = components[components.Length - 1];
             return identity;
         }
@@ -57,8 +55,8 @@ namespace ShiftEverywhere.DiME
         {
             StringBuilder sb = new StringBuilder();
             sb.Append(Encode());
-            sb.Append(delimiter);
-            sb.Append(_signature);
+            sb.Append(Identity._MAIN_DELIMITER);
+            sb.Append(this._signature);
 
             return sb.ToString();
         }
@@ -128,7 +126,7 @@ namespace ShiftEverywhere.DiME
         public void VerifyTrust()
         {
             if (this.SubjectId == this.IssuerId) { throw new UntrustedIdentityException("Identity is self-signed."); }
-            if (Identity.TrustedIdentity == null) { throw new ArgumentNullException("Identity.TrustedIdentity", "No trusted identity set."); }
+            if (Identity.TrustedIdentity == null) { throw new UntrustedIdentityException("No trusted identity set."); }
             if (this.TrustChain != null)
             {
                 this.TrustChain.VerifyTrust();
@@ -174,13 +172,15 @@ namespace ShiftEverywhere.DiME
         #region -- PRIVATE --
 
         private const string _HEADER = "I";
+        private const char _MAIN_DELIMITER = '.';
+
         private string _signature;
         private string _encoded;
         private struct InternalData
         {
-            public static string CAP_ISSUE = "issue";
-            public static string CAP_AUTHORIZE = "authorize";
-            public static string CAP_AUTHENTICATE = "authenticate";
+            public const string CAP_ISSUE = "issue";
+            public const string CAP_AUTHORIZE = "authorize";
+            public const string CAP_AUTHENTICATE = "authenticate";
             public Guid sub { get; set; }
             public Guid iss { get; set; }
             public long iat { get; set; }
@@ -189,6 +189,7 @@ namespace ShiftEverywhere.DiME
             [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
             public string[] cap { get; set; }
 
+            [JsonConstructor]
             public InternalData(Guid sub, Guid iss, long iat, long exp, string iky, string[] cap = null)
             {
                 if (DateTimeOffset.UtcNow.ToUnixTimeSeconds() > exp) { throw new ArgumentException("Expiration must be in the future."); }

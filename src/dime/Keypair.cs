@@ -5,7 +5,7 @@ using System.Text.Json.Serialization;
 
 namespace ShiftEverywhere.DiME
 {
-    public enum KeypairType: int
+    public enum KeypairType
     {
         Identity = 1,
         Exchange = 2
@@ -23,7 +23,8 @@ namespace ShiftEverywhere.DiME
         internal Keypair(Guid id, KeypairType type, string publicKey, string privateKey, int profile)
         {
             if (!Crypto.SupportedProfile(profile)) { throw new UnsupportedProfileException(); }
-            if (publicKey == null || privateKey == null) { throw new ArgumentNullException(); }
+            if (publicKey == null) { throw new ArgumentNullException(nameof(publicKey), "Provided public key must not be null."); }
+            if (privateKey == null) { throw new ArgumentNullException(nameof(privateKey), "Provided public key must not be null."); }
             this._data = new Keypair.InternalData(id, type, publicKey, privateKey);
             this.Profile = profile;
             this._encoded = null;
@@ -36,7 +37,7 @@ namespace ShiftEverywhere.DiME
 
         public static Keypair Import(string encoded)
         {
-            if (!encoded.StartsWith(Keypair._HEADER)) { throw new ArgumentException("Unexpected data format."); }
+            if (!encoded.StartsWith(Keypair._HEADER)) { throw new DataFormatException("Unexpected data format."); }
             string[] components = encoded.Split(new char[] { '.' });
             if (components.Length != 2) { throw new ArgumentException("Unexpected number of components found then decoding keypair."); }
             int profile = int.Parse(components[0].Substring(1));
@@ -64,6 +65,7 @@ namespace ShiftEverywhere.DiME
             [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
             public string prv { get; set; }
 
+            [JsonConstructor]
             public InternalData(Guid kid, KeypairType kty, string pub, string prv)
             {
                 this.kid = kid;

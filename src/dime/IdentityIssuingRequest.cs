@@ -13,12 +13,11 @@ namespace ShiftEverywhere.DiME
         public long IssuedAt { get { return this._data.iat;} }
         public string IdentityKey { get { return this._data.iky; } }
         /// <summary>const string to improve performance</summary>
-        public const string delimiter = ".";
 
         public static IdentityIssuingRequest Generate(Keypair keypair, Identity.Capability[] capabilities = null) 
         {
-            if (keypair.Type != KeypairType.Identity) { throw new ArgumentNullException("KeyPair of invalid type."); }
-            if (keypair.PrivateKey == null) { throw new ArgumentNullException("Private key must not be null"); }
+            if (keypair.Type != KeypairType.Identity) { throw new ArgumentNullException(nameof(keypair), "KeyPair of invalid type."); }
+            if (keypair.PrivateKey == null) { throw new ArgumentNullException(nameof(keypair), "Private key must not be null"); }
             long now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
             string[] caps;
             if (capabilities != null)
@@ -41,15 +40,14 @@ namespace ShiftEverywhere.DiME
         public static IdentityIssuingRequest Import(string encoded) 
         {
             if (!encoded.StartsWith(IdentityIssuingRequest._HEADER)) { throw new ArgumentException("Unexpected data format."); }
-            string[] components = encoded.Split(new char[] { '.' });
+            string[] components = encoded.Split(new char[] { IdentityIssuingRequest._MAIN_DELIMITER });
             if (components.Length != 3 ) { throw new ArgumentException("Unexpected number of components found then decoding identity issuing request."); }
             int profile = int.Parse(components[0].Substring(1));
             byte[] json = Utility.FromBase64(components[1]);
             IdentityIssuingRequest.InternalData parameters = JsonSerializer.Deserialize<IdentityIssuingRequest.InternalData>(json);
             IdentityIssuingRequest iir = new IdentityIssuingRequest(parameters, profile);
             iir._signature = components[2];
-            iir._encoded = encoded.Substring(0, encoded.LastIndexOf('.'));
-            //iir.isImmutable = true;
+            iir._encoded = encoded.Substring(0, encoded.LastIndexOf(IdentityIssuingRequest._MAIN_DELIMITER));
             return iir;
         }
 
@@ -57,9 +55,8 @@ namespace ShiftEverywhere.DiME
         {
             StringBuilder sb = new StringBuilder();
             sb.Append(Encode());
-            sb.Append(delimiter);
-            sb.Append(_signature);
-
+            sb.Append(IdentityIssuingRequest._MAIN_DELIMITER);
+            sb.Append(this._signature);
             return sb.ToString();
         }
 
@@ -95,8 +92,10 @@ namespace ShiftEverywhere.DiME
 
         #region -- PRIVATE --
         private const string _HEADER = "i";
+        private const char _MAIN_DELIMITER = '.';
         private string _encoded;
         private string _signature;
+
         private struct InternalData
         {
             public long iat { get; set; }
@@ -104,6 +103,7 @@ namespace ShiftEverywhere.DiME
             [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
             public string[] cap { get; set; }
 
+            [JsonConstructor]
             public InternalData(long iat, string iky, string[] cap = null)
             {
                 this.iat = iat;

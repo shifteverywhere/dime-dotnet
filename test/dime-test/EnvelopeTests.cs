@@ -67,7 +67,7 @@ namespace ShiftEverywhere.DiMETest
             Envelope envelope = new Envelope(Commons.SenderIdentity, Commons.ReceiverIdentity.SubjectId, 10);
             try {
                 envelope.Seal(Commons.SenderKeypair.PrivateKey);
-            } catch(ArgumentException) { return; } // All is well
+            } catch(DataFormatException) { return; } // All is well
         }
 
         [TestMethod]

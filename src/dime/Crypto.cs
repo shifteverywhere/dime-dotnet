@@ -4,7 +4,7 @@ using NSec.Cryptography;
 
 namespace ShiftEverywhere.DiME
 {
-    public class Crypto
+    public static class Crypto
     {
         public const int DEFUALT_PROFILE = 1;
         
@@ -16,7 +16,7 @@ namespace ShiftEverywhere.DiME
         public static string GenerateSignature(int profile, string data, string privateIdentityKey)
         {
                 if (!Crypto.SupportedProfile(profile)) { throw new NotSupportedException(); }
-                if (privateIdentityKey == null) { throw new ArgumentNullException(); }
+                if (privateIdentityKey == null) { throw new ArgumentNullException(nameof(privateIdentityKey), "Unable to sign, provided private key is null."); }
                 Key key = Key.Import(SignatureAlgorithm.Ed25519, Utility.FromBase64(privateIdentityKey), KeyBlobFormat.PkixPrivateKey);
                 byte[] signature = SignatureAlgorithm.Ed25519.Sign(key, Encoding.UTF8.GetBytes(data));
                 return System.Convert.ToBase64String(signature).Trim('=');
@@ -25,7 +25,7 @@ namespace ShiftEverywhere.DiME
         public static void VerifySignature(int profile, string data, string signature, string publicIdentityKey)
         {
             if (!Crypto.SupportedProfile(profile)) { throw new UnsupportedProfileException(); }
-            if (publicIdentityKey == null) { throw new ArgumentNullException(); }
+            if (publicIdentityKey == null) { throw new ArgumentNullException(nameof(publicIdentityKey), "Unable to verify signature, provided public key is null."); }
             PublicKey verifyKey = PublicKey.Import(SignatureAlgorithm.Ed25519, Utility.FromBase64(publicIdentityKey), KeyBlobFormat.PkixPublicKey);
             if (!SignatureAlgorithm.Ed25519.Verify(verifyKey, Encoding.UTF8.GetBytes(data), Utility.FromBase64(signature)))
             {
@@ -50,15 +50,11 @@ namespace ShiftEverywhere.DiME
                 default:
                     throw new NotSupportedException("Unkown keypair type.");
             }
-            if (key != null) 
-            {
-                return new Keypair(Guid.NewGuid(), 
-                                   type, 
-                                   Crypto.ExportKey(key, KeyBlobFormat.PkixPublicKey), 
-                                   Crypto.ExportKey(key, KeyBlobFormat.PkixPrivateKey),
-                                   profile);
-            }
-            throw new Exception("Unknow error.");
+            return new Keypair(Guid.NewGuid(), 
+                               type, 
+                               Crypto.ExportKey(key, KeyBlobFormat.PkixPublicKey), 
+                               Crypto.ExportKey(key, KeyBlobFormat.PkixPrivateKey),
+                               profile);
         }
 
         public static string GenerateHash(int profile, string data)
