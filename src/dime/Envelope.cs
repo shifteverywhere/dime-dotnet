@@ -75,7 +75,6 @@ namespace ShiftEverywhere.DiME
             }
             envelope._encoded = envPart;
             envelope._signature = signature;
-            envelope.Verify();
             return envelope;
         }
 

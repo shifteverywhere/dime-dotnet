@@ -61,7 +61,7 @@ namespace ShiftEverywhere.DiME
         /// <exception cref="DateExpirationException">If 'IssuedAt' and/or 'ExpiresAt' contain invalid values, or the message has expired.</exception>
         /// <exception cref="IntegrityException">If the signature failes validation, or cannot be validated.</exception>
         /// <returns>An initialized and verified Message object.</returns>
-        public static Message Import(string encoded, Message linkedMessage = null)
+        public static Message Import(string encoded)
         {
             if (!encoded.StartsWith(Message._HEADER)) { throw new DataFormatException("Unexpected data format."); }
             string[] components = encoded.Split(new char[] { Message._MAIN_DELIMITER });
@@ -79,7 +79,6 @@ namespace ShiftEverywhere.DiME
             }
             message._encoded = encoded.Substring(0, encoded.LastIndexOf(Message._MAIN_DELIMITER));
             message._signature = components[components.Length - 1];
-            message.Verify(linkedMessage != null ? linkedMessage : null);
             return message;
         }
 
