@@ -3,16 +3,13 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Linq;
+using System.Collections.Generic;
 
 namespace ShiftEverywhere.DiME
 {
     public class Identity
     {
         #region -- PUBLIC --
-        public enum Capability
-        {
-            Issue, Authorize, Authenticate
-        }
         public const long VALID_FOR_1_YEAR = 365 * 24 * 60 * 60;
         public static Identity TrustedIdentity; // TODO: make this thread safe
         /// <summary>The cryptography profile that is used with the identity.</summary>
@@ -29,8 +26,19 @@ namespace ShiftEverywhere.DiME
         public string IdentityKey { get { return this._data.iky; } }
         /// <summary>The trust chain of signed public keys.</summary>
         public Identity TrustChain { get; private set; }
+        /// <summary>The capabilities of the identity.</summary>
+        public List<Capability> Capabilities 
+        { 
+            get 
+            { 
+                if (this._capabilities == null)
+                {
+                    this._capabilities = new List<string>(this._data.cap).ConvertAll(str => { Capability cap; Enum.TryParse<Capability>(str, true, out cap); return cap; });
+                }
+                return this._capabilities;
+            } 
+        }
 
-        #region -- Import/Export --
         /// <summary>Imports an identity from a DiME encoded string.</summary>
         /// <param name="encoded">A DiME encoded string.</param>
         /// <returns>Returns an imutable Identity instance.</returns>
@@ -38,12 +46,17 @@ namespace ShiftEverywhere.DiME
         {
             if (!encoded.StartsWith(Identity._HEADER)) { throw new ArgumentException("Unexpected data format."); }
             string[] components = encoded.Split(new char[] { Identity._MAIN_DELIMITER });
-            if (components.Length != 3) { throw new ArgumentException("Unexpected number of components found then decoding identity."); }
+            if (components.Length != 3 && components.Length != 4) { throw new ArgumentException("Unexpected number of components found then decoding identity."); }
             int profile = int.Parse(components[0].Substring(1));
             if (!Crypto.SupportedProfile(profile)) { throw new ArgumentException("Unsupported cryptography profile."); }
             byte[] json = Utility.FromBase64(components[1]);
             Identity.InternalData parameters = JsonSerializer.Deserialize<Identity.InternalData>(json);
             Identity identity = new Identity(parameters, components[components.Length - 1], profile);
+            if (components.Length == 4)
+            {
+                byte[] issIdentity = Utility.FromBase64(components[2]);
+                identity.TrustChain = Identity.Import(System.Text.Encoding.UTF8.GetString(issIdentity, 0, issIdentity.Length));
+            }
             identity._encoded = encoded.Substring(0, encoded.LastIndexOf(Identity._MAIN_DELIMITER));
             identity._signature = components[components.Length - 1];
             return identity;
@@ -61,37 +74,34 @@ namespace ShiftEverywhere.DiME
             return sb.ToString();
         }
 
-        #endregion
-        #region -- Issuing --
+        public static Identity Issue(IdentityIssuingRequest iir, Guid subjectId, long validFor, Keypair issuerKeypair)
+        {
+            return Issue(iir, subjectId, validFor, null, issuerKeypair, null);
+        }
+
         /// <summary>Issues a new signed identity from an identity issuing request (IIR). The new identity
         /// will be signed by the provided issuerIdentity. The identity of the issuer must either be trusted
         /// by the TrustedIdentity, or be the TrustedIdentity. If the issuerIdentity is omitted, then the 
         /// returned identity will be self-signed. </summary>
         /// <param name="irr">The IIR from the subject.</param>
         /// <param name="subjectId">The subject id that should be associated with the identity.</param>
-        /// <param name="allowedCapabilities">The capabilities allowed for the to be issued identity.</param>
         /// <param name="issuerKeypair">The key pair of the issuer.</param>
+        /// <param name="allowedCapabilities">The capabilities allowed for the to be issued identity.</param>
         /// <param name="issuerIdentitys">The identity of the issuer (optional).</param>
         /// <returns>Returns an imutable Identity instance.</returns>
-        public static Identity Issue(string iir, Guid subjectId, Identity.Capability[] allowedCapabilities, long validFor, Keypair issuerKeypair, Identity issuerIdentity)
-        {
-            return Identity.Issue(IdentityIssuingRequest.Import(iir), subjectId, allowedCapabilities, validFor, issuerKeypair, issuerIdentity);
-        }
-
-        public static Identity Issue(IdentityIssuingRequest iir, Guid subjectId, Identity.Capability[] allowedCapabilities, long validFor, Keypair issuerKeypair, Identity issuerIdentity) 
+        public static Identity Issue(IdentityIssuingRequest iir, Guid subjectId, long validFor, List<Capability> allowedCapabilities, Keypair issuerKeypair, Identity issuerIdentity) 
         {    
-            if (allowedCapabilities == null) {
-                allowedCapabilities = new Identity.Capability[] { Identity.Capability.Authorize };
-            }
-            iir.Verify(allowedCapabilities);
-            if (issuerIdentity == null || issuerIdentity.HasCapability(Identity.Capability.Issue))
+            iir.Verify();
+            bool isSelfSign = (issuerIdentity == null || iir.IdentityKey == issuerKeypair.PublicKey);
+            List<Capability> capabilities = Identity.CapabilitiesToIssue(iir, allowedCapabilities, isSelfSign);
+            if (isSelfSign || issuerIdentity.HasCapability(Capability.Issue))
             {
                 long now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
                 Guid issuerId = issuerIdentity != null ? issuerIdentity.SubjectId : subjectId;
-                Identity identity = new Identity(subjectId, iir.IdentityKey, now, (now + validFor), issuerId, iir.capabilities, iir.Profile);
+                Identity identity = new Identity(subjectId, iir.IdentityKey, now, (now + validFor), issuerId, capabilities, iir.Profile);
                 if (Identity.TrustedIdentity != null && issuerIdentity != null && issuerIdentity.SubjectId != Identity.TrustedIdentity.SubjectId)
                 {
-                    issuerIdentity.VerifyTrust();
+                    issuerIdentity.Verify();
                     // The chain will only be set if this is not the trusted identity (and as long as one is set)
                     identity.TrustChain = issuerIdentity;
                 }
@@ -100,9 +110,6 @@ namespace ShiftEverywhere.DiME
             }
             throw new IdentityCapabilityException("Issuing identity missing 'issue' capability.");
         }
-        
-        #endregion
-        #region -- Public support --
 
         /// <summary>Generates a cryptographically unique thumbprint of the identity.</summary>
         /// <returns>An unique thumbprint.</returns>
@@ -123,13 +130,14 @@ namespace ShiftEverywhere.DiME
             return true;
         }
 
-        public void VerifyTrust()
+        public void Verify()
         {
             if (this.SubjectId == this.IssuerId) { throw new UntrustedIdentityException("Identity is self-signed."); }
             if (Identity.TrustedIdentity == null) { throw new UntrustedIdentityException("No trusted identity set."); }
+            // TODO: verify iat/exp
             if (this.TrustChain != null)
             {
-                this.TrustChain.VerifyTrust();
+                this.TrustChain.Verify();
             } 
             string publicKey = this.TrustChain != null ? this.TrustChain.IdentityKey : Identity.TrustedIdentity.IdentityKey;
             Verify(publicKey);
@@ -143,37 +151,17 @@ namespace ShiftEverywhere.DiME
             return encoded.StartsWith(Identity._HEADER);
         }
 
-        public bool HasCapability(Identity.Capability capability)
+        public bool HasCapability(Capability capability)
         {
-            return this._data.cap.Any(s => s.ToLower().Equals(Identity.CapabilityToString(capability)));
-        }
-        #region -- INTERNAL --
-        internal static Identity.Capability CapabilityFromString(string capability)
-        {
-            if (capability.Equals(Identity.InternalData.CAP_ISSUE)) { return Identity.Capability.Issue; }
-            if (capability.Equals(Identity.InternalData.CAP_AUTHORIZE)) { return Identity.Capability.Authorize; }
-            if (capability.Equals(Identity.InternalData.CAP_AUTHENTICATE)) { return Identity.Capability.Authenticate; }
-            throw new IdentityCapabilityException("Unknown capability.");
+            return this.Capabilities.Any(cap => cap == capability);
         }
 
-        internal static string CapabilityToString(Identity.Capability capability)
-        {
-            switch (capability)
-            {
-                case Identity.Capability.Issue: return Identity.InternalData.CAP_ISSUE;
-                case Identity.Capability.Authorize: return Identity.InternalData.CAP_AUTHORIZE;
-                case Identity.Capability.Authenticate: return Identity.InternalData.CAP_AUTHENTICATE;
-            }
-            return null;
-        }
-        #endregion
-        #endregion
         #endregion
         #region -- PRIVATE --
 
         private const string _HEADER = "I";
         private const char _MAIN_DELIMITER = '.';
-
+        private List<Capability> _capabilities;
         private string _signature;
         private string _encoded;
         private struct InternalData
@@ -204,11 +192,12 @@ namespace ShiftEverywhere.DiME
         }
         private Identity.InternalData _data;
 
-        private Identity(Guid subjectId, string identityKey, long issuedAt, long expiresAt, Guid issuerId, string[] capabilities, int profile = Crypto.DEFUALT_PROFILE) 
+        private Identity(Guid subjectId, string identityKey, long issuedAt, long expiresAt, Guid issuerId, List<Capability> capabilities, int profile = Crypto.DEFUALT_PROFILE) 
         {
             if (!Crypto.SupportedProfile(profile)) { throw new ArgumentException("Unsupported cryptography profile."); }
             this.Profile = profile;
-            this._data = new Identity.InternalData(subjectId, issuerId, issuedAt, expiresAt, identityKey, capabilities);
+            string[] cap = capabilities.ConvertAll(c => c.ToString().ToLower()).ToArray();
+            this._data = new Identity.InternalData(subjectId, issuerId, issuedAt, expiresAt, identityKey, cap);
         }
 
         private Identity(Identity.InternalData parameters, string signature = null, int profile = Crypto.DEFUALT_PROFILE) 
@@ -228,6 +217,33 @@ namespace ShiftEverywhere.DiME
             {
                 throw new UntrustedIdentityException();
             }
+        }
+        private static List<Capability> CapabilitiesToIssue(IdentityIssuingRequest iir, List<Capability> allowedCapabilities, bool isSelfSign)
+        {
+            List<Capability> requestedCapabilities = iir.Capabilities;
+            if (requestedCapabilities == null)
+            {
+                requestedCapabilities = new List<Capability> { Capability.Generic };
+            }
+            if (isSelfSign)
+            {
+                if (!iir.HasCapability(Capability.Self))
+                {
+                    requestedCapabilities.Add(Capability.Self);
+                }
+            }
+            else 
+            {
+                if (allowedCapabilities == null || allowedCapabilities.Count == 0) { throw new IdentityCapabilityException("Allowed capabilities must be defined to issue identity."); }
+                foreach(Capability cap in requestedCapabilities)
+                {
+                    if (!allowedCapabilities.Any<Capability>(c => c == cap))
+                    {
+                        throw new IdentityCapabilityException($"Illegal capabilities requested: {requestedCapabilities}");
+                    }
+                }
+            }
+            return requestedCapabilities;
         }
 
         private string Encode()

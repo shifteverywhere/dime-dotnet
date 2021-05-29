@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Text;
+using System.Collections.Generic;
 using ShiftEverywhere.DiME;
 
 namespace ShiftEverywhere.DiMEConsole
@@ -26,9 +27,9 @@ namespace ShiftEverywhere.DiMEConsole
 
         public Identity GenerateIdentity(Keypair keypair)
         {
-            Identity.Capability[] caps = new Identity.Capability[2] {Identity.Capability.Authorize, Identity.Capability.Authorize};
+            List<Capability> caps = new List<Capability> { Capability.Generic, Capability.Identify };
             IdentityIssuingRequest iir = IdentityIssuingRequest.Generate(keypair, caps);            
-            return Identity.Issue(iir, Guid.NewGuid(), caps, Identity.VALID_FOR_1_YEAR, this.trustedKeypair, this.trustedIdentity);
+            return Identity.Issue(iir, Guid.NewGuid(), Identity.VALID_FOR_1_YEAR, caps, this.trustedKeypair, this.trustedIdentity);
         }
 
         public Message GenerateMessage(Guid subjectId, Identity issuerIdentity, string payload)

@@ -3,36 +3,47 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Linq;
+using System.Collections.Generic;
 
 namespace ShiftEverywhere.DiME
 {
     public class IdentityIssuingRequest
     {
         /* PUBLIC */
+        /// <summary></summary>
         public int Profile {get; private set; }
+        /// <summary></summary>
         public long IssuedAt { get { return this._data.iat;} }
+        /// <summary></summary>
         public string IdentityKey { get { return this._data.iky; } }
-        /// <summary>const string to improve performance</summary>
+        /// <summary>The capabilities requested in this identity issuing request.</summary>
+        public List<Capability> Capabilities 
+        { 
+            get 
+            { 
+                if (this._capabilities == null)
+                {
+                    this._capabilities = new List<string>(this._data.cap).ConvertAll(str => { Capability cap; Enum.TryParse<Capability>(str, true, out cap); return cap; });
+                }
+                return this._capabilities;
+            } 
+        }
 
-        public static IdentityIssuingRequest Generate(Keypair keypair, Identity.Capability[] capabilities = null) 
+        public static IdentityIssuingRequest Generate(Keypair keypair, List<Capability> capabilities = null) 
         {
             if (keypair.Type != KeypairType.Identity) { throw new ArgumentNullException(nameof(keypair), "KeyPair of invalid type."); }
             if (keypair.PrivateKey == null) { throw new ArgumentNullException(nameof(keypair), "Private key must not be null"); }
             long now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-            string[] caps;
-            if (capabilities != null)
+            string[] cap;
+            if (capabilities != null && capabilities.Count > 0)
             {
-                caps = new string[capabilities.Length];
-                for (int index = 0; index < capabilities.Length; index++)
-                {
-                    caps[index] = Identity.CapabilityToString(capabilities[index]);
-                }
-            } 
+                cap = capabilities.ConvertAll(c => c.ToString().ToLower()).ToArray();
+            }
             else
             {
-                caps = new string[1] { Identity.CapabilityToString(Identity.Capability.Authorize) };
+                cap = new string[1] { Capability.Generic.ToString().ToLower() };
             }
-            IdentityIssuingRequest iir = new IdentityIssuingRequest(new IdentityIssuingRequest.InternalData(now, keypair.PublicKey, caps), keypair.Profile);
+            IdentityIssuingRequest iir = new IdentityIssuingRequest(new IdentityIssuingRequest.InternalData(now, keypair.PublicKey, cap), keypair.Profile);
             iir._signature = Crypto.GenerateSignature(iir.Profile, iir.Encode(), keypair.PrivateKey);
             return iir;
         }
@@ -73,26 +84,21 @@ namespace ShiftEverywhere.DiME
             return Crypto.GenerateHash(this.Profile, this.Encode());
         }
 
-        public void Verify(Identity.Capability[] allowedCapabilities)
+        public void Verify()
         {
             if (DateTimeOffset.UtcNow.ToUnixTimeSeconds() < this.IssuedAt) { throw new DateExpirationException("An identity issuing request cannot be issued in the future."); }
-            foreach(string cap in this._data.cap)
-            {
-                if (!allowedCapabilities.Any<Identity.Capability>(c => c == Identity.CapabilityFromString(cap)))
-                {
-                    throw new IdentityCapabilityException("Illegal capability listed in identity issuing request.");
-                }
-            }
             Crypto.VerifySignature(this.Profile, this.Encode(), this._signature, this.IdentityKey);
         }
 
-        #region -- INTERNAL --
-        internal string[] capabilities { get { return this._data.cap; } }
-        #endregion
+        public bool HasCapability(Capability capability)
+        {
+            return this.Capabilities.Any(cap => cap == capability);
+        }
 
         #region -- PRIVATE --
         private const string _HEADER = "i";
         private const char _MAIN_DELIMITER = '.';
+        private List<Capability> _capabilities;
         private string _encoded;
         private string _signature;
 

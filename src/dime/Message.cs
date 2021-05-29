@@ -114,7 +114,7 @@ namespace ShiftEverywhere.DiME
             if (this.IssuedAt > this.ExpiresAt) { throw new DateExpirationException("Expiration before issuing date."); }
             if (this.ExpiresAt < now) { throw new DateExpirationException("Passed expiration date."); }
             // Verify identity
-            this.Identity.VerifyTrust();
+            this.Identity.Verify();
             // Verify linkedMessage
             if (this._data.lnk != null && linkedMessage != null)
             {

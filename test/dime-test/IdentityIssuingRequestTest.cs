@@ -31,9 +31,8 @@ namespace ShiftEverywhere.DiMETest
         [TestMethod]
         public void VerifyTest1()
         {
-            Identity.Capability[] caps = new Identity.Capability[1] { Identity.Capability.Authorize };
             IdentityIssuingRequest iir = IdentityIssuingRequest.Generate(Keypair.Generate(KeypairType.Identity));
-            iir.Verify(caps);
+            iir.Verify();
         }
 
         [TestMethod]

@@ -156,7 +156,7 @@ namespace ShiftEverywhere.DiME
             // Verify underlaying objects, if requested
             if (!shallowVerification)
             {
-                this.Identity.VerifyTrust();
+                this.Identity.Verify();
                 foreach(Message message in this.Messages)
                 {
                     Message linkedMessage = null;
