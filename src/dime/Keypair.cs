@@ -11,53 +11,86 @@ namespace ShiftEverywhere.DiME
         Exchange = 2
     }
 
-    public struct Keypair
+    public class Keypair: Dime
     {
         #region -- PUBLIC --
-        public int Profile { get; private set; }
+
+        /// <summary></summary>
         public Guid Id { get { return this._data.kid; } }
+        /// <summary></summary>
         public KeypairType Type { get { return this._data.kty; } }
+        /// <summary></summary>
         public string PublicKey { get { return this._data.pub; } }
+        /// <summary></summary>
         public string PrivateKey { get { return this._data.prv; } }
+
+        /// <summary></summary>
+        public Keypair() { }
+
+        /// <summary></summary>
+        public static Keypair Generate(KeypairType type, int profile = Crypto.DEFUALT_PROFILE)
+        {
+            return Crypto.GenerateKeyPair(profile, type);
+        }
+
+        /// <summary></summary>
+        public override string Export() 
+        {
+            return Encode();
+        }
+
+        /// <summary></summary>
+        public override void Verify() { }
+
+        #endregion
+
+        #region -- INTERNAL --
 
         internal Keypair(Guid id, KeypairType type, string publicKey, string privateKey, int profile)
         {
             if (!Crypto.SupportedProfile(profile)) { throw new UnsupportedProfileException(); }
             if (publicKey == null) { throw new ArgumentNullException(nameof(publicKey), "Provided public key must not be null."); }
             if (privateKey == null) { throw new ArgumentNullException(nameof(privateKey), "Provided public key must not be null."); }
-            this._data = new Keypair.InternalData(id, type, publicKey, privateKey);
+            this._data = new Keypair.KeypairData(id, type, publicKey, privateKey);
             this.Profile = profile;
             this._encoded = null;
         }
 
-        public static Keypair Generate(KeypairType type, int profile = Crypto.DEFUALT_PROFILE)
-        {
-            return Crypto.GenerateKeyPair(profile, type);
-        }
-
-        public static Keypair Import(string encoded)
-        {
-            if (!encoded.StartsWith(Keypair._HEADER)) { throw new DataFormatException("Unexpected data format."); }
-            string[] components = encoded.Split(new char[] { '.' });
-            if (components.Length != 2) { throw new ArgumentException("Unexpected number of components found then decoding keypair."); }
-            int profile = int.Parse(components[0].Substring(1));
-            if (!Crypto.SupportedProfile(profile)) { throw new UnsupportedProfileException(); }
-            byte[] json = Utility.FromBase64(components[1]);
-            Keypair.InternalData parameters = JsonSerializer.Deserialize<Keypair.InternalData>(json);
-            Keypair keypair = new Keypair(parameters, profile);
-            return keypair;
-        }
-
-        public string Export() 
-        {
-            return Encode();
-        } 
         #endregion
-        #region -- PRIVATE --
-        private const string _HEADER = "k";
-        private string _encoded;
 
-        private struct InternalData
+        #region -- PROTECTED --
+
+        protected override void Populate(string encoded)
+        {
+            if (Dime.GetType(encoded) != typeof(Keypair)) { throw new ArgumentException("Invalid header."); }
+            string[] components = encoded.Split(new char[] { Dime._MAIN_DELIMITER });
+            if (components.Length != 2) { throw new ArgumentException("Unexpected number of components found then decoding keypair."); }
+            this.Profile = int.Parse(components[0].Substring(1));
+            if (!Crypto.SupportedProfile(this.Profile)) { throw new UnsupportedProfileException(); }
+            byte[] json = Utility.FromBase64(components[1]);
+            this._data = JsonSerializer.Deserialize<Keypair.KeypairData>(json);
+        }
+
+        protected override void Verify(string publicKey) { }
+
+        protected override string Encode()
+        {
+            if ( this._encoded == null ) 
+            {  
+                StringBuilder builder = new StringBuilder();
+                builder.Append('k') ;// The header of an DiME keypair
+                builder.Append(this.Profile);
+                builder.Append(Utility.ToBase64(JsonSerializer.Serialize(this._data)));
+                this._encoded = builder.ToString();
+            }
+            return this._encoded;
+        }
+
+        #endregion
+
+        #region -- PRIVATE --
+
+        private struct KeypairData
         {
             public Guid kid { get; set; }
             public KeypairType kty { get; set; }
@@ -66,7 +99,7 @@ namespace ShiftEverywhere.DiME
             public string prv { get; set; }
 
             [JsonConstructor]
-            public InternalData(Guid kid, KeypairType kty, string pub, string prv)
+            public KeypairData(Guid kid, KeypairType kty, string pub, string prv)
             {
                 this.kid = kid;
                 this.kty = kty;
@@ -74,29 +107,8 @@ namespace ShiftEverywhere.DiME
                 this.prv = prv;
             }
         }
-        private InternalData _data;
+        private Keypair.KeypairData _data;
 
-        private Keypair(InternalData parameters, int profile = Crypto.DEFUALT_PROFILE)
-        {
-            if (!Crypto.SupportedProfile(profile)) { throw new UnsupportedProfileException(); }
-            this._data = parameters;
-            this.Profile = profile;
-            this._encoded = null;
-        }
-
-        private string Encode()
-        {
-            if ( this._encoded == null ) 
-            {  
-                var builder = new StringBuilder(); 
-                builder.AppendFormat("{0}{1}.{2}", 
-                                    Keypair._HEADER,
-                                    this.Profile, 
-                                    Utility.ToBase64(JsonSerializer.Serialize(this._data)));
-                this._encoded = builder.ToString();
-            }
-            return this._encoded;
-        }
         #endregion
     }
 

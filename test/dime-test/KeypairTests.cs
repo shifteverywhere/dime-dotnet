@@ -22,7 +22,7 @@ namespace ShiftEverywhere.DiMETest
         public void ImportTest1()
         {
             string encoded = "k1.eyJraWQiOiI1ZDA4NDVlNS0zNzg2LTQyNjYtYTc3YS01ZTQwYzAxZWNiYjkiLCJrdHkiOjEsInB1YiI6Ik1Db3dCUVlESzJWd0F5RUFGVmNjay8zT1J1NGNJSmtrQmp4SHBjVktTYzYzQjUyS0xOMVlZYjExQmxjIiwicHJ2IjoiTUM0Q0FRQXdCUVlESzJWd0JDSUVJRnRsZWlLUGtuVUN4RTFDV0I3UVlXMUNiYU5ZT2FKZG5vcGdXSzRnV1x1MDAyQkNQIn0";
-            Keypair keypair = Keypair.Import(encoded);
+            Keypair keypair = Dime.Import<Keypair>(encoded);
             Assert.AreEqual(1, keypair.Profile);
             Assert.IsTrue(keypair.Type == KeypairType.Identity);
             Assert.AreEqual(new Guid("5d0845e5-3786-4266-a77a-5e40c01ecbb9"), keypair.Id);

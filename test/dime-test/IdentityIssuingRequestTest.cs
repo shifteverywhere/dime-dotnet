@@ -66,12 +66,13 @@ namespace ShiftEverywhere.DiMETest
         [TestMethod]
         public void ImportTest1()
         {
-            string encoded = "i1.eyJpYXQiOjE2MjEzNjg2MzEsImlreSI6Ik1Db3dCUVlESzJWd0F5RUFcdTAwMkJKVWpIS0JkdGQwbEdta1V4SHI2TXJwSUhaNEpCRk0vSkFHN0gyTEFOTVkifQ.eU8NdFHI58waVsKOT5mSfPuCwofPwHkudlva+NOtZ6ZbOe4uwNPIoLnOko6rbej1jpyyA8Sw/5zxNQg1jBp3Dw";
-            IdentityIssuingRequest iir = IdentityIssuingRequest.Import(encoded);
+            string encoded = "i1.eyJpYXQiOjE2MjI0MTM4NzYsImlreSI6Ik1Db3dCUVlESzJWd0F5RUFkc3lUOW5UWjVBQnRDSWJRVmwxcVNyU1hCSzZVZkJGR3RvS0Ziay9ETS9NIiwiY2FwIjpbImdlbmVyaWMiXX0.ZCvziBYpFatLEfNCGAVpdR+DqHB1IhgrFpwHgYUn26QAm+Yw13AgPpBrhTDA9pmLgkFqTfXPab1TX0k7dmQHBg";
+            IdentityIssuingRequest iir = Dime.Import<IdentityIssuingRequest>(encoded);
             Assert.IsNotNull(iir);
             Assert.AreEqual(iir.Profile, 1);
-            Assert.AreEqual(iir.IssuedAt, 1621368631);
-            Assert.AreEqual(iir.IdentityKey, "MCowBQYDK2VwAyEA\u002BJUjHKBdtd0lGmkUxHr6MrpIHZ4JBFM/JAG7H2LANMY");
+            Assert.AreEqual(iir.IssuedAt, 1622413876);
+            Assert.IsTrue(iir.HasCapability(Capability.Generic));
+            Assert.AreEqual(iir.IdentityKey, "MCowBQYDK2VwAyEAdsyT9nTZ5ABtCIbQVl1qSrSXBK6UfBFGtoKFbk/DM/M");
         }
 
     }

@@ -88,14 +88,14 @@ namespace ShiftEverywhere.DiMETest
         }
 
         [TestMethod]
-        public void ExportTest4()
+        public void VerifyTest1()
         {
             Identity.TrustedIdentity = Commons.TrustedIdentity;
             try{
                 Message message = new Message(Guid.NewGuid(), Commons.SenderIdentity, -10);
                 message.SetPayload(Encoding.UTF8.GetBytes("Racecar is racecar backwards."));
                 message.Seal(Commons.SenderKeypair.PrivateKey);
-                message.Export();
+                message.Verify();
             } catch (DateExpirationException) { return; } // All is well
             Assert.IsTrue(false, "Should not happen.");     
         }
@@ -105,7 +105,7 @@ namespace ShiftEverywhere.DiMETest
         {   
             Identity.TrustedIdentity = Commons.TrustedIdentity;
             string encoded = "M1.STEuZXlKemRXSWlPaUpoWWpWaU9HTXdaQzFtWkRJNExUUmpNekF0T0RReVppMHpORGRpTkRoak9EWmtZbU1pTENKcGMzTWlPaUkzTVdVeVltVTFZeTAzTVdWa0xUUXlZalF0WW1ZNU1pMDRabUppWm1VMk1qQTNOMk1pTENKcFlYUWlPakUyTWpFNU56SXdNalFzSW1WNGNDSTZNVFkxTXpVd09EQXlOQ3dpYVd0NUlqb2lUVU52ZDBKUldVUkxNbFozUVhsRlFXbFRkR1IxU25wd2RVdHFjMHRLTlZ4MU1EQXlRbTVQT1VSMFIwTk9TMXBpY0ZCR1RUVlBORlJFUnpNMVMwVklaeUlzSW1OaGNDSTZXeUpoZFhSb2IzSnBlbVVpWFgwLndDV20xT3ExMHFVK3hPYVZVTTJwR1dHUmQxakgxc2FWYXRGMUc2Zy93UFUySHY5dGFSWGhINGtWVWc0NnFjcU0yTTRKd0JVZm8xbWM2dU10Z1JOSkJR.eyJ1aWQiOiIyMzdlNWVlMi1hMDIwLTQ0YmYtOTZlZC02ZWVmNmZjZTE5NWMiLCJzdWIiOiIzODAxOTVkOC01ZjUyLTQzZmItOGVjNi0zN2RiYWRhZWNiNDkiLCJpc3MiOiJhYjViOGMwZC1mZDI4LTRjMzAtODQyZi0zNDdiNDhjODZkYmMiLCJpYXQiOjE2MjIwNjEwMjgsImV4cCI6MTY1MzU5NzAyOH0.UmFjZWNhciBpcyByYWNlY2FyIGJhY2t3YXJkcy4.w66UHVASUtiIZAEbNTMel9VSFpiJ+IkuBiB2xZFQRZxi+7Xp4D+Ti9v5WF93Dqf0Jd20Wa9mFPsdhitWoPa/Bg";
-            Message message = Message.Import(encoded);
+            Message message = Dime.Import<Message>(encoded);
             Assert.AreEqual(1, message.Profile);
             Assert.AreEqual(new Guid("237e5ee2-a020-44bf-96ed-6eef6fce195c"), message.Id);
             Assert.AreEqual(new Guid("380195d8-5f52-43fb-8ec6-37dbadaecb49"), message.SubjectId);
@@ -128,7 +128,7 @@ namespace ShiftEverywhere.DiMETest
             Identity.TrustedIdentity = Commons.TrustedIdentity;
             string encoded = "M1.STEuZXlKemRXSWlPaUpoWWpWaU9HTXdaQzFtWkRJNExUUmpNekF0T0RReVppMHpORGRpTkRoak9EWmtZbU1pTENKcGMzTWlPaUkzTVdVeVltVTFZeTAzTVdWa0xUUXlZalF0WW1ZNU1pMDRabUppWm1VMk1qQTNOMk1pTENKcFlYUWlPakUyTWpFNU56SXdNalFzSW1WNGNDSTZNVFkxTXpVd09EQXlOQ3dpYVd0NUlqb2lUVU52ZDBKUldVUkxNbFozUVhsRlFXbFRkR1IxU25wd2RVdHFjMHRLTlZ4MU1EQXlRbTVQT1VSMFIwTk9TMXBpY0ZCR1RUVlBORlJFUnpNMVMwVklaeUlzSW1OaGNDSTZXeUpoZFhSb2IzSnBlbVVpWFgwLndDV20xT3ExMHFVK3hPYVZVTTJwR1dHUmQxakgxc2FWYXRGMUc2Zy93UFUySHY5dGFSWGhINGtWVWc0NnFjcU0yTTRKd0JVZm8xbWM2dU10Z1JOSkJR.eyJ1aWQiOiI1ZWRkMmFkZS1mZjRiLTQ1YzktODMyMy1iOTE4YWJmYWZkMjEiLCJzdWIiOiJiMzIyNTU3NC1jYTNkLTRlYWItODNlMC03NjU1MDE2ZWEyMmQiLCJpc3MiOiJhYjViOGMwZC1mZDI4LTRjMzAtODQyZi0zNDdiNDhjODZkYmMiLCJpYXQiOjE2MjE5NzU2MzAsImV4cCI6MTYyMTk3NTY0MH0.UmFjZWNhciBpcyByYWNlY2FyIGJhY2t3YXJkcy4";
             try {
-                Message message = Message.Import(encoded);
+                Message message = Dime.Import<Message>(encoded);
             } catch (DataFormatException) { return; } // All is well
             Assert.IsTrue(false, "Should not happen.");
         }
@@ -139,7 +139,7 @@ namespace ShiftEverywhere.DiMETest
             Identity.TrustedIdentity = Commons.TrustedIdentity;
             string encoded = "E1.STEuZXlKemRXSWlPaUpoWWpWaU9HTXdaQzFtWkRJNExUUmpNekF0T0RReVppMHpORGRpTkRoak9EWmtZbU1pTENKcGMzTWlPaUkzTVdVeVltVTFZeTAzTVdWa0xUUXlZalF0WW1ZNU1pMDRabUppWm1VMk1qQTNOMk1pTENKcFlYUWlPakUyTWpFNU56SXdNalFzSW1WNGNDSTZNVFkxTXpVd09EQXlOQ3dpYVd0NUlqb2lUVU52ZDBKUldVUkxNbFozUVhsRlFXbFRkR1IxU25wd2RVdHFjMHRLTlZ4MU1EQXlRbTVQT1VSMFIwTk9TMXBpY0ZCR1RUVlBORlJFUnpNMVMwVklaeUlzSW1OaGNDSTZXeUpoZFhSb2IzSnBlbVVpWFgwLndDV20xT3ExMHFVK3hPYVZVTTJwR1dHUmQxakgxc2FWYXRGMUc2Zy93UFUySHY5dGFSWGhINGtWVWc0NnFjcU0yTTRKd0JVZm8xbWM2dU10Z1JOSkJR.TTEuU1RFdVpYbEtlbVJYU1dsUGFVcG9XV3BXYVU5SFRYZGFRekZ0V2tSSk5FeFVVbXBOZWtGMFQwUlJlVnBwTUhwT1JHUnBUa1JvYWs5RVdtdFpiVTFwVEVOS2NHTXpUV2xQYVVrelRWZFZlVmx0VlRGWmVUQXpUVmRXYTB4VVVYbFphbEYwV1cxWk5VMXBNRFJhYlVwcFdtMVZNazFxUVROT01rMXBURU5LY0ZsWVVXbFBha1V5VFdwRk5VNTZTWGROYWxGelNXMVdOR05EU1RaTlZGa3hUWHBWZDA5RVFYbE9RM2RwWVZkME5VbHFiMmxVVlU1MlpEQktVbGRWVWt4TmJGb3pVVmhzUmxGWGJGUmtSMUl4VTI1d2QyUlZkSEZqTUhSTFRsWjRNVTFFUVhsUmJUVlFUMVZTTUZJd1RrOVRNWEJwWTBaQ1IxUlVWbEJPUmxKRlVucE5NVk13VmtsYWVVbHpTVzFPYUdORFNUWlhlVXBvWkZoU2IySXpTbkJsYlZWcFdGZ3dMbmREVjIweFQzRXhNSEZWSzNoUFlWWlZUVEp3UjFkSFVtUXhha2d4YzJGV1lYUkdNVWMyWnk5M1VGVXlTSFk1ZEdGU1dHaElOR3RXVldjME5uRmpjVTB5VFRSS2QwSlZabTh4YldNMmRVMTBaMUpPU2tKUi5leUoxYVdRaU9pSmpZamd5TVdVNE15MHdaV0l4TFRSbVlUQXRZVGc0TUMweU5HVXpaREl6WmpRMlltSWlMQ0p6ZFdJaU9pSm1OREl5T1RVek1pMWhNelV5TFRRM05qZ3RPV0k0WWkxaE5UWTBZemRqWWpKalpEWWlMQ0pwYzNNaU9pSmhZalZpT0dNd1pDMW1aREk0TFRSak16QXRPRFF5Wmkwek5EZGlORGhqT0Raa1ltTWlMQ0pwWVhRaU9qRTJNakl3TlRrek9URXNJbVY0Y0NJNk1UWXlNakExT1RRd01YMC5VbUZqWldOaGNpQnBjeUJ5WVdObFkyRnlJR0poWTJ0M1lYSmtjeTQuV3VKMTRkY0d3bmJwamFiYjkwOHA2SVdCTGdoS3d2REhWRzNoc1dQV3Q1ZFVVQjNub2JwLzBPUHJUM09VcitENHhEemtBcXpvRUVQM2cyeUNCU2djQ1E.eyJ1aWQiOiI1YTdmY2ZmZS01NGRhLTQwZDQtOGY2My1hMDA5MmIwNTdkOWMiLCJzdWIiOiJmNDIyOTUzMi1hMzUyLTQ3NjgtOWI4Yi1hNTY0YzdjYjJjZDYiLCJpc3MiOiJhYjViOGMwZC1mZDI4LTRjMzAtODQyZi0zNDdiNDhjODZkYmMiLCJpYXQiOjE2MjIwNTkzOTEsImV4cCI6MTYyMjA1OTQwMX0.Zz+c1e3H2jrdqmhzoacUnrr3Wz1KaR//JRLQeEmQ4hmQrSszwg/vEvYZo+3KK4xl/cNh2A2YOyXwzD+o8Lm/Aw";
             try {
-                Message.Import(encoded);
+                Dime.Import<Message>(encoded);
             } catch (DataFormatException) { return; } // All is well
             Assert.IsTrue(false, "Should not happen.");
         }
@@ -152,18 +152,6 @@ namespace ShiftEverywhere.DiMETest
             try {
                 message.Seal(Commons.SenderKeypair.PrivateKey);
             } catch (DataFormatException) { return; } // All is well
-            Assert.IsTrue(false, "Should not happen.");
-        }
-
-        [TestMethod]
-        public void SealTest2()
-        {  
-            Identity.TrustedIdentity = Commons.TrustedIdentity;
-            Message message = new Message(Guid.NewGuid(), Commons.SenderIdentity, 10);
-            message.SetPayload(Encoding.UTF8.GetBytes("Racecar is racecar backwards."));
-            try {
-                message.Seal(Commons.ReceiverKeypair.PrivateKey);
-            } catch (IntegrityException) { return; } // All is well
             Assert.IsTrue(false, "Should not happen.");
         }
 
@@ -200,7 +188,7 @@ namespace ShiftEverywhere.DiMETest
             Assert.AreEqual("Racecar is racecar backwards.", System.Text.Encoding.UTF8.GetString(message1.GetPayload()));
             message1.Seal(Commons.SenderKeypair.PrivateKey);
             string encoded = message1.Export();
-            Message message2 = Message.Import(encoded);
+            Message message2 = Dime.Import<Message>(encoded);
             Assert.AreEqual("Racecar is racecar backwards.", System.Text.Encoding.UTF8.GetString(message2.GetPayload()));
         }
 
@@ -215,14 +203,14 @@ namespace ShiftEverywhere.DiMETest
             issuerMessage.Seal(Commons.SenderKeypair.PrivateKey);
             string issuerEncoded = issuerMessage.Export();
             
-            Message receivedMessage = Message.Import(issuerEncoded);
+            Message receivedMessage = Dime.Import<Message>(issuerEncoded);
             Message responseMessage = new Message(issuer.SubjectId, receiver, 100);
             responseMessage.SetPayload(Encoding.UTF8.GetBytes("It is!"));
             responseMessage.LinkMessage(receivedMessage);
             responseMessage.Seal(Commons.ReceiverKeypair.PrivateKey);
             string responseEncoded = responseMessage.Export();
 
-            Message finalMessage = Message.Import(responseEncoded);
+            Message finalMessage = Dime.Import<Message>(responseEncoded);
             finalMessage.Verify(issuerMessage);
         }
 
@@ -235,7 +223,7 @@ namespace ShiftEverywhere.DiMETest
             message1.Seal(Commons.SenderKeypair.PrivateKey);
             string thumbprint1 = message1.Thumbprint();
             string encoded = message1.Export();
-            Message message2 = Message.Import(encoded);
+            Message message2 = Dime.Import<Message>(encoded);
             string thumbprint2 = message2.Thumbprint();
             Assert.AreEqual(thumbprint1, thumbprint2);
         }

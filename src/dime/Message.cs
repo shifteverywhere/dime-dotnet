@@ -9,11 +9,11 @@ namespace ShiftEverywhere.DiME
     /// optionally encrypted (using end-to-end encryption). Responses to messages may be linked with the orginal message, thus
     /// creating a strong cryptographical link. The entity that created the message signs it before exporting and thus sealing
     /// it's content. </summary>
-    public class Message
+    public class Message: Dime
     {
         #region -- PUBLIC --
         /// <summary>The cryptographic profile version used for this envelope.</summary>
-        public int Profile { get { return this._profile; } set { Reset(); this._profile = value; } }
+        public new int Profile { get { return base.Profile; } set { Reset(); base.Profile = value; } }
         /// <summary>The identity of the issuer, and thus sealer (signer), of the message.</summary>
         public Identity Identity { get { return this._identity; } set { Reset(); this._identity = value; } }
         /// <summary>The state property may be used by an issuer to store data that should be returned back
@@ -33,8 +33,8 @@ namespace ShiftEverywhere.DiME
         public string ExchangeKey { get { return this._data.xky; } set { Reset(); this._data.xky = value; } }
         /// <summary>A link to another message. Used when responding to anther message.</summary>
         public string LinkedTo { get { return this._data.lnk; } set { Reset(); this._data.lnk = value; } }
-        /// <summary>Indicates if the envelope is sealed or not (signed).</summary>
-        public bool IsSealed { get { return this._signature != null; } }
+
+        public Message() { }
 
         /// <summary>Creates a new message. The message will be valid from the time of creation until
         /// the seconds set in 'validFor' have passed.</summary>
@@ -46,55 +46,18 @@ namespace ShiftEverywhere.DiME
         {
             if (issuerIdentity == null) { throw new ArgumentNullException(nameof(issuerIdentity), "Issuing identity cannot be null"); }
             long now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-            this._profile = issuerIdentity.Profile;
+            this.Profile = issuerIdentity.Profile;
             this._identity = issuerIdentity;
-            this._data = new Message.InternalData(Guid.NewGuid(), subjectId, issuerIdentity.SubjectId, now, (now + validFor));
+            this._data = new Message.MessageData(Guid.NewGuid(), subjectId, issuerIdentity.SubjectId, now, (now + validFor));
         }
 
-        /// <summary>Creates a message object from a DiME encoded string. It will also verify field values and
-        /// signatures before returning a new instance. If a linked message object is passed, then the 'LinkedTo'
-        /// will also be validated.</summary>
-        /// <param name="encoded">The DiME encoded envelope string to import.</param>
-        /// <param name="linkedMessage">A linked message that should be considered when verifying (optional).</param>
-        /// <exception cref="DataFormatException">If the format of the encoded string is invalid.</exception>
-        /// <exception cref="UnsupportedProfileException">If an invalid cryptographic profile version is set.</exception>
-        /// <exception cref="DateExpirationException">If 'IssuedAt' and/or 'ExpiresAt' contain invalid values, or the message has expired.</exception>
-        /// <exception cref="IntegrityException">If the signature failes validation, or cannot be validated.</exception>
-        /// <returns>An initialized and verified Message object.</returns>
-        public static Message Import(string encoded)
+        public override void Seal(string privateKey)
         {
-            if (!encoded.StartsWith(Message._HEADER)) { throw new DataFormatException("Unexpected data format."); }
-            string[] components = encoded.Split(new char[] { Message._MAIN_DELIMITER });
-            if (components.Length != 5 && components.Length != 6) { throw new DataFormatException("Unexpected number of components found when decoding identity."); }
-            int profile = int.Parse(components[0].Substring(1));
-            if (!Crypto.SupportedProfile(profile)) { throw new UnsupportedProfileException("Unsupported cryptography profile."); }
-            byte[] identityBytes = Utility.FromBase64(components[1]);
-            Identity identity = Identity.Import(System.Text.Encoding.UTF8.GetString(identityBytes, 0, identityBytes.Length));
-            Message.InternalData parameters = JsonSerializer.Deserialize<Message.InternalData>(Utility.FromBase64(components[2]));
-            Message message = new Message(identity, parameters, profile);
-            message._payload = components[3];
-            if(components.Length == 6)
-            {
-                message._state = components[4];
-            }
-            message._encoded = encoded.Substring(0, encoded.LastIndexOf(Message._MAIN_DELIMITER));
-            message._signature = components[components.Length - 1];
-            return message;
+            if (this._payload == null) { throw new DataFormatException("No payload added to message."); } 
+            base.Seal(privateKey);
         }
 
-        /// <summary>This function encodes and exports the message object in the DiME format. It will verify 
-        /// the data inside the message, as well as the signature attached.</summary>
-        /// <exception cref="IntegrityException">If the signature failes validation, or cannot be validated.</exception>
-        /// <returns>A DiME encoded string.</returns>
-        public string Export()
-        {
-            if (!this.IsSealed) { throw new IntegrityException("Signature missing, unable to export."); }
-            StringBuilder sb = new StringBuilder();
-            sb.Append(Encode());
-            sb.Append(Message._MAIN_DELIMITER);
-            sb.Append(this._signature);
-            return sb.ToString();
-        }
+        public override void Verify() { Verify(null); }
 
         /// <summary>Will verify the data in the fields in the message object. If a message is passed, then it will
         /// also verify the 'LinkedTo' field. The signature of the message object will be verified with the public key from 
@@ -129,33 +92,6 @@ namespace ShiftEverywhere.DiME
             Crypto.VerifySignature(this.Profile, Encode(), this._signature, this.Identity.IdentityKey);
         }
 
-        /// <summary>This will seal a message by signing it using the provided private key (of key type 'Identity').
-        /// The provided private key must be associated with the public key in the 'Idenity' object inside the message
-        /// object to be signed. If not, then the message will not be trusted by the receiving party.</summary>
-        /// <param name="identityPrivateKey">The private key that should be used to sign the message.</param>
-        /// <exception cref="ArgumentNullException">If the passed private key is null.</exception> 
-        /// <exception cref="ArgumentException">If required data is missing in the envelope.</exception> 
-        /// <exception cref="UnsupportedProfileException">If an invalid cryptographic profile version is set.</exception>
-        /// <exception cref="DataFormatException">If no payload has been set in the message.</exception>
-        /// <exception cref="DateExpirationException">If 'IssuedAt' and/or 'ExpiresAt' contain invalid values, or the message has expired.</exception>
-        public void Seal(string identityPrivateKey)
-        {
-            if (!this.IsSealed)
-            {
-                if (identityPrivateKey == null) { throw new ArgumentNullException(nameof(identityPrivateKey), "Private key for signing cannot be null."); }
-                this._signature = Crypto.GenerateSignature(this.Profile, Encode(), identityPrivateKey);
-                Verify();
-            }
-        }
-
-        /// <summary>Helper function to quickly check if a string is potentially a DiME encoded message object.</summary>
-        /// <param name="encoded">The string to validate.</param>
-        /// <returns>An indication if the string is a DiME encoded message.</returns>
-        public static bool IsMessage(string encoded)
-        {
-            return encoded.StartsWith(Message._HEADER);
-        }
-
         /// <summary>Will set a message payload. This may be any valid byte-array, at export this will be
         /// encoded as a Base64 string. If a payload is already set, then the old will be overwritten.</summary>
         /// <param name="payload">The payload to set.</param>
@@ -188,27 +124,61 @@ namespace ShiftEverywhere.DiME
                                            message.Thumbprint());
         }
 
-        /// <summary>Generates a cryptographically unique thumbprint of the message.</summary>
-        /// <exception cref="IntegrityException">If message is not sealed (signed).</exception> 
-        /// <returns>An unique thumbprint.</returns>
-        public string Thumbprint() 
+        #endregion
+
+        #region -- PROTECTED --
+
+        protected override void Populate(string encoded)
         {
-            if(!this.IsSealed) { throw new IntegrityException("Message not sealed."); }
-            return Crypto.GenerateHash(this.Profile, Encode());
+            if (Dime.GetType(encoded) != typeof(Message)) { throw new DataFormatException("Invalid header."); }
+            string[] components = encoded.Split(new char[] { Dime._MAIN_DELIMITER });
+            if (components.Length != 5 && components.Length != 6) { throw new DataFormatException("Unexpected number of components found when decoding identity."); }
+            this.Profile = int.Parse(components[0].Substring(1));
+            if (!Crypto.SupportedProfile(this.Profile)) { throw new UnsupportedProfileException("Unsupported cryptography profile."); }
+            byte[] identityBytes = Utility.FromBase64(components[1]);
+            this.Identity = Dime.Import<Identity>(System.Text.Encoding.UTF8.GetString(identityBytes, 0, identityBytes.Length));
+            this._data = JsonSerializer.Deserialize<Message.MessageData>(Utility.FromBase64(components[2]));
+            this._payload = components[3];
+            if(components.Length == 6)
+            {
+                this._state = components[4];
+            }
+            this._encoded = encoded.Substring(0, encoded.LastIndexOf(Message._MAIN_DELIMITER));
+            this._signature = components[components.Length - 1];
         }
+
+        protected override string Encode()
+        {
+            if ( this._encoded == null ) 
+            {  
+                // TODO: verify all values (payload == null ??)
+                StringBuilder builder = new StringBuilder(); 
+                builder.Append('M'); // The header of an DiME message
+                builder.Append(this.Profile);
+                builder.Append(Dime._MAIN_DELIMITER);
+                builder.Append(Utility.ToBase64(this.Identity.Export()));
+                builder.Append(Dime._MAIN_DELIMITER);
+                builder.Append(Utility.ToBase64(JsonSerializer.Serialize(this._data)));
+                builder.Append(Dime._MAIN_DELIMITER);
+                builder.Append(this._payload);
+                if ( this.State != null)
+                {
+                    builder.Append(Dime._MAIN_DELIMITER);
+                    builder.Append(this._state);
+                }
+                this._encoded = builder.ToString();
+            }
+            return this._encoded;
+        }        
+
         #endregion
 
         #region -- PRIVATE --
-        private const string _HEADER = "M";
-        private const char _MAIN_DELIMITER = '.';
-        private int _profile;
         private Identity _identity;
         private string _state;
         private string _payload;
-        private string _signature;
-        private string _encoded;
 
-        private struct InternalData
+        private struct MessageData
         {
             public Guid uid { get; set; }
             public Guid sub { get; set; }
@@ -221,7 +191,7 @@ namespace ShiftEverywhere.DiME
             public string lnk { get; set; }
 
             [JsonConstructor]
-            public InternalData(Guid uid, Guid sub, Guid iss, long iat, long exp, string xky = null, string lnk = null)
+            public MessageData(Guid uid, Guid sub, Guid iss, long iat, long exp, string xky = null, string lnk = null)
             {
                 this.uid = uid;
                 this.sub = sub;
@@ -232,34 +202,13 @@ namespace ShiftEverywhere.DiME
                 this.lnk = lnk;
             }
         }
-        private Message.InternalData _data;
+        private Message.MessageData _data;
 
-        private Message(Identity issuerIdentity, Message.InternalData parameters, int profile = Crypto.DEFUALT_PROFILE)
+        private Message(Identity issuerIdentity, Message.MessageData parameters, int profile = Crypto.DEFUALT_PROFILE)
         {
             this._identity = issuerIdentity;
             this._data = parameters;
-            this._profile = profile;
-        }
-
-        private string Encode()
-        {
-            if ( this._encoded == null ) 
-            {  
-                // TODO: verify all values (payload == null ??)
-                var builder = new StringBuilder(); 
-                builder.AppendFormat("{0}{1}.{2}.{3}", 
-                                    Message._HEADER,
-                                    this.Profile,
-                                    Utility.ToBase64(this.Identity.Export()),
-                                    Utility.ToBase64(JsonSerializer.Serialize(this._data)));
-                builder.AppendFormat(".{0}", this._payload);
-                if ( this.State != null)
-                {
-                    builder.AppendFormat(".{0}", this._state);
-                }
-                this._encoded = builder.ToString();
-            }
-            return this._encoded;
+            this.Profile = profile;
         }
 
         private void Reset()
@@ -271,6 +220,7 @@ namespace ShiftEverywhere.DiME
                 this._signature = null;
             }
         }
+
         #endregion
 
     }
