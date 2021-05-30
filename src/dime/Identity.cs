@@ -26,19 +26,6 @@ namespace ShiftEverywhere.DiME
         public string IdentityKey { get { return this._data.iky; } }
         /// <summary>The trust chain of signed public keys.</summary>
         public Identity TrustChain { get; private set; }
-        /// <summary>The capabilities of the identity.</summary>
-        public List<Capability> Capabilities 
-        { 
-            get 
-            { 
-                if (this._capabilities == null)
-                {
-                    this._capabilities = new List<string>(this._data.cap).ConvertAll(str => { Capability cap; Enum.TryParse<Capability>(str, true, out cap); return cap; });
-                }
-                return this._capabilities;
-            } 
-        }
-
         /// <summary>Imports an identity from a DiME encoded string.</summary>
         /// <param name="encoded">A DiME encoded string.</param>
         /// <returns>Returns an imutable Identity instance.</returns>
@@ -153,7 +140,7 @@ namespace ShiftEverywhere.DiME
 
         public bool HasCapability(Capability capability)
         {
-            return this.Capabilities.Any(cap => cap == capability);
+            return this._capabilities.Any(cap => cap == capability);
         }
 
         #endregion
@@ -161,9 +148,10 @@ namespace ShiftEverywhere.DiME
 
         private const string _HEADER = "I";
         private const char _MAIN_DELIMITER = '.';
-        private List<Capability> _capabilities;
+        private List<Capability> _capabilities { get; set; }
         private string _signature;
         private string _encoded;
+        private readonly object _lock = new object();
         private struct InternalData
         {
             public const string CAP_ISSUE = "issue";
@@ -196,14 +184,17 @@ namespace ShiftEverywhere.DiME
         {
             if (!Crypto.SupportedProfile(profile)) { throw new ArgumentException("Unsupported cryptography profile."); }
             this.Profile = profile;
+            this._capabilities = capabilities;
             string[] cap = capabilities.ConvertAll(c => c.ToString().ToLower()).ToArray();
             this._data = new Identity.InternalData(subjectId, issuerId, issuedAt, expiresAt, identityKey, cap);
+            
         }
 
         private Identity(Identity.InternalData parameters, string signature = null, int profile = Crypto.DEFUALT_PROFILE) 
         {
             this.Profile = profile;
             this._data = parameters;
+            this._capabilities = new List<string>(parameters.cap).ConvertAll(str => { Capability cap; Enum.TryParse<Capability>(str, true, out cap); return cap; });
             this._signature = signature;
         }
         
