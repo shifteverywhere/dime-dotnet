@@ -105,7 +105,7 @@ namespace ShiftEverywhere.DiME
             this._capabilities = new List<string>(this._claims.cap).ConvertAll(str => { Capability cap; Enum.TryParse<Capability>(str, true, out cap); return cap; });
             this._signature = components[2];
             this._encoded = encoded.Substring(0, encoded.LastIndexOf(IdentityIssuingRequest._MAIN_DELIMITER));
-            this.Verify();
+            this.Verify(); // TODO: should this be removed???
         }
 
         protected override string Encode()

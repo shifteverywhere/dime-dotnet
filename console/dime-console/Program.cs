@@ -43,18 +43,25 @@ namespace ShiftEverywhere.DiMEConsole
         static void Main(string[] args)
         {
             Program prg = new Program();
-            // At service provider
+            
+            /** At service provider side **/
             Message serviceProviderMessage = prg.GenerateMessage(prg.mobileIdentity.SubjectId, prg.serviceProviderIdentity, "Racecar is racecar backwards.");
             serviceProviderMessage.Seal(prg.serviceProviderKeypair.PrivateKey);
             string serviceProviderMessageEncoded = serviceProviderMessage.Export();
-            // Send 'serviceProviderMessageEncoded' to back-end
+            // ==> Send 'serviceProviderMessageEncoded' to back-end
+
+            /** At back-end side **/
             Message serviceProviderMessageAtBackEnd = Dime.Import<Message>(serviceProviderMessageEncoded);
+            serviceProviderMessageAtBackEnd.Verify();
             Envelope backEndEnvelope = new Envelope(prg.trustedIdentity, prg.mobileIdentity.SubjectId, 120);
             backEndEnvelope.AddMessage(serviceProviderMessage);
             backEndEnvelope.Seal(prg.trustedKeypair.PrivateKey);
             string backEndEnvelopeEncoded = backEndEnvelope.Export();
-            // Send 'backEndEnvelopeEncoded' to mobile
+            // ==> Send 'backEndEnvelopeEncoded' to mobile
+
+            /** At mobile side **/
             Envelope backEndEnvelopeAtMobile = Dime.Import<Envelope>(backEndEnvelopeEncoded);
+            backEndEnvelopeAtMobile.Verify();
             string messagePayload = System.Text.Encoding.UTF8.GetString(backEndEnvelopeAtMobile.Messages[0].GetPayload(), 0, backEndEnvelopeAtMobile.Messages[0].GetPayload().Length);
             Console.WriteLine("Message from service provider: " + messagePayload);
             Message mobileResponseMessage = prg.GenerateMessage(prg.mobileIdentity.SubjectId, prg.serviceProviderIdentity, "Yes, it is!");
@@ -64,15 +71,21 @@ namespace ShiftEverywhere.DiMEConsole
             mobileEnvelope.AddMessage(mobileResponseMessage);
             mobileEnvelope.Seal(prg.mobileKeypair.PrivateKey);
             string mobileEnvelopeEncoded = mobileEnvelope.Export();
-            // Send 'mobileEnvelopeEncoded' to back-end
+            // ==> Send 'mobileEnvelopeEncoded' to back-end
+
+            /** At back-end side **/
             Envelope mobleEnvelopeAtBackEnd = Dime.Import<Envelope>(mobileEnvelopeEncoded);
+            mobleEnvelopeAtBackEnd.Verify();
             Envelope finalBackEndEnvelope = new Envelope(prg.trustedIdentity, mobileEnvelope.SubjectId, 120);
             finalBackEndEnvelope.AddMessage(mobleEnvelopeAtBackEnd.Messages[0]);
             finalBackEndEnvelope.AddMessage(mobleEnvelopeAtBackEnd.Messages[1]);
             finalBackEndEnvelope.Seal(prg.trustedKeypair.PrivateKey);
             string finalBackEndEnvelopeEncoded = finalBackEndEnvelope.Export();
-            // Send 'finalBackEndEnvelopeEncoded' to service provider
+            // ==> Send 'finalBackEndEnvelopeEncoded' to service provider
+
+            /** At service provider side **/
             Envelope finalBackEndEnvelopeAtServiceProvider = Dime.Import<Envelope>(finalBackEndEnvelopeEncoded);
+            finalBackEndEnvelopeAtServiceProvider.Verify();
             string responcePayload = System.Text.Encoding.UTF8.GetString(finalBackEndEnvelopeAtServiceProvider.Messages[1].GetPayload(), 0, finalBackEndEnvelopeAtServiceProvider.Messages[1].GetPayload().Length);
             Console.WriteLine("Responce from mobile: " + responcePayload);
         }
