@@ -13,7 +13,7 @@ namespace ShiftEverywhere.DiME
     {
         #region -- PUBLIC --
         ///<summary>The cryptographic profile version used for this envelope.</summary>
-        public new int Profile { get { return base.Profile; } set { Reset(); base.Profile = value; } }
+        public new ProfileVersion Profile { get { return base.Profile; } set { Reset(); base.Profile = value; } }
         /// <summary>The identity of the issuer, and thus sealer (signer), of the enveloper.</summary>
         public Identity Identity { get { return this._identity; } set { this.Reset(); this._identity = value; } }
         /// <summary>A unique identity for the envelope. If an envelope is modfied after it has been sealed, then this id changes.</summary>
@@ -37,7 +37,7 @@ namespace ShiftEverywhere.DiME
         /// <param name="subjectId">The id of the receiving subject.</param>
         /// <param name="validFor">The number of seconds before the envelope expires.</param>
         /// <param name="profile">The cryptographic profile version to use (optional)</param>
-        public Envelope(Identity issuerIdentity, Guid subjectId, long validFor, int profile = Crypto.DEFUALT_PROFILE)
+        public Envelope(Identity issuerIdentity, Guid subjectId, long validFor, ProfileVersion profile = Crypto.DEFUALT_PROFILE)
         {
             this._identity = issuerIdentity;
             long now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
@@ -130,7 +130,9 @@ namespace ShiftEverywhere.DiME
             if (Dime.GetType(encoded) != typeof(Envelope)) { throw new DataFormatException("Invalid header."); }
             string[] components = encoded.Split(new char[] { Envelope._MAIN_DELIMITER });
             if (components.Length != 5) { throw new DataFormatException("Unexpected number of components found then decoding identity."); }
-            this.Profile = int.Parse(components[0].Substring(1));
+            ProfileVersion profile;
+            Enum.TryParse<ProfileVersion>(components[0].Substring(1), true, out profile);
+            this.Profile = profile;
             if (!Crypto.SupportedProfile(this.Profile)) { throw new UnsupportedProfileException("Unsupported cryptography profile."); }
             byte[] identityBytes = Utility.FromBase64(components[1]);
             this.Identity = Dime.Import<Identity>(System.Text.Encoding.UTF8.GetString(identityBytes, 0, identityBytes.Length));
@@ -151,10 +153,9 @@ namespace ShiftEverywhere.DiME
         {
             if (this._encoded == null) 
             {  
-                if (this.Messages == null || this.Messages.Count == 0) { throw new DataFormatException("No messages added to envelope."); }
                 StringBuilder envBuilder = new StringBuilder();
                 envBuilder.Append('E'); // This is the header of an DiME envelope
-                envBuilder.Append(this.Profile);
+                envBuilder.Append((int)this.Profile);
                 envBuilder.Append(Dime._MAIN_DELIMITER);
                 envBuilder.Append(Utility.ToBase64(this.Identity.Export()));
                 envBuilder.Append(Dime._MAIN_DELIMITER);

@@ -6,23 +6,23 @@ namespace ShiftEverywhere.DiME
 {
     public static class Crypto
     {
-        public const int DEFUALT_PROFILE = 1;
+        public const ProfileVersion DEFUALT_PROFILE = ProfileVersion.One;
         
-        public static bool SupportedProfile(int profile)
+        public static bool SupportedProfile(ProfileVersion profile)
         {
             return profile == Crypto.DEFUALT_PROFILE;
         }
         
-        public static string GenerateSignature(int profile, string data, string privateIdentityKey)
+        public static string GenerateSignature(ProfileVersion profile, string data, string privateKey)
         {
                 if (!Crypto.SupportedProfile(profile)) { throw new NotSupportedException(); }
-                if (privateIdentityKey == null) { throw new ArgumentNullException(nameof(privateIdentityKey), "Unable to sign, provided private key is null."); }
-                Key key = Key.Import(SignatureAlgorithm.Ed25519, Utility.FromBase64(privateIdentityKey), KeyBlobFormat.PkixPrivateKey);
+                if (privateKey == null) { throw new ArgumentNullException(nameof(privateKey), "Unable to sign, provided private key is null."); }
+                Key key = Key.Import(SignatureAlgorithm.Ed25519, Utility.FromBase64(privateKey), KeyBlobFormat.PkixPrivateKey);
                 byte[] signature = SignatureAlgorithm.Ed25519.Sign(key, Encoding.UTF8.GetBytes(data));
                 return System.Convert.ToBase64String(signature).Trim('=');
         }
 
-        public static void VerifySignature(int profile, string data, string signature, string publicIdentityKey)
+        public static void VerifySignature(ProfileVersion profile, string data, string signature, string publicIdentityKey)
         {
             if (!Crypto.SupportedProfile(profile)) { throw new UnsupportedProfileException(); }
             if (publicIdentityKey == null) { throw new ArgumentNullException(nameof(publicIdentityKey), "Unable to verify signature, provided public key is null."); }
@@ -33,7 +33,7 @@ namespace ShiftEverywhere.DiME
             }
         }
 
-        public static Keypair GenerateKeyPair(int profile, KeypairType type)
+        public static KeyBox GenerateKeyPair(ProfileVersion profile, KeyType type)
         {
             if (!Crypto.SupportedProfile(profile)) { throw new UnsupportedProfileException(); }
             Key key;
@@ -41,28 +41,28 @@ namespace ShiftEverywhere.DiME
             parameters.ExportPolicy = KeyExportPolicies.AllowPlaintextExport;
             switch (type)
             {
-                case KeypairType.Identity:
+                case KeyType.Identity:
                     key = new Key(SignatureAlgorithm.Ed25519, parameters);
                     break;
-                case KeypairType.Exchange:
+                case KeyType.Exchange:
                     key = new Key(KeyAgreementAlgorithm.X25519, parameters);
                     break;
                 default:
                     throw new NotSupportedException("Unkown keypair type.");
             }
-            return new Keypair(Guid.NewGuid(), 
+            return new KeyBox(Guid.NewGuid(), 
                                type, 
-                               Crypto.ExportKey(key, KeyBlobFormat.PkixPublicKey), 
                                Crypto.ExportKey(key, KeyBlobFormat.PkixPrivateKey),
+                               Crypto.ExportKey(key, KeyBlobFormat.PkixPublicKey),
                                profile);
         }
 
-        public static string GenerateHash(int profile, string data)
+        public static string GenerateHash(ProfileVersion profile, string data)
         {
             return Crypto.GenerateHash(profile, Encoding.UTF8.GetBytes(data));
         }
 
-        public static string GenerateHash(int profile, byte[] data)
+        public static string GenerateHash(ProfileVersion profile, byte[] data)
         {
             if (!Crypto.SupportedProfile(profile)) { throw new UnsupportedProfileException(); }
             return Utility.ToHex(HashAlgorithm.Blake2b_256.Hash(data));

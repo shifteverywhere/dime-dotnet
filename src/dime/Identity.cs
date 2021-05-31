@@ -68,7 +68,7 @@ namespace ShiftEverywhere.DiME
         #endregion
 
         #region -- INTERNAL --
-        internal Identity(Guid subjectId, string identityKey, long issuedAt, long expiresAt, Guid issuerId, List<Capability> capabilities, int profile = Crypto.DEFUALT_PROFILE) 
+        internal Identity(Guid subjectId, string identityKey, long issuedAt, long expiresAt, Guid issuerId, List<Capability> capabilities, ProfileVersion profile = Crypto.DEFUALT_PROFILE) 
         {
             if (!Crypto.SupportedProfile(profile)) { throw new ArgumentException("Unsupported cryptography profile."); }
             this.Profile = profile;
@@ -87,7 +87,9 @@ namespace ShiftEverywhere.DiME
             if (Dime.GetType(encoded) != typeof(Identity)) { throw new DataFormatException("Invalid header."); }
             string[] components = encoded.Split(new char[] { Identity._MAIN_DELIMITER });
             if (components.Length != 3 && components.Length != 4) { throw new ArgumentException("Unexpected number of components found then decoding identity."); }
-            this.Profile = int.Parse(components[0].Substring(1));
+            ProfileVersion profile;
+            Enum.TryParse<ProfileVersion>(components[0].Substring(1), true, out profile);
+            this.Profile = profile;
             if (!Crypto.SupportedProfile(this.Profile)) { throw new ArgumentException("Unsupported cryptography profile."); }
             byte[] json = Utility.FromBase64(components[1]);
             this._claims = JsonSerializer.Deserialize<IdentityClaims>(json);
@@ -107,7 +109,7 @@ namespace ShiftEverywhere.DiME
             {  
                 StringBuilder builder = new StringBuilder();
                 builder.Append('I'); // The header of a DiME identity
-                builder.Append(this.Profile);
+                builder.Append((int)this.Profile);
                 builder.Append(Dime._MAIN_DELIMITER);
                 builder.Append(Utility.ToBase64(JsonSerializer.Serialize(this._claims)));
                 if (this.TrustChain != null)

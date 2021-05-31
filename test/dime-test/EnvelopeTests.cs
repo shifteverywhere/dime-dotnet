@@ -11,10 +11,10 @@ namespace ShiftEverywhere.DiMETest
         [TestMethod]
         public void EnvelopeTest1()
         {
-            int profile = 1;
+            ProfileVersion profile = ProfileVersion.One;
             long now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
             Envelope envelope = new Envelope(Commons.SenderIdentity, Commons.ReceiverIdentity.SubjectId, 10, profile);
-            Assert.IsTrue(1 == envelope.Profile);
+            Assert.AreEqual(ProfileVersion.One, envelope.Profile);
             Assert.IsNotNull(envelope.Id);
             Assert.AreEqual(Commons.SenderIdentity.SubjectId, envelope.IssuerId);
             Assert.AreEqual(Commons.ReceiverIdentity.SubjectId, envelope.SubjectId);
@@ -28,11 +28,11 @@ namespace ShiftEverywhere.DiMETest
             Identity.TrustedIdentity = Commons.TrustedIdentity;
             Envelope envelope = new Envelope(Commons.SenderIdentity, Commons.ReceiverIdentity.SubjectId, 10);
             envelope.AddMessage(GetMessage("Racecar is racecar backwards."));
-            envelope.Seal(Commons.SenderKeypair.PrivateKey);
+            envelope.Seal(Commons.SenderKeypair.Key);
             string encoded = envelope.Export();
             Assert.IsNotNull(encoded);
             Assert.IsTrue(encoded.Length > 0);
-            Assert.IsTrue(encoded.StartsWith("E" + envelope.Profile.ToString()));
+            Assert.IsTrue(encoded.StartsWith("E" + (int)envelope.Profile));
             Assert.IsTrue(encoded.Split(new char[] { '.' }).Length == 5);          
         }
 
@@ -52,7 +52,7 @@ namespace ShiftEverywhere.DiMETest
             Identity.TrustedIdentity = Commons.TrustedIdentity;
             Envelope envelope = new Envelope(Commons.SenderIdentity, Commons.ReceiverIdentity.SubjectId, 10);
             envelope.AddMessage(GetMessage("Racecar is racecar backwards."));
-            envelope.Seal(Commons.SenderKeypair.PrivateKey);
+            envelope.Seal(Commons.SenderKeypair.Key);
             envelope.Export();
             try {
                 envelope.ExpiresAt = envelope.ExpiresAt + 100;
@@ -66,7 +66,7 @@ namespace ShiftEverywhere.DiMETest
             Identity.TrustedIdentity = Commons.TrustedIdentity;
             Envelope envelope = new Envelope(Commons.SenderIdentity, Commons.ReceiverIdentity.SubjectId, 10);
             try {
-                envelope.Seal(Commons.SenderKeypair.PrivateKey);
+                envelope.Seal(Commons.SenderKeypair.Key);
             } catch(DataFormatException) { return; } // All is well
         }
 
@@ -79,7 +79,7 @@ namespace ShiftEverywhere.DiMETest
             Envelope envelope = new Envelope(Commons.SenderIdentity, Commons.ReceiverIdentity.SubjectId, 120);
             envelope.AddMessage(message);
             envelope.AddMessage(response);
-            envelope.Seal(Commons.SenderKeypair.PrivateKey);
+            envelope.Seal(Commons.SenderKeypair.Key);
         } 
 
         [TestMethod]
@@ -126,7 +126,7 @@ namespace ShiftEverywhere.DiMETest
             Envelope envelope = new Envelope(Commons.SenderIdentity, Commons.ReceiverIdentity.SubjectId, 10);
             envelope.AddMessage(GetMessage("Racecar is racecar backwards."));
             Assert.IsFalse(envelope.IsSealed);
-            envelope.Seal(Commons.SenderKeypair.PrivateKey);
+            envelope.Seal(Commons.SenderKeypair.Key);
             Assert.IsTrue(envelope.IsSealed);
         }
 
@@ -136,7 +136,7 @@ namespace ShiftEverywhere.DiMETest
             Identity.TrustedIdentity = Commons.TrustedIdentity;
             Envelope envelope = new Envelope(Commons.SenderIdentity, Commons.ReceiverIdentity.SubjectId, 10);
             envelope.AddMessage(GetMessage("Racecar is racecar backwards."));
-            envelope.Seal(Commons.SenderKeypair.PrivateKey);
+            envelope.Seal(Commons.SenderKeypair.Key);
             Guid uid1 = envelope.Id;
             envelope.ExpiresAt = envelope.ExpiresAt + 100;
             Assert.AreNotEqual(uid1, envelope.Id);
@@ -148,7 +148,7 @@ namespace ShiftEverywhere.DiMETest
             Identity.TrustedIdentity = Commons.TrustedIdentity;
             Envelope envelope1 = new Envelope(Commons.SenderIdentity, Commons.ReceiverIdentity.SubjectId, 100);
             envelope1.AddMessage(GetMessage("Racecar is racecar backwards."));
-            envelope1.Seal(Commons.SenderKeypair.PrivateKey);
+            envelope1.Seal(Commons.SenderKeypair.Key);
             string encoded = envelope1.Export();
 
             Envelope envelope2 = Dime.Import<Envelope>(encoded);
@@ -173,7 +173,7 @@ namespace ShiftEverywhere.DiMETest
             Identity.TrustedIdentity = Commons.TrustedIdentity;
             Envelope envelope1 = new Envelope(Commons.SenderIdentity, Commons.ReceiverIdentity.SubjectId, 120);
             envelope1.AddMessage(GetMessage("Racecar is racecar backwards."));
-            envelope1.Seal(Commons.SenderKeypair.PrivateKey);
+            envelope1.Seal(Commons.SenderKeypair.Key);
             string thumbprint1 = envelope1.Thumbprint();
             string encoded = envelope1.Export();
             Envelope envelope2 = Dime.Import<Envelope>(encoded);
@@ -188,10 +188,10 @@ namespace ShiftEverywhere.DiMETest
             Message message = GetMessage("Racecar is racecar backwards.");
             Envelope envelope1 = new Envelope(Commons.SenderIdentity, Commons.ReceiverIdentity.SubjectId, 120);
             envelope1.AddMessage(message);
-            envelope1.Seal(Commons.SenderKeypair.PrivateKey);
+            envelope1.Seal(Commons.SenderKeypair.Key);
             Envelope envelope2 = new Envelope(Commons.SenderIdentity, Commons.ReceiverIdentity.SubjectId, 120);
             envelope2.AddMessage(message);
-            envelope2.Seal(Commons.SenderKeypair.PrivateKey);
+            envelope2.Seal(Commons.SenderKeypair.Key);
             Assert.AreNotEqual(envelope1.Thumbprint(), envelope2.Thumbprint());
         }
 
@@ -212,7 +212,7 @@ namespace ShiftEverywhere.DiMETest
         {
             Message message = new Message(Commons.ReceiverIdentity.SubjectId, Commons.SenderIdentity, 120);
             message.SetPayload(Encoding.UTF8.GetBytes(payload));
-            message.Seal(Commons.SenderKeypair.PrivateKey);
+            message.Seal(Commons.SenderKeypair.Key);
             return message;
         }
 
@@ -224,7 +224,7 @@ namespace ShiftEverywhere.DiMETest
             {
                 message.LinkMessage(linkedMessage);
             }
-            message.Seal(Commons.ReceiverKeypair.PrivateKey);
+            message.Seal(Commons.ReceiverKeypair.Key);
             return message;
         }
         #endregion

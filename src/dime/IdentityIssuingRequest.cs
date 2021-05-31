@@ -18,11 +18,11 @@ namespace ShiftEverywhere.DiME
 
         public IdentityIssuingRequest() { }
 
-        public static IdentityIssuingRequest Generate(Keypair keypair, List<Capability> capabilities = null) 
+        public static IdentityIssuingRequest Generate(KeyBox keypair, List<Capability> capabilities = null) 
         {
             if (!Crypto.SupportedProfile(keypair.Profile)) { throw new ArgumentException("Unsupported cryptography profile."); }
-            if (keypair.Type != KeypairType.Identity) { throw new ArgumentNullException(nameof(keypair), "KeyPair of invalid type."); }
-            if (keypair.PrivateKey == null) { throw new ArgumentNullException(nameof(keypair), "Private key must not be null"); }
+            if (keypair.Type != KeyType.Identity) { throw new ArgumentNullException(nameof(keypair), "KeyPair of invalid type."); }
+            if (keypair.Key == null) { throw new ArgumentNullException(nameof(keypair), "Private key must not be null"); }
             IdentityIssuingRequest iir = new IdentityIssuingRequest();
             iir.Profile = keypair.Profile;
             if (capabilities == null || capabilities.Count == 0) { iir._capabilities = new List<Capability>() 
@@ -44,7 +44,7 @@ namespace ShiftEverywhere.DiME
                 cap = new string[1] { Capability.Generic.ToString().ToLower() };
             }
             iir._claims = new IirClaims(now, keypair.PublicKey, cap);
-            iir.Seal(keypair.PrivateKey);
+            iir.Seal(keypair.Key);
             return iir;
         }
 
@@ -54,7 +54,7 @@ namespace ShiftEverywhere.DiME
             base.Verify(this.IdentityKey);
         }
 
-        public bool HasCapability(Capability capability)
+        public bool WantsCapability(Capability capability)
         {
             return this._capabilities.Any(cap => cap == capability);
         }
@@ -69,7 +69,7 @@ namespace ShiftEverywhere.DiME
         /// <param name="allowedCapabilities">The capabilities allowed for the to be issued identity.</param>
         /// <param name="issuerIdentitys">The identity of the issuer (optional).</param>
         /// <returns>Returns an imutable Identity instance.</returns>
-        public Identity IssueIdentity(Guid subjectId, long validFor, List<Capability> allowedCapabilities, Keypair issuerKeypair, Identity issuerIdentity) 
+        public Identity IssueIdentity(Guid subjectId, long validFor, List<Capability> allowedCapabilities, KeyBox issuerKeypair, Identity issuerIdentity) 
         {    
             bool isSelfSign = (issuerIdentity == null || this.IdentityKey == issuerKeypair.PublicKey);
             this.CompleteCapabilities(allowedCapabilities, isSelfSign);
@@ -84,7 +84,7 @@ namespace ShiftEverywhere.DiME
                     // The chain will only be set if this is not the trusted identity (and as long as one is set)
                     identity.TrustChain = issuerIdentity;
                 }
-                identity.Seal(issuerKeypair.PrivateKey);
+                identity.Seal(issuerKeypair.Key);
                 return identity;
             }
             throw new IdentityCapabilityException("Issuing identity missing 'issue' capability.");
@@ -99,13 +99,14 @@ namespace ShiftEverywhere.DiME
             if (Dime.GetType(encoded) != typeof(IdentityIssuingRequest)) { throw new ArgumentException("Invalid header."); }
             string[] components = encoded.Split(new char[] { IdentityIssuingRequest._MAIN_DELIMITER });
             if (components.Length != 3 ) { throw new ArgumentException("Unexpected number of components found then decoding identity issuing request."); }
-            this.Profile = int.Parse(components[0].Substring(1));
+            ProfileVersion profile;
+            Enum.TryParse<ProfileVersion>(components[0].Substring(1), true, out profile);
+            this.Profile = profile;
             byte[] json = Utility.FromBase64(components[1]);
             this._claims = JsonSerializer.Deserialize<IirClaims>(json);
             this._capabilities = new List<string>(this._claims.cap).ConvertAll(str => { Capability cap; Enum.TryParse<Capability>(str, true, out cap); return cap; });
             this._signature = components[2];
             this._encoded = encoded.Substring(0, encoded.LastIndexOf(IdentityIssuingRequest._MAIN_DELIMITER));
-            this.Verify(); // TODO: should this be removed???
         }
 
         protected override string Encode()
@@ -114,7 +115,7 @@ namespace ShiftEverywhere.DiME
             { 
                 StringBuilder builder = new StringBuilder(); 
                 builder.Append('i'); // The header of an DiME identity issuing request
-                builder.Append(this.Profile);
+                builder.Append((int)this.Profile);
                 builder.Append(Dime._MAIN_DELIMITER);
                 builder.Append(Utility.ToBase64(JsonSerializer.Serialize(this._claims)));
                 this._encoded = builder.ToString();
@@ -151,7 +152,7 @@ namespace ShiftEverywhere.DiME
             if (this._capabilities.Count == 0) { this._capabilities.Add(Capability.Generic); }
             if (isSelfSign)
             {
-                if (!this.HasCapability(Capability.Self))
+                if (!this.WantsCapability(Capability.Self))
                 {
                     this._capabilities.Add(Capability.Self);
                 }

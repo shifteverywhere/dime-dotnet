@@ -12,7 +12,7 @@ namespace ShiftEverywhere.DiMETest
         {
             try 
             {
-                IdentityIssuingRequest iir = IdentityIssuingRequest.Generate(Keypair.Generate(KeypairType.Exchange));
+                IdentityIssuingRequest iir = IdentityIssuingRequest.Generate(KeyBox.GenerateKey(KeyType.Exchange));
             } 
             catch (Exception e) 
             {
@@ -25,20 +25,20 @@ namespace ShiftEverywhere.DiMETest
         [TestMethod]
         public void GenerateRequestTest3()
         {
-            IdentityIssuingRequest iir = IdentityIssuingRequest.Generate(Keypair.Generate(KeypairType.Identity));
+            IdentityIssuingRequest iir = IdentityIssuingRequest.Generate(KeyBox.GenerateKey(KeyType.Identity));
         }
 
         [TestMethod]
         public void VerifyTest1()
         {
-            IdentityIssuingRequest iir = IdentityIssuingRequest.Generate(Keypair.Generate(KeypairType.Identity));
+            IdentityIssuingRequest iir = IdentityIssuingRequest.Generate(KeyBox.GenerateKey(KeyType.Identity));
             iir.Verify();
         }
 
         [TestMethod]
         public void ThumbprintTest1()
         {
-            IdentityIssuingRequest iir = IdentityIssuingRequest.Generate(Keypair.Generate(KeypairType.Identity));
+            IdentityIssuingRequest iir = IdentityIssuingRequest.Generate(KeyBox.GenerateKey(KeyType.Identity));
             string thumbprint = iir.Thumbprint();
             Assert.IsNotNull(thumbprint);
             Assert.IsTrue(thumbprint.Length > 0, "Thumbprint should not be empty string");
@@ -48,15 +48,15 @@ namespace ShiftEverywhere.DiMETest
         [TestMethod]
         public void ThumbprintTest2()
         {
-            IdentityIssuingRequest iir1 = IdentityIssuingRequest.Generate(Keypair.Generate(KeypairType.Identity));
-            IdentityIssuingRequest iir2 = IdentityIssuingRequest.Generate(Keypair.Generate(KeypairType.Identity));
+            IdentityIssuingRequest iir1 = IdentityIssuingRequest.Generate(KeyBox.GenerateKey(KeyType.Identity));
+            IdentityIssuingRequest iir2 = IdentityIssuingRequest.Generate(KeyBox.GenerateKey(KeyType.Identity));
             Assert.IsFalse(iir1.Thumbprint() == iir2.Thumbprint(), "Thumbprints of diffrent iirs should not be the same");
         }
 
         [TestMethod]
         public void ExportTest1()
         {
-            IdentityIssuingRequest iir = IdentityIssuingRequest.Generate(Keypair.Generate(KeypairType.Identity));
+            IdentityIssuingRequest iir = IdentityIssuingRequest.Generate(KeyBox.GenerateKey(KeyType.Identity));
             string encoded = iir.Export();
             Assert.IsNotNull(encoded);
             Assert.IsTrue(encoded.Length > 0);
@@ -69,10 +69,10 @@ namespace ShiftEverywhere.DiMETest
             string encoded = "i1.eyJpYXQiOjE2MjI0MTM4NzYsImlreSI6Ik1Db3dCUVlESzJWd0F5RUFkc3lUOW5UWjVBQnRDSWJRVmwxcVNyU1hCSzZVZkJGR3RvS0Ziay9ETS9NIiwiY2FwIjpbImdlbmVyaWMiXX0.ZCvziBYpFatLEfNCGAVpdR+DqHB1IhgrFpwHgYUn26QAm+Yw13AgPpBrhTDA9pmLgkFqTfXPab1TX0k7dmQHBg";
             IdentityIssuingRequest iir = Dime.Import<IdentityIssuingRequest>(encoded);
             Assert.IsNotNull(iir);
-            Assert.AreEqual(iir.Profile, 1);
-            Assert.AreEqual(iir.IssuedAt, 1622413876);
-            Assert.IsTrue(iir.HasCapability(Capability.Generic));
-            Assert.AreEqual(iir.IdentityKey, "MCowBQYDK2VwAyEAdsyT9nTZ5ABtCIbQVl1qSrSXBK6UfBFGtoKFbk/DM/M");
+            Assert.AreEqual(ProfileVersion.One, iir.Profile);
+            Assert.AreEqual(1622413876, iir.IssuedAt);
+            Assert.IsTrue(iir.WantsCapability(Capability.Generic));
+            Assert.AreEqual("MCowBQYDK2VwAyEAdsyT9nTZ5ABtCIbQVl1qSrSXBK6UfBFGtoKFbk/DM/M", iir.IdentityKey);
         }
 
     }

@@ -8,24 +8,24 @@ namespace ShiftEverywhere.DiMEConsole
     class Program
     {
         public Identity trustedIdentity;
-        public Keypair trustedKeypair;
+        public KeyBox trustedKeypair;
         public Identity serviceProviderIdentity;
-        public Keypair serviceProviderKeypair;
+        public KeyBox serviceProviderKeypair;
         public Identity mobileIdentity;
-        public Keypair mobileKeypair;
+        public KeyBox mobileKeypair;
 
         public Program()
         {
-            this.trustedKeypair = Keypair.Generate(KeypairType.Identity);
+            this.trustedKeypair = KeyBox.GenerateKey(KeyType.Identity);
             this.trustedIdentity = GenerateIdentity(this.trustedKeypair);
-            this.serviceProviderKeypair = Keypair.Generate(KeypairType.Identity);
+            this.serviceProviderKeypair = KeyBox.GenerateKey(KeyType.Identity);
             this.serviceProviderIdentity = GenerateIdentity(this.serviceProviderKeypair);
-            this.mobileKeypair = Keypair.Generate(KeypairType.Identity);
+            this.mobileKeypair = KeyBox.GenerateKey(KeyType.Identity);
             this.mobileIdentity = GenerateIdentity(this.mobileKeypair);
             Identity.TrustedIdentity = this.trustedIdentity;
         }
 
-        public Identity GenerateIdentity(Keypair keypair)
+        public Identity GenerateIdentity(KeyBox keypair)
         {
             List<Capability> caps = new List<Capability> { Capability.Generic, Capability.Identify };
             IdentityIssuingRequest iir = IdentityIssuingRequest.Generate(keypair, caps);    
@@ -46,7 +46,7 @@ namespace ShiftEverywhere.DiMEConsole
             
             /** At service provider side **/
             Message serviceProviderMessage = prg.GenerateMessage(prg.mobileIdentity.SubjectId, prg.serviceProviderIdentity, "Racecar is racecar backwards.");
-            serviceProviderMessage.Seal(prg.serviceProviderKeypair.PrivateKey);
+            serviceProviderMessage.Seal(prg.serviceProviderKeypair.Key);
             string serviceProviderMessageEncoded = serviceProviderMessage.Export();
             // ==> Send 'serviceProviderMessageEncoded' to back-end
 
@@ -55,7 +55,7 @@ namespace ShiftEverywhere.DiMEConsole
             serviceProviderMessageAtBackEnd.Verify();
             Envelope backEndEnvelope = new Envelope(prg.trustedIdentity, prg.mobileIdentity.SubjectId, 120);
             backEndEnvelope.AddMessage(serviceProviderMessage);
-            backEndEnvelope.Seal(prg.trustedKeypair.PrivateKey);
+            backEndEnvelope.Seal(prg.trustedKeypair.Key);
             string backEndEnvelopeEncoded = backEndEnvelope.Export();
             // ==> Send 'backEndEnvelopeEncoded' to mobile
 
@@ -69,7 +69,7 @@ namespace ShiftEverywhere.DiMEConsole
             Envelope mobileEnvelope = new Envelope(prg.mobileIdentity, prg.serviceProviderIdentity.IssuerId, 120);
             mobileEnvelope.AddMessage(backEndEnvelopeAtMobile.Messages[0]);
             mobileEnvelope.AddMessage(mobileResponseMessage);
-            mobileEnvelope.Seal(prg.mobileKeypair.PrivateKey);
+            mobileEnvelope.Seal(prg.mobileKeypair.Key);
             string mobileEnvelopeEncoded = mobileEnvelope.Export();
             // ==> Send 'mobileEnvelopeEncoded' to back-end
 
@@ -79,7 +79,7 @@ namespace ShiftEverywhere.DiMEConsole
             Envelope finalBackEndEnvelope = new Envelope(prg.trustedIdentity, mobileEnvelope.SubjectId, 120);
             finalBackEndEnvelope.AddMessage(mobleEnvelopeAtBackEnd.Messages[0]);
             finalBackEndEnvelope.AddMessage(mobleEnvelopeAtBackEnd.Messages[1]);
-            finalBackEndEnvelope.Seal(prg.trustedKeypair.PrivateKey);
+            finalBackEndEnvelope.Seal(prg.trustedKeypair.Key);
             string finalBackEndEnvelopeEncoded = finalBackEndEnvelope.Export();
             // ==> Send 'finalBackEndEnvelopeEncoded' to service provider
 

@@ -13,7 +13,7 @@ namespace ShiftEverywhere.DiME
     {
         #region -- PUBLIC --
         /// <summary>The cryptographic profile version used for this envelope.</summary>
-        public new int Profile { get { return base.Profile; } set { Reset(); base.Profile = value; } }
+        public new ProfileVersion Profile { get { return base.Profile; } set { Reset(); base.Profile = value; } }
         /// <summary>The identity of the issuer, and thus sealer (signer), of the message.</summary>
         public Identity Identity { get { return this._identity; } set { Reset(); this._identity = value; } }
         /// <summary>The state property may be used by an issuer to store data that should be returned back
@@ -98,7 +98,6 @@ namespace ShiftEverywhere.DiME
         public void SetPayload(byte[] payload)
         {
             Reset();
-            // TODO: E2EE
             this._payload = Utility.ToBase64(payload);
         }
 
@@ -106,7 +105,6 @@ namespace ShiftEverywhere.DiME
         /// <returns>A byte-array.</returns>
         public byte[] GetPayload()
         {
-            // TODO: E2EE
             return Utility.FromBase64(this._payload);
         }
 
@@ -133,7 +131,9 @@ namespace ShiftEverywhere.DiME
             if (Dime.GetType(encoded) != typeof(Message)) { throw new DataFormatException("Invalid header."); }
             string[] components = encoded.Split(new char[] { Dime._MAIN_DELIMITER });
             if (components.Length != 5 && components.Length != 6) { throw new DataFormatException("Unexpected number of components found when decoding identity."); }
-            this.Profile = int.Parse(components[0].Substring(1));
+            ProfileVersion profile;
+            Enum.TryParse<ProfileVersion>(components[0].Substring(1), true, out profile);
+            this.Profile = profile;
             if (!Crypto.SupportedProfile(this.Profile)) { throw new UnsupportedProfileException("Unsupported cryptography profile."); }
             byte[] identityBytes = Utility.FromBase64(components[1]);
             this.Identity = Dime.Import<Identity>(System.Text.Encoding.UTF8.GetString(identityBytes, 0, identityBytes.Length));
@@ -151,10 +151,9 @@ namespace ShiftEverywhere.DiME
         {
             if ( this._encoded == null ) 
             {  
-                // TODO: verify all values (payload == null ??)
                 StringBuilder builder = new StringBuilder(); 
                 builder.Append('M'); // The header of an DiME message
-                builder.Append(this.Profile);
+                builder.Append((int)this.Profile);
                 builder.Append(Dime._MAIN_DELIMITER);
                 builder.Append(Utility.ToBase64(this.Identity.Export()));
                 builder.Append(Dime._MAIN_DELIMITER);

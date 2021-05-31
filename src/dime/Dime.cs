@@ -11,7 +11,7 @@ namespace ShiftEverywhere.DiME
     public abstract class Dime
     {
         /// <summary>The cryptography profile that is used with the identity.</summary>
-        public int Profile { get; protected set; }
+        public ProfileVersion Profile { get; protected set; }
         /// <summary>Indicates if the object is sealed or not (signed).</summary>
         public bool IsSealed { get { return (this._signature != null && this._signature.Length > 0); } }
 
@@ -38,7 +38,7 @@ namespace ShiftEverywhere.DiME
                 case 'M': return typeof(Message);
                 case 'E': return typeof(Envelope);
                 case 'i': return typeof(IdentityIssuingRequest);
-                case 'k': return typeof(Keypair);
+                case 'k': return typeof(KeyBox);
                 default: return null;
             }
         }

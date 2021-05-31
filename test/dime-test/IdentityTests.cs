@@ -13,11 +13,11 @@ namespace ShiftEverywhere.DiMETest
         public void IssueTest1()
         {
             Identity.TrustedIdentity = null;
-            int profile = 1;
+            ProfileVersion profile = ProfileVersion.One;
             Guid subjectId = Guid.NewGuid();
-            Keypair keypair = Keypair.Generate(KeypairType.Identity, profile);
-            List<Capability> caps = new List<Capability> { Capability.Issue, Capability.Generic };
-            Identity identity = IdentityIssuingRequest.Generate(keypair, caps).IssueIdentity(subjectId, 100, caps, keypair, null);
+            KeyBox keypair = KeyBox.GenerateKey(KeyType.Identity, profile);
+            List<Capability> caps = new List<Capability> { Capability.Generic };
+            Identity identity = IdentityIssuingRequest.Generate(keypair, caps).IssueIdentity(subjectId, 100, caps,  keypair,  null);
             Assert.IsTrue(profile == identity.Profile);
             Assert.IsTrue(subjectId == identity.SubjectId);
             Assert.IsTrue(subjectId == identity.IssuerId);
@@ -34,9 +34,9 @@ namespace ShiftEverywhere.DiMETest
         public void IssueTest2()
         {
             Identity.TrustedIdentity = Commons.TrustedIdentity;
-            int profile = 1;
+            ProfileVersion profile = ProfileVersion.One;
             Guid subjectId = Guid.NewGuid();
-            Keypair keypair = Keypair.Generate(KeypairType.Identity, profile);
+            KeyBox keypair = KeyBox.GenerateKey(KeyType.Identity, profile);
             List<Capability> caps = new List<Capability> { Capability.Generic, Capability.Identify };
             IdentityIssuingRequest iir = IdentityIssuingRequest.Generate(keypair, caps);
             Identity identity = IdentityIssuingRequest.Generate(keypair, caps).IssueIdentity(subjectId, 100, caps, Commons.IntermediateKeypair, Commons.IntermediateIdentity);
@@ -56,7 +56,7 @@ namespace ShiftEverywhere.DiMETest
             List<Capability> reqCaps = new List<Capability> { Capability.Issue };
             List<Capability> allowCaps = new List<Capability> { Capability.Generic, Capability.Identify };
             try {
-                Identity identity = IdentityIssuingRequest.Generate(Keypair.Generate(KeypairType.Identity), reqCaps).IssueIdentity(Guid.NewGuid(), 100, allowCaps, Commons.TrustedKeypair, Commons.TrustedIdentity);
+                Identity identity = IdentityIssuingRequest.Generate(KeyBox.GenerateKey(KeyType.Identity), reqCaps).IssueIdentity(Guid.NewGuid(), 100, allowCaps, Commons.TrustedKeypair, Commons.TrustedIdentity);
             } catch (IdentityCapabilityException) { return; } // All is well
             Assert.IsTrue(false, "Should not happen.");
         }
@@ -65,7 +65,7 @@ namespace ShiftEverywhere.DiMETest
         public void IssueTest4()
         {
             Identity.TrustedIdentity = Commons.TrustedIdentity;
-            Keypair keypair = Keypair.Generate(KeypairType.Identity);
+            KeyBox keypair = KeyBox.GenerateKey(KeyType.Identity);
             List<Capability> caps = new List<Capability> { Capability.Issue, Capability.Generic };
             Identity identity = IdentityIssuingRequest.Generate(keypair, caps).IssueIdentity(Guid.NewGuid(), 100, caps, Commons.TrustedKeypair, Commons.TrustedIdentity);
             Assert.IsTrue(identity.HasCapability(Capability.Issue));
@@ -76,7 +76,7 @@ namespace ShiftEverywhere.DiMETest
         public void IsSelfSignedTest1()
         {
             Identity.TrustedIdentity = null;
-            Keypair keypair = Keypair.Generate(KeypairType.Identity);
+            KeyBox keypair = KeyBox.GenerateKey(KeyType.Identity);
             List<Capability> caps = new List<Capability> { Capability.Issue, Capability.Generic };
             Identity identity = IdentityIssuingRequest.Generate(keypair).IssueIdentity(Guid.NewGuid(), 100, null, keypair, null);
             Assert.IsTrue(identity.IsSelfSigned());
@@ -87,7 +87,7 @@ namespace ShiftEverywhere.DiMETest
         {
             Identity.TrustedIdentity = Commons.TrustedIdentity;
             List<Capability> caps = new List<Capability> { Capability.Generic };
-            Identity identity = IdentityIssuingRequest.Generate(Keypair.Generate(KeypairType.Identity)).IssueIdentity(Guid.NewGuid(), 100, caps, Commons.IntermediateKeypair, Commons.IntermediateIdentity);
+            Identity identity = IdentityIssuingRequest.Generate(KeyBox.GenerateKey(KeyType.Identity)).IssueIdentity(Guid.NewGuid(), 100, caps, Commons.IntermediateKeypair, Commons.IntermediateIdentity);
             Assert.IsFalse(identity.IsSelfSigned());
         }
 
@@ -98,7 +98,7 @@ namespace ShiftEverywhere.DiMETest
             {
                 Identity.TrustedIdentity = null;
                 List<Capability> caps = new List<Capability> { Capability.Generic };
-                Keypair keypair = Keypair.Generate(KeypairType.Identity);
+                KeyBox keypair = KeyBox.GenerateKey(KeyType.Identity);
                 Identity identity = IdentityIssuingRequest.Generate(keypair).IssueIdentity(Guid.NewGuid(), 100, null, keypair, null);
                 Assert.IsTrue(identity.IsSelfSigned());
                 identity.Verify();
@@ -116,7 +116,7 @@ namespace ShiftEverywhere.DiMETest
         {
             Identity.TrustedIdentity = Commons.TrustedIdentity;
             List<Capability> caps = new List<Capability> { Capability.Generic };
-            Identity identity = IdentityIssuingRequest.Generate(Keypair.Generate(KeypairType.Identity)).IssueIdentity(Guid.NewGuid(), 100, caps, Commons.IntermediateKeypair, Commons.IntermediateIdentity);
+            Identity identity = IdentityIssuingRequest.Generate(KeyBox.GenerateKey(KeyType.Identity)).IssueIdentity(Guid.NewGuid(), 100, caps, Commons.IntermediateKeypair, Commons.IntermediateIdentity);
             identity.Verify();
         }
 
@@ -125,7 +125,7 @@ namespace ShiftEverywhere.DiMETest
         {
             Identity.TrustedIdentity = null;
             Capability[] caps = new Capability[1] { Capability.Generic };
-            Keypair keypair = Keypair.Generate(KeypairType.Identity);
+            KeyBox keypair = KeyBox.GenerateKey(KeyType.Identity);
             Identity identity = IdentityIssuingRequest.Generate(keypair).IssueIdentity(Guid.NewGuid(), 100, null, keypair, null);
             Identity.TrustedIdentity = Commons.TrustedIdentity;
             try {
@@ -146,12 +146,12 @@ namespace ShiftEverywhere.DiMETest
         {
             Identity.TrustedIdentity = null;
             Capability[] caps = new Capability[1] { Capability.Generic };
-            Keypair keypair = Crypto.GenerateKeyPair(1, KeypairType.Identity);
+            KeyBox keypair = Crypto.GenerateKeyPair(ProfileVersion.One, KeyType.Identity);
             Identity identity = IdentityIssuingRequest.Generate(keypair).IssueIdentity(Guid.NewGuid(), 100, null, keypair, null);
             string encoded = identity.Export();
             Assert.IsNotNull(encoded);
             Assert.IsTrue(encoded.Length > 0);
-            Assert.IsTrue(encoded.StartsWith("I" + identity.Profile.ToString()));
+            Assert.IsTrue(encoded.StartsWith("I" + (int)identity.Profile));
             Assert.IsTrue(encoded.Split(new char[] { '.' }).Length == 3);
         }
 
@@ -159,19 +159,18 @@ namespace ShiftEverywhere.DiMETest
         public void ImportTest1()
         {
             Identity.TrustedIdentity = null;
-            string encoded = "I1.eyJzdWIiOiI4NTI0NWVlNS0wM2U1LTQ1ZGEtOGRhYi03YTA5MmRkYWMwNjIiLCJpc3MiOiIwODVmNTc4Yy0zMjRjLTQwOTctODRmOS1kN2E1ZmJlMTJkZTMiLCJpYXQiOjE2MjIzMjQ5NTksImV4cCI6MTY1Mzg2MDk1OSwiaWt5IjoiTUNvd0JRWURLMlZ3QXlFQWRKYWJkRUJOYW83cjJYQWdIXHUwMDJCY1FsUFh6ZHMxLzlSdVlGQnpFenNBRHBCcyIsImNhcCI6WyJnZW5lcmljIiwiaWRlbnRpZnkiXX0.STEuZXlKemRXSWlPaUl3T0RWbU5UYzRZeTB6TWpSakxUUXdPVGN0T0RSbU9TMWtOMkUxWm1KbE1USmtaVE1pTENKcGMzTWlPaUkzTm1FM1pEZzBPUzAzWTJSakxUUTRaamN0WVRkaU5pMDRNMk01WmpVek5USTFZV1VpTENKcFlYUWlPakUyTWpJek1qUTNNelVzSW1WNGNDSTZNVGM0TURBd05EY3pOU3dpYVd0NUlqb2lUVU52ZDBKUldVUkxNbFozUVhsRlFWSkNNRlp5WW5vdllrZzVWakZCVEVwUVpqVktYSFV3TURKQ2VrVlFNVzQ0TVdOTk5UWmNkVEF3TWtJdmRqZFhPR1V4TUZWaklpd2lZMkZ3SWpwYkltZGxibVZ5YVdNaUxDSnBjM04xWlNKZGZRLnBVN2RjWTJPQzlvbS96NmNCQUllSjNteE9GNnNxditma1QreGVBOFhzM09uL00wNXI0MkJwcmJ1TDJldEZna1d2VU1BUlUyNlhPRXhDQW5xSUxoQkJB.tWRr2v6O6Je7vMhoBOUb6outlIO18DHc81ncN4hplc74OlWjRUZmtFbVRdNiPrgx5Gg+E+1Sb2LskNRIOMhADA";
+            string encoded = "I1.eyJzdWIiOiI5M2YyOTZkZC00NGNjLTQ1NDEtYWIzNi1jMmUyZDVjMDZkMjIiLCJpc3MiOiI4NDM3MDNiMC03ODFjLTRlNTYtYjMwNi0wYTVlYjU3YzVmYzkiLCJpYXQiOjE2MjI0OTA4MzksImV4cCI6MTY1NDAyNjgzOSwiaWt5IjoiTUNvd0JRWURLMlZ3QXlFQTR0RTV5SVNiM2VmMVo1TFFZMFFaN1FnQmZSQVx1MDAyQnI2QUlIRW13WlhYNzBmSSIsImNhcCI6WyJnZW5lcmljIl19.STEuZXlKemRXSWlPaUk0TkRNM01ETmlNQzAzT0RGakxUUmxOVFl0WWpNd05pMHdZVFZsWWpVM1l6Vm1ZemtpTENKcGMzTWlPaUk0T0dGbVpqQmxNaTFrWVRNNExUUXlZV1F0T0dWa1pDMDJZemcyWkRnNVl6ZG1NamdpTENKcFlYUWlPakUyTWpJME9UQTNNakFzSW1WNGNDSTZNVGt6TnpnMU1EY3lNQ3dpYVd0NUlqb2lUVU52ZDBKUldVUkxNbFozUVhsRlFVTlhiMjk0TW5wYVdYUmFTV0ZMTjBOQk9XMXRiMEZFWVdSQ2RVTjRaRU5TTTJsS1QweHZaazkxZFVraUxDSmpZWEFpT2xzaWFYTnpkV1VpTENKblpXNWxjbWxqSWwxOS5yTDg5dldoMW5oR3hVM2p2ZS9zTk1YbTNlZU9ORGRwbkVUdExPQm5MVkhGa2dZSU1JWkgxOGxNeWpMQzQ0WGxaRHRSSlVFOWhxNEU0ckRDQUJFamhBQQ.J0lRRe+NFmYPrpSPjL4TjNoyuC0rrWrXrB3hl6H4ae8Z3Lf3lWZ9aiqmL/f8L3iKZemlz+8lYJCy6KCfoLN8Ag";
             Identity identity = Dime.Import<Identity>(encoded);
             Assert.IsNotNull(identity);
-            Assert.AreEqual(identity.Profile, 1);
-            Assert.AreEqual(new Guid("85245ee5-03e5-45da-8dab-7a092ddac062"), identity.SubjectId);
-            Assert.AreEqual(1622324959, identity.IssuedAt);
-            Assert.AreEqual(1653860959, identity.ExpiresAt);
-            Assert.AreEqual(new Guid("085f578c-324c-4097-84f9-d7a5fbe12de3"), identity.IssuerId);
-            Assert.AreEqual(identity.IdentityKey, "MCowBQYDK2VwAyEAdJabdEBNao7r2XAgH\u002BcQlPXzds1/9RuYFBzEzsADpBs");
+            Assert.AreEqual(ProfileVersion.One, identity.Profile);
+            Assert.AreEqual(new Guid("93f296dd-44cc-4541-ab36-c2e2d5c06d22"), identity.SubjectId);
+            Assert.AreEqual(1622490839, identity.IssuedAt);
+            Assert.AreEqual(1654026839, identity.ExpiresAt);
+            Assert.AreEqual(new Guid("843703b0-781c-4e56-b306-0a5eb57c5fc9"), identity.IssuerId);
+            Assert.AreEqual("MCowBQYDK2VwAyEA4tE5yISb3ef1Z5LQY0QZ7QgBfRA\u002Br6AIHEmwZXX70fI", identity.IdentityKey);
             Assert.IsTrue(identity.HasCapability(Capability.Generic));
-            Assert.IsTrue(identity.HasCapability(Capability.Identify));
             Assert.IsNotNull(identity.TrustChain);
-            Assert.AreEqual(new Guid("085f578c-324c-4097-84f9-d7a5fbe12de3"), identity.TrustChain.SubjectId);
+            Assert.AreEqual(new Guid("843703b0-781c-4e56-b306-0a5eb57c5fc9"), identity.TrustChain.SubjectId);
         }
 
     }
