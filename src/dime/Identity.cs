@@ -7,6 +7,8 @@ using System.Collections.Generic;
 
 namespace ShiftEverywhere.DiME
 {
+    ///<summary>Represents a digital identity of an entity. Can be self-signed or signed by a trusted identity (and thus
+    /// be part of a trust chain.</summary>
     public class Identity: Dime
     {
         #region -- PUBLIC --
@@ -22,12 +24,11 @@ namespace ShiftEverywhere.DiME
         public string IdentityKey { get { return this._claims.iky; } }
         /// <summary>The trust chain of signed public keys.</summary>
         public Identity TrustChain { get; internal set; }
-        /// <summary>Imports an identity from a DiME encoded string.</summary>
-        /// <param name="encoded">A DiME encoded string.</param>
-        /// <returns>Returns an imutable Identity instance.</returns>
         
         public Identity() { }
         
+        /// <summary>Checks if the identity is self-signed (signed/seald by itself).</summary>
+        /// <returns>Boolean to indicate if it is self-signed or not.</returns>
         public bool IsSelfSigned() 
         {
             if (this.SubjectId != this.IssuerId) { return false; }
@@ -59,6 +60,9 @@ namespace ShiftEverywhere.DiME
             }
         }
 
+        /// <summary>Will check if the identity has a specific capability.</summary>
+        /// <param name="capability">The capability to check for.</param>
+        /// <returns>Boolean to indicate if the identity has the capability or not.</returns>
         public bool HasCapability(Capability capability)
         {
             return this._capabilities.Any(cap => cap == capability);

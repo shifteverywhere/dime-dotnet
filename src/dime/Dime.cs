@@ -7,17 +7,20 @@ using System.Collections.Generic;
 
 namespace ShiftEverywhere.DiME
 {
-
+    ///<summary>An abstract base class for all DiME based objects.</summary>
     public abstract class Dime
     {
         #region -- PUBLIC --
+        ///<summary>A shared trusted identity that acts as the root identity in the trust chain.</summary>
         public static Identity TrustedIdentity { get { lock(Dime._lock) { return Dime._trustedIdentity; } } }
-
-        /// <summary>The cryptography profile that is used with the identity.</summary>
+        /// <summary>The cryptography profile version that is used within the object.</summary>
         public ProfileVersion Profile { get; protected set; }
         /// <summary>Indicates if the object is sealed or not (signed).</summary>
         public bool IsSealed { get { return (this._signature != null && this._signature.Length > 0); } }
 
+        ///<summary>Creates an object from an encoded DiME string.</summary>
+        ///<param name="encoded">The encoded DiME string to decode.</param>
+        ///<returns>An initialized DiME object.</returns>
         public static T Import<T>(string encoded) where T: Dime, new()
         {
             T dime = new T(); 
@@ -25,6 +28,9 @@ namespace ShiftEverywhere.DiME
             return dime;
         }
 
+        ///<summary>Gets the type of DiME object stored as an encoded string.</summary>
+        ///<param name="encoded">The encoded DiME string to check.</param>
+        ///<returns>The type of the object encoded.</returns>
         public static Type GetType(string encoded)
         {
             char header = char.Parse(encoded.Substring(0, 1));
@@ -39,6 +45,8 @@ namespace ShiftEverywhere.DiME
             }
         }
 
+        ///<summary>Exports an object into an encoded DiME string.</summary>
+        ///<returns>An encoded DiME string.</returns>
         public virtual string Export() 
         {
             if (!this.IsSealed) { throw new IntegrityException("Signature missing, cannot export object."); }
@@ -75,6 +83,10 @@ namespace ShiftEverywhere.DiME
             return Crypto.GenerateHash(this.Profile, Encode());
         }
 
+        ///<summary>Set the shared trusted identity, which forms the basis of the trust chain. All identities will be verified
+        /// from a trust perspecitve using this identity. For the trust chain to hold, then all identities must be either issued
+        /// by this identity or other identities (with the 'issue' capability) that has been issued by this identity.
+        ///<param name="identity">The identity to set as the trusted identity.</param>
         public static void SetTrustedIdentity(Identity identity)
         {
             lock(Dime._lock)
@@ -83,6 +95,7 @@ namespace ShiftEverywhere.DiME
             }
         }
 
+        /// <summary>Will verify the object, including the integrity of the data and any relevant fields.</summary>
         public abstract void Verify();
 
         #endregion
