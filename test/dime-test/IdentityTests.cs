@@ -12,7 +12,7 @@ namespace ShiftEverywhere.DiMETest
         [TestMethod]
         public void IssueTest1()
         {
-            Identity.TrustedIdentity = null;
+            Dime.SetTrustedIdentity(null);
             ProfileVersion profile = ProfileVersion.One;
             Guid subjectId = Guid.NewGuid();
             KeyBox keypair = KeyBox.GenerateKey(KeyType.Identity, profile);
@@ -33,7 +33,7 @@ namespace ShiftEverywhere.DiMETest
         [TestMethod]
         public void IssueTest2()
         {
-            Identity.TrustedIdentity = Commons.TrustedIdentity;
+            Dime.SetTrustedIdentity(Commons.TrustedIdentity);
             ProfileVersion profile = ProfileVersion.One;
             Guid subjectId = Guid.NewGuid();
             KeyBox keypair = KeyBox.GenerateKey(KeyType.Identity, profile);
@@ -52,7 +52,7 @@ namespace ShiftEverywhere.DiMETest
        [TestMethod]
         public void IssueTest3()
         {
-            Identity.TrustedIdentity = Commons.TrustedIdentity;
+            Dime.SetTrustedIdentity(Commons.TrustedIdentity);
             List<Capability> reqCaps = new List<Capability> { Capability.Issue };
             List<Capability> allowCaps = new List<Capability> { Capability.Generic, Capability.Identify };
             try {
@@ -64,7 +64,7 @@ namespace ShiftEverywhere.DiMETest
         [TestMethod]
         public void IssueTest4()
         {
-            Identity.TrustedIdentity = Commons.TrustedIdentity;
+            Dime.SetTrustedIdentity(Commons.TrustedIdentity);
             KeyBox keypair = KeyBox.GenerateKey(KeyType.Identity);
             List<Capability> caps = new List<Capability> { Capability.Issue, Capability.Generic };
             Identity identity = IdentityIssuingRequest.Generate(keypair, caps).IssueIdentity(Guid.NewGuid(), 100, caps, Commons.TrustedKeypair, Commons.TrustedIdentity);
@@ -75,7 +75,7 @@ namespace ShiftEverywhere.DiMETest
         [TestMethod]
         public void IsSelfSignedTest1()
         {
-            Identity.TrustedIdentity = null;
+            Dime.SetTrustedIdentity(null);
             KeyBox keypair = KeyBox.GenerateKey(KeyType.Identity);
             List<Capability> caps = new List<Capability> { Capability.Issue, Capability.Generic };
             Identity identity = IdentityIssuingRequest.Generate(keypair).IssueIdentity(Guid.NewGuid(), 100, null, keypair, null);
@@ -85,7 +85,7 @@ namespace ShiftEverywhere.DiMETest
         [TestMethod]
         public void IsSelfSignedTest2()
         {
-            Identity.TrustedIdentity = Commons.TrustedIdentity;
+            Dime.SetTrustedIdentity(Commons.TrustedIdentity);
             List<Capability> caps = new List<Capability> { Capability.Generic };
             Identity identity = IdentityIssuingRequest.Generate(KeyBox.GenerateKey(KeyType.Identity)).IssueIdentity(Guid.NewGuid(), 100, caps, Commons.IntermediateKeypair, Commons.IntermediateIdentity);
             Assert.IsFalse(identity.IsSelfSigned());
@@ -96,7 +96,7 @@ namespace ShiftEverywhere.DiMETest
         {
             try 
             {
-                Identity.TrustedIdentity = null;
+                Dime.SetTrustedIdentity(null);
                 List<Capability> caps = new List<Capability> { Capability.Generic };
                 KeyBox keypair = KeyBox.GenerateKey(KeyType.Identity);
                 Identity identity = IdentityIssuingRequest.Generate(keypair).IssueIdentity(Guid.NewGuid(), 100, null, keypair, null);
@@ -114,7 +114,7 @@ namespace ShiftEverywhere.DiMETest
         [TestMethod]
         public void VerifyTrustTest2()
         {
-            Identity.TrustedIdentity = Commons.TrustedIdentity;
+            Dime.SetTrustedIdentity(Commons.TrustedIdentity);
             List<Capability> caps = new List<Capability> { Capability.Generic };
             Identity identity = IdentityIssuingRequest.Generate(KeyBox.GenerateKey(KeyType.Identity)).IssueIdentity(Guid.NewGuid(), 100, caps, Commons.IntermediateKeypair, Commons.IntermediateIdentity);
             identity.Verify();
@@ -123,11 +123,11 @@ namespace ShiftEverywhere.DiMETest
         [TestMethod]
         public void VerifyTrustTest3()
         {
-            Identity.TrustedIdentity = null;
+            Dime.SetTrustedIdentity(null);
             Capability[] caps = new Capability[1] { Capability.Generic };
             KeyBox keypair = KeyBox.GenerateKey(KeyType.Identity);
             Identity identity = IdentityIssuingRequest.Generate(keypair).IssueIdentity(Guid.NewGuid(), 100, null, keypair, null);
-            Identity.TrustedIdentity = Commons.TrustedIdentity;
+            Dime.SetTrustedIdentity(Commons.TrustedIdentity);
             try {
                 identity.Verify();
             } catch (UntrustedIdentityException) { return; } // All is well
@@ -137,14 +137,14 @@ namespace ShiftEverywhere.DiMETest
         [TestMethod]
         public void VerifyTrustTest4()
         {
-            Identity.TrustedIdentity = Commons.TrustedIdentity;
+            Dime.SetTrustedIdentity(Commons.TrustedIdentity);
             Commons.IntermediateIdentity.Verify();
         }
 
         [TestMethod]
         public void ExportTest1()
         {
-            Identity.TrustedIdentity = null;
+            Dime.SetTrustedIdentity(null);
             Capability[] caps = new Capability[1] { Capability.Generic };
             KeyBox keypair = Crypto.GenerateKeyPair(ProfileVersion.One, KeyType.Identity);
             Identity identity = IdentityIssuingRequest.Generate(keypair).IssueIdentity(Guid.NewGuid(), 100, null, keypair, null);
@@ -158,7 +158,7 @@ namespace ShiftEverywhere.DiMETest
         [TestMethod]
         public void ImportTest1()
         {
-            Identity.TrustedIdentity = null;
+            Dime.SetTrustedIdentity(null);
             string encoded = "I1.eyJzdWIiOiI5M2YyOTZkZC00NGNjLTQ1NDEtYWIzNi1jMmUyZDVjMDZkMjIiLCJpc3MiOiI4NDM3MDNiMC03ODFjLTRlNTYtYjMwNi0wYTVlYjU3YzVmYzkiLCJpYXQiOjE2MjI0OTA4MzksImV4cCI6MTY1NDAyNjgzOSwiaWt5IjoiTUNvd0JRWURLMlZ3QXlFQTR0RTV5SVNiM2VmMVo1TFFZMFFaN1FnQmZSQVx1MDAyQnI2QUlIRW13WlhYNzBmSSIsImNhcCI6WyJnZW5lcmljIl19.STEuZXlKemRXSWlPaUk0TkRNM01ETmlNQzAzT0RGakxUUmxOVFl0WWpNd05pMHdZVFZsWWpVM1l6Vm1ZemtpTENKcGMzTWlPaUk0T0dGbVpqQmxNaTFrWVRNNExUUXlZV1F0T0dWa1pDMDJZemcyWkRnNVl6ZG1NamdpTENKcFlYUWlPakUyTWpJME9UQTNNakFzSW1WNGNDSTZNVGt6TnpnMU1EY3lNQ3dpYVd0NUlqb2lUVU52ZDBKUldVUkxNbFozUVhsRlFVTlhiMjk0TW5wYVdYUmFTV0ZMTjBOQk9XMXRiMEZFWVdSQ2RVTjRaRU5TTTJsS1QweHZaazkxZFVraUxDSmpZWEFpT2xzaWFYTnpkV1VpTENKblpXNWxjbWxqSWwxOS5yTDg5dldoMW5oR3hVM2p2ZS9zTk1YbTNlZU9ORGRwbkVUdExPQm5MVkhGa2dZSU1JWkgxOGxNeWpMQzQ0WGxaRHRSSlVFOWhxNEU0ckRDQUJFamhBQQ.J0lRRe+NFmYPrpSPjL4TjNoyuC0rrWrXrB3hl6H4ae8Z3Lf3lWZ9aiqmL/f8L3iKZemlz+8lYJCy6KCfoLN8Ag";
             Identity identity = Dime.Import<Identity>(encoded);
             Assert.IsNotNull(identity);

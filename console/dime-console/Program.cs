@@ -22,7 +22,7 @@ namespace ShiftEverywhere.DiMEConsole
             this.serviceProviderIdentity = GenerateIdentity(this.serviceProviderKeypair);
             this.mobileKeypair = KeyBox.GenerateKey(KeyType.Identity);
             this.mobileIdentity = GenerateIdentity(this.mobileKeypair);
-            Identity.TrustedIdentity = this.trustedIdentity;
+            Dime.SetTrustedIdentity(this.trustedIdentity);
         }
 
         public Identity GenerateIdentity(KeyBox keypair)

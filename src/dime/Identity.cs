@@ -10,7 +10,6 @@ namespace ShiftEverywhere.DiME
     public class Identity: Dime
     {
         #region -- PUBLIC --
-        public static Identity TrustedIdentity; // TODO: make this thread safe
         /// <summary>A unique UUID (GUID) of the identity. Same as the "sub" field.</summary>
         public Guid SubjectId { get { return this._claims.sub; } }        
         /// <summary>The date when the identity was issued, i.e. approved by the issuer. Same as the "iat" field.</summary>

@@ -25,7 +25,7 @@ namespace ShiftEverywhere.DiMETest
         [TestMethod]
         public void ExportTest1()
         {
-            Identity.TrustedIdentity = Commons.TrustedIdentity;
+            Dime.SetTrustedIdentity(Commons.TrustedIdentity);
             Envelope envelope = new Envelope(Commons.SenderIdentity, Commons.ReceiverIdentity.SubjectId, 10);
             envelope.AddMessage(GetMessage("Racecar is racecar backwards."));
             envelope.Seal(Commons.SenderKeypair.Key);
@@ -39,7 +39,7 @@ namespace ShiftEverywhere.DiMETest
         [TestMethod]
         public void ExportTest2()
         {
-            Identity.TrustedIdentity = Commons.TrustedIdentity;
+            Dime.SetTrustedIdentity(Commons.TrustedIdentity);
             Envelope envelope = new Envelope(Commons.SenderIdentity, Commons.ReceiverIdentity.SubjectId, 10);
             try {
                 envelope.Export();
@@ -49,7 +49,7 @@ namespace ShiftEverywhere.DiMETest
         [TestMethod]
         public void ExportTest3()
         {
-            Identity.TrustedIdentity = Commons.TrustedIdentity;
+            Dime.SetTrustedIdentity(Commons.TrustedIdentity);
             Envelope envelope = new Envelope(Commons.SenderIdentity, Commons.ReceiverIdentity.SubjectId, 10);
             envelope.AddMessage(GetMessage("Racecar is racecar backwards."));
             envelope.Seal(Commons.SenderKeypair.Key);
@@ -63,7 +63,7 @@ namespace ShiftEverywhere.DiMETest
         [TestMethod]
         public void SealTest1()
         {
-            Identity.TrustedIdentity = Commons.TrustedIdentity;
+            Dime.SetTrustedIdentity(Commons.TrustedIdentity);
             Envelope envelope = new Envelope(Commons.SenderIdentity, Commons.ReceiverIdentity.SubjectId, 10);
             try {
                 envelope.Seal(Commons.SenderKeypair.Key);
@@ -73,7 +73,7 @@ namespace ShiftEverywhere.DiMETest
         [TestMethod]
         public void SealTest2()
         {
-            Identity.TrustedIdentity = Commons.TrustedIdentity;
+            Dime.SetTrustedIdentity(Commons.TrustedIdentity);
             Message message = GetMessage("Racecar is racecar backwards.");
             Message response = GetResponse("It is!", message);
             Envelope envelope = new Envelope(Commons.SenderIdentity, Commons.ReceiverIdentity.SubjectId, 120);
@@ -85,7 +85,7 @@ namespace ShiftEverywhere.DiMETest
         [TestMethod]
         public void ImportTest1()
         {  
-            Identity.TrustedIdentity = Commons.TrustedIdentity;
+            Dime.SetTrustedIdentity(Commons.TrustedIdentity);
             string encoded = "E1.STEuZXlKemRXSWlPaUpoWWpWaU9HTXdaQzFtWkRJNExUUmpNekF0T0RReVppMHpORGRpTkRoak9EWmtZbU1pTENKcGMzTWlPaUkzTVdVeVltVTFZeTAzTVdWa0xUUXlZalF0WW1ZNU1pMDRabUppWm1VMk1qQTNOMk1pTENKcFlYUWlPakUyTWpFNU56SXdNalFzSW1WNGNDSTZNVFkxTXpVd09EQXlOQ3dpYVd0NUlqb2lUVU52ZDBKUldVUkxNbFozUVhsRlFXbFRkR1IxU25wd2RVdHFjMHRLTlZ4MU1EQXlRbTVQT1VSMFIwTk9TMXBpY0ZCR1RUVlBORlJFUnpNMVMwVklaeUlzSW1OaGNDSTZXeUpoZFhSb2IzSnBlbVVpWFgwLndDV20xT3ExMHFVK3hPYVZVTTJwR1dHUmQxakgxc2FWYXRGMUc2Zy93UFUySHY5dGFSWGhINGtWVWc0NnFjcU0yTTRKd0JVZm8xbWM2dU10Z1JOSkJR.TTEuU1RFdVpYbEtlbVJYU1dsUGFVcG9XV3BXYVU5SFRYZGFRekZ0V2tSSk5FeFVVbXBOZWtGMFQwUlJlVnBwTUhwT1JHUnBUa1JvYWs5RVdtdFpiVTFwVEVOS2NHTXpUV2xQYVVrelRWZFZlVmx0VlRGWmVUQXpUVmRXYTB4VVVYbFphbEYwV1cxWk5VMXBNRFJhYlVwcFdtMVZNazFxUVROT01rMXBURU5LY0ZsWVVXbFBha1V5VFdwRk5VNTZTWGROYWxGelNXMVdOR05EU1RaTlZGa3hUWHBWZDA5RVFYbE9RM2RwWVZkME5VbHFiMmxVVlU1MlpEQktVbGRWVWt4TmJGb3pVVmhzUmxGWGJGUmtSMUl4VTI1d2QyUlZkSEZqTUhSTFRsWjRNVTFFUVhsUmJUVlFUMVZTTUZJd1RrOVRNWEJwWTBaQ1IxUlVWbEJPUmxKRlVucE5NVk13VmtsYWVVbHpTVzFPYUdORFNUWlhlVXBvWkZoU2IySXpTbkJsYlZWcFdGZ3dMbmREVjIweFQzRXhNSEZWSzNoUFlWWlZUVEp3UjFkSFVtUXhha2d4YzJGV1lYUkdNVWMyWnk5M1VGVXlTSFk1ZEdGU1dHaElOR3RXVldjME5uRmpjVTB5VFRSS2QwSlZabTh4YldNMmRVMTBaMUpPU2tKUi5leUoxYVdRaU9pSmxNRGd4TXpVMk1pMW1aR0ZsTFRRMVl6WXRPR1JtTmkxaE9HSmtNV00zTnpJeVpUZ2lMQ0p6ZFdJaU9pSm1OREl5T1RVek1pMWhNelV5TFRRM05qZ3RPV0k0WWkxaE5UWTBZemRqWWpKalpEWWlMQ0pwYzNNaU9pSmhZalZpT0dNd1pDMW1aREk0TFRSak16QXRPRFF5Wmkwek5EZGlORGhqT0Raa1ltTWlMQ0pwWVhRaU9qRTJNakl3TlRnek1ESXNJbVY0Y0NJNk1UWTFNelU1TkRNd01uMC5VbUZqWldOaGNpQnBjeUJ5WVdObFkyRnlJR0poWTJ0M1lYSmtjeTQuVkg5NzVzOXd0Mk5xSHdjRWIvclM4SWdFN3MxZk9BaTBFOUhMQUNQc254Mnp3RzJlZ1hkbVlMUi9jZGozbDhFMktFdVpwTzhCblJJa0lNWFZCRjE3Q2c.eyJ1aWQiOiI0ZDIzNjJkNy1kNjA0LTQ3NzAtOWMyOC1hYTcxYWVmZmU3NzUiLCJzdWIiOiJmNDIyOTUzMi1hMzUyLTQ3NjgtOWI4Yi1hNTY0YzdjYjJjZDYiLCJpc3MiOiJhYjViOGMwZC1mZDI4LTRjMzAtODQyZi0zNDdiNDhjODZkYmMiLCJpYXQiOjE2MjIwNTgzMDIsImV4cCI6MTY1MzU5NDMwMn0.Y9H36yfocAJOFIBYyw9Ix1O/uA9DueoKTmD1BoNsFg0eSvRfBljcaoC7m+Rd2HJa3Xd3idMqpdwce9mOGy0vDA";
             Envelope envelope = Dime.Import<Envelope>(encoded);
             Assert.AreEqual(new Guid("4d2362d7-d604-4770-9c28-aa71aeffe775"), envelope.Id);
@@ -100,7 +100,7 @@ namespace ShiftEverywhere.DiMETest
         [TestMethod]
         public void ImportTest2()
         {
-            Identity.TrustedIdentity = Commons.TrustedIdentity;
+            Dime.SetTrustedIdentity(Commons.TrustedIdentity);
             string encoded = "E1.STEuZXlKemRXSWlPaUpoWWpWaU9HTXdaQzFtWkRJNExUUmpNekF0T0RReVppMHpORGRpTkRoak9EWmtZbU1pTENKcGMzTWlPaUkzTVdVeVltVTFZeTAzTVdWa0xUUXlZalF0WW1ZNU1pMDRabUppWm1VMk1qQTNOMk1pTENKcFlYUWlPakUyTWpFNU56SXdNalFzSW1WNGNDSTZNVFkxTXpVd09EQXlOQ3dpYVd0NUlqb2lUVU52ZDBKUldVUkxNbFozUVhsRlFXbFRkR1IxU25wd2RVdHFjMHRLTlZ4MU1EQXlRbTVQT1VSMFIwTk9TMXBpY0ZCR1RUVlBORlJFUnpNMVMwVklaeUlzSW1OaGNDSTZXeUpoZFhSb2IzSnBlbVVpWFgwLndDV20xT3ExMHFVK3hPYVZVTTJwR1dHUmQxakgxc2FWYXRGMUc2Zy93UFUySHY5dGFSWGhINGtWVWc0NnFjcU0yTTRKd0JVZm8xbWM2dU10Z1JOSkJR.TTEuU1RFdVpYbEtlbVJYU1dsUGFVcG9XV3BXYVU5SFRYZGFRekZ0V2tSSk5FeFVVbXBOZWtGMFQwUlJlVnBwTUhwT1JHUnBUa1JvYWs5RVdtdFpiVTFwVEVOS2NHTXpUV2xQYVVrelRWZFZlVmx0VlRGWmVUQXpUVmRXYTB4VVVYbFphbEYwV1cxWk5VMXBNRFJhYlVwcFdtMVZNazFxUVROT01rMXBURU5LY0ZsWVVXbFBha1V5VFdwRk5VNTZTWGROYWxGelNXMVdOR05EU1RaTlZGa3hUWHBWZDA5RVFYbE9RM2RwWVZkME5VbHFiMmxVVlU1MlpEQktVbGRWVWt4TmJGb3pVVmhzUmxGWGJGUmtSMUl4VTI1d2QyUlZkSEZqTUhSTFRsWjRNVTFFUVhsUmJUVlFUMVZTTUZJd1RrOVRNWEJwWTBaQ1IxUlVWbEJPUmxKRlVucE5NVk13VmtsYWVVbHpTVzFPYUdORFNUWlhlVXBvWkZoU2IySXpTbkJsYlZWcFdGZ3dMbmREVjIweFQzRXhNSEZWSzNoUFlWWlZUVEp3UjFkSFVtUXhha2d4YzJGV1lYUkdNVWMyWnk5M1VGVXlTSFk1ZEdGU1dHaElOR3RXVldjME5uRmpjVTB5VFRSS2QwSlZabTh4YldNMmRVMTBaMUpPU2tKUi5leUoxYVdRaU9pSmpZamd5TVdVNE15MHdaV0l4TFRSbVlUQXRZVGc0TUMweU5HVXpaREl6WmpRMlltSWlMQ0p6ZFdJaU9pSm1OREl5T1RVek1pMWhNelV5TFRRM05qZ3RPV0k0WWkxaE5UWTBZemRqWWpKalpEWWlMQ0pwYzNNaU9pSmhZalZpT0dNd1pDMW1aREk0TFRSak16QXRPRFF5Wmkwek5EZGlORGhqT0Raa1ltTWlMQ0pwWVhRaU9qRTJNakl3TlRrek9URXNJbVY0Y0NJNk1UWXlNakExT1RRd01YMC5VbUZqWldOaGNpQnBjeUJ5WVdObFkyRnlJR0poWTJ0M1lYSmtjeTQuV3VKMTRkY0d3bmJwamFiYjkwOHA2SVdCTGdoS3d2REhWRzNoc1dQV3Q1ZFVVQjNub2JwLzBPUHJUM09VcitENHhEemtBcXpvRUVQM2cyeUNCU2djQ1E.eyJ1aWQiOiI1YTdmY2ZmZS01NGRhLTQwZDQtOGY2My1hMDA5MmIwNTdkOWMiLCJzdWIiOiJmNDIyOTUzMi1hMzUyLTQ3NjgtOWI4Yi1hNTY0YzdjYjJjZDYiLCJpc3MiOiJhYjViOGMwZC1mZDI4LTRjMzAtODQyZi0zNDdiNDhjODZkYmMiLCJpYXQiOjE2MjIwNTkzOTEsImV4cCI6MTYyMjA1OTQwMX0";
             try {
                 Dime.Import<Envelope>(encoded);
@@ -111,7 +111,7 @@ namespace ShiftEverywhere.DiMETest
         [TestMethod]
         public void ImportTest3()
         {
-            Identity.TrustedIdentity = Commons.TrustedIdentity;
+            Dime.SetTrustedIdentity(Commons.TrustedIdentity);
             string encoded = "M1.STEuZXlKemRXSWlPaUpoWWpWaU9HTXdaQzFtWkRJNExUUmpNekF0T0RReVppMHpORGRpTkRoak9EWmtZbU1pTENKcGMzTWlPaUkzTVdVeVltVTFZeTAzTVdWa0xUUXlZalF0WW1ZNU1pMDRabUppWm1VMk1qQTNOMk1pTENKcFlYUWlPakUyTWpFNU56SXdNalFzSW1WNGNDSTZNVFkxTXpVd09EQXlOQ3dpYVd0NUlqb2lUVU52ZDBKUldVUkxNbFozUVhsRlFXbFRkR1IxU25wd2RVdHFjMHRLTlZ4MU1EQXlRbTVQT1VSMFIwTk9TMXBpY0ZCR1RUVlBORlJFUnpNMVMwVklaeUlzSW1OaGNDSTZXeUpoZFhSb2IzSnBlbVVpWFgwLndDV20xT3ExMHFVK3hPYVZVTTJwR1dHUmQxakgxc2FWYXRGMUc2Zy93UFUySHY5dGFSWGhINGtWVWc0NnFjcU0yTTRKd0JVZm8xbWM2dU10Z1JOSkJR.eyJ1aWQiOiI1ZWRkMmFkZS1mZjRiLTQ1YzktODMyMy1iOTE4YWJmYWZkMjEiLCJzdWIiOiJiMzIyNTU3NC1jYTNkLTRlYWItODNlMC03NjU1MDE2ZWEyMmQiLCJpc3MiOiJhYjViOGMwZC1mZDI4LTRjMzAtODQyZi0zNDdiNDhjODZkYmMiLCJpYXQiOjE2MjE5NzU2MzAsImV4cCI6MTYyMTk3NTY0MH0.UmFjZWNhciBpcyByYWNlY2FyIGJhY2t3YXJkcy4.Ci96jemhp5bsuwyEmbh8nKOwFa5YPnQ28+CqHfc3rfE4EOlQdAEGCrknctXsMv4FRoASwQy9P+yEjb4AF44aBA";
             try {
                 Dime.Import<Envelope>(encoded);
@@ -122,7 +122,7 @@ namespace ShiftEverywhere.DiMETest
         [TestMethod]
         public void IsSealedTest1()
         {
-            Identity.TrustedIdentity = Commons.TrustedIdentity;
+            Dime.SetTrustedIdentity(Commons.TrustedIdentity);
             Envelope envelope = new Envelope(Commons.SenderIdentity, Commons.ReceiverIdentity.SubjectId, 10);
             envelope.AddMessage(GetMessage("Racecar is racecar backwards."));
             Assert.IsFalse(envelope.IsSealed);
@@ -133,7 +133,7 @@ namespace ShiftEverywhere.DiMETest
         [TestMethod]
         public void IdTest1()
         {
-            Identity.TrustedIdentity = Commons.TrustedIdentity;
+            Dime.SetTrustedIdentity(Commons.TrustedIdentity);
             Envelope envelope = new Envelope(Commons.SenderIdentity, Commons.ReceiverIdentity.SubjectId, 10);
             envelope.AddMessage(GetMessage("Racecar is racecar backwards."));
             envelope.Seal(Commons.SenderKeypair.Key);
@@ -145,7 +145,7 @@ namespace ShiftEverywhere.DiMETest
         [TestMethod]
         public void AddMessageTest1()
         {
-            Identity.TrustedIdentity = Commons.TrustedIdentity;
+            Dime.SetTrustedIdentity(Commons.TrustedIdentity);
             Envelope envelope1 = new Envelope(Commons.SenderIdentity, Commons.ReceiverIdentity.SubjectId, 100);
             envelope1.AddMessage(GetMessage("Racecar is racecar backwards."));
             envelope1.Seal(Commons.SenderKeypair.Key);
@@ -158,7 +158,7 @@ namespace ShiftEverywhere.DiMETest
         [TestMethod]
         public void VerifyTest1()
         {
-            Identity.TrustedIdentity = Commons.TrustedIdentity;
+            Dime.SetTrustedIdentity(Commons.TrustedIdentity);
             Envelope envelope = new Envelope(Commons.SenderIdentity, Commons.ReceiverIdentity.SubjectId, 100);
             envelope.AddMessage(GetMessage("Racecar is racecar backwards."));
             try {
@@ -170,7 +170,7 @@ namespace ShiftEverywhere.DiMETest
         [TestMethod]
         public void ThumbprintTest1()
         {
-            Identity.TrustedIdentity = Commons.TrustedIdentity;
+            Dime.SetTrustedIdentity(Commons.TrustedIdentity);
             Envelope envelope1 = new Envelope(Commons.SenderIdentity, Commons.ReceiverIdentity.SubjectId, 120);
             envelope1.AddMessage(GetMessage("Racecar is racecar backwards."));
             envelope1.Seal(Commons.SenderKeypair.Key);
@@ -184,7 +184,7 @@ namespace ShiftEverywhere.DiMETest
         [TestMethod]
         public void ThumbprintTest2()
         {   
-            Identity.TrustedIdentity = Commons.TrustedIdentity;
+            Dime.SetTrustedIdentity(Commons.TrustedIdentity);
             Message message = GetMessage("Racecar is racecar backwards.");
             Envelope envelope1 = new Envelope(Commons.SenderIdentity, Commons.ReceiverIdentity.SubjectId, 120);
             envelope1.AddMessage(message);
@@ -198,7 +198,7 @@ namespace ShiftEverywhere.DiMETest
         [TestMethod]
         public void ThumbprintTest3()
         {
-            Identity.TrustedIdentity = Commons.TrustedIdentity;
+            Dime.SetTrustedIdentity(Commons.TrustedIdentity);
             Envelope envelope = new Envelope(Commons.SenderIdentity, Commons.ReceiverIdentity.SubjectId, 120);
             envelope.AddMessage(GetMessage("Racecar is racecar backwards."));
             try {

@@ -10,6 +10,9 @@ namespace ShiftEverywhere.DiME
 
     public abstract class Dime
     {
+        #region -- PUBLIC --
+        public static Identity TrustedIdentity { get { lock(Dime._lock) { return Dime._trustedIdentity; } } }
+
         /// <summary>The cryptography profile that is used with the identity.</summary>
         public ProfileVersion Profile { get; protected set; }
         /// <summary>Indicates if the object is sealed or not (signed).</summary>
@@ -21,13 +24,6 @@ namespace ShiftEverywhere.DiME
             dime.Populate(encoded);
             return dime;
         }
-
-        protected Dime()
-        {
-
-        }
-
-        protected abstract void Populate(string encoded);
 
         public static Type GetType(string encoded)
         {
@@ -79,7 +75,22 @@ namespace ShiftEverywhere.DiME
             return Crypto.GenerateHash(this.Profile, Encode());
         }
 
+        public static void SetTrustedIdentity(Identity identity)
+        {
+            lock(Dime._lock)
+            {
+                Dime._trustedIdentity = identity;
+            }
+        }
+
         public abstract void Verify();
+
+        #endregion
+
+        #region -- PROTECTED --
+
+        protected Dime() { }
+        protected abstract void Populate(string encoded);
 
         protected virtual void Verify(string publicKey)
         {
@@ -91,6 +102,15 @@ namespace ShiftEverywhere.DiME
         protected string _encoded;
 
         protected abstract string Encode();
+
+        #endregion
+
+        #region -- PRIVATE --
+
+        private static readonly object _lock = new object();
+        private static Identity _trustedIdentity;
+
+        #endregion 
 
     }
 }
