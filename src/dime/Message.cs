@@ -29,8 +29,10 @@ namespace ShiftEverywhere.DiME
         public long IssuedAt { get { return this._claims.iat; } set { Reset(); this._claims.iat = value; } }
         /// <summary>The timestamp of when the message is expired and is no longer valid.</summary>
         public long ExpiresAt { get { return this._claims.exp; } set { Reset(); this._claims.exp = value; } }
-        /// <summary>!NOT IMPLEMENTED!</summary>
-        public string ExchangeKey { get { return this._claims.xky; } set { Reset(); this._claims.xky = value; } }
+        /// <summary>!NOT IMPLEMENTED! (E2EE)</summary>
+        public Guid? KeyId { get { return this._claims.kid; } }
+        /// <summary>!NOT IMPLEMENTED! (E2EE)</summary>
+        public string ExchangeKey { get { return this._claims.xky; } }
         /// <summary>A link to another message. Used when responding to anther message.</summary>
         public string LinkedTo { get { return this._claims.lnk; } set { Reset(); this._claims.lnk = value; } }
 
@@ -48,7 +50,7 @@ namespace ShiftEverywhere.DiME
             long now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
             this.Profile = issuerIdentity.Profile;
             this._identity = issuerIdentity;
-            this._claims = new MessageClaims(Guid.NewGuid(), subjectId, issuerIdentity.SubjectId, now, (now + validFor));
+            this._claims = new MessageClaims(Guid.NewGuid(), subjectId, issuerIdentity.SubjectId, now, (now + validFor), null, null, null);
         }
 
         public override void Seal(string privateKey)
@@ -181,19 +183,22 @@ namespace ShiftEverywhere.DiME
             public Guid iss { get; set; }
             public long iat { get; set; }
             public long exp { get; set; }
+             [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+            public Guid? kid { get; set; }
             [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
             public string xky { get; set; }
             [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
             public string lnk { get; set; }
 
             [JsonConstructor]
-            public MessageClaims(Guid uid, Guid sub, Guid iss, long iat, long exp, string xky = null, string lnk = null)
+            public MessageClaims(Guid uid, Guid sub, Guid iss, long iat, long exp, Guid? kid, string xky, string lnk)
             {
                 this.uid = uid;
                 this.sub = sub;
                 this.iss = iss;
                 this.iat = iat;
                 this.exp = exp;
+                this.kid = kid;
                 this.xky = xky;
                 this.lnk = lnk;
             }
@@ -202,7 +207,6 @@ namespace ShiftEverywhere.DiME
         private Identity _identity;
         private string _state;
         private string _payload;
-
 
         private void Reset()
         {
