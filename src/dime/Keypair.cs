@@ -16,13 +16,13 @@ namespace ShiftEverywhere.DiME
         #region -- PUBLIC --
 
         /// <summary></summary>
-        public Guid Id { get { return this._data.kid; } }
+        public Guid Id { get { return this._claims.kid; } }
         /// <summary></summary>
-        public KeypairType Type { get { return this._data.kty; } }
+        public KeypairType Type { get { return this._claims.kty; } }
         /// <summary></summary>
-        public string PublicKey { get { return this._data.pub; } }
+        public string PublicKey { get { return this._claims.pub; } }
         /// <summary></summary>
-        public string PrivateKey { get { return this._data.prv; } }
+        public string PrivateKey { get { return this._claims.prv; } }
 
         /// <summary></summary>
         public Keypair() { }
@@ -51,7 +51,7 @@ namespace ShiftEverywhere.DiME
             if (!Crypto.SupportedProfile(profile)) { throw new UnsupportedProfileException(); }
             if (publicKey == null) { throw new ArgumentNullException(nameof(publicKey), "Provided public key must not be null."); }
             if (privateKey == null) { throw new ArgumentNullException(nameof(privateKey), "Provided public key must not be null."); }
-            this._data = new Keypair.KeypairData(id, type, publicKey, privateKey);
+            this._claims = new KeypairClaims(id, type, publicKey, privateKey);
             this.Profile = profile;
             this._encoded = null;
         }
@@ -68,10 +68,10 @@ namespace ShiftEverywhere.DiME
             this.Profile = int.Parse(components[0].Substring(1));
             if (!Crypto.SupportedProfile(this.Profile)) { throw new UnsupportedProfileException(); }
             byte[] json = Utility.FromBase64(components[1]);
-            this._data = JsonSerializer.Deserialize<Keypair.KeypairData>(json);
+            this._claims = JsonSerializer.Deserialize<KeypairClaims>(json);
         }
 
-        protected override void Verify(string publicKey) { }
+        protected override void Verify(string publicKey) { /* Keypair objects are not yet signed, so just ignore verification. */ }
 
         protected override string Encode()
         {
@@ -80,7 +80,7 @@ namespace ShiftEverywhere.DiME
                 StringBuilder builder = new StringBuilder();
                 builder.Append('k') ;// The header of an DiME keypair
                 builder.Append(this.Profile);
-                builder.Append(Utility.ToBase64(JsonSerializer.Serialize(this._data)));
+                builder.Append(Utility.ToBase64(JsonSerializer.Serialize(this._claims)));
                 this._encoded = builder.ToString();
             }
             return this._encoded;
@@ -90,7 +90,7 @@ namespace ShiftEverywhere.DiME
 
         #region -- PRIVATE --
 
-        private struct KeypairData
+        private struct KeypairClaims
         {
             public Guid kid { get; set; }
             public KeypairType kty { get; set; }
@@ -99,7 +99,7 @@ namespace ShiftEverywhere.DiME
             public string prv { get; set; }
 
             [JsonConstructor]
-            public KeypairData(Guid kid, KeypairType kty, string pub, string prv)
+            public KeypairClaims(Guid kid, KeypairType kty, string pub, string prv)
             {
                 this.kid = kid;
                 this.kty = kty;
@@ -107,7 +107,7 @@ namespace ShiftEverywhere.DiME
                 this.prv = prv;
             }
         }
-        private Keypair.KeypairData _data;
+        private KeypairClaims _claims;
 
         #endregion
     }

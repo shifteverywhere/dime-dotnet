@@ -12,9 +12,9 @@ namespace ShiftEverywhere.DiME
         #region -- PUBLIC --
         public const long VALID_FOR_1_YEAR = 365 * 24 * 60 * 60;
         /// <summary></summary>
-        public long IssuedAt { get { return this._data.iat;} }
+        public long IssuedAt { get { return this._claims.iat;} }
         /// <summary></summary>
-        public string IdentityKey { get { return this._data.iky; } }
+        public string IdentityKey { get { return this._claims.iky; } }
 
         public IdentityIssuingRequest() { }
 
@@ -43,7 +43,7 @@ namespace ShiftEverywhere.DiME
             {
                 cap = new string[1] { Capability.Generic.ToString().ToLower() };
             }
-            iir._data = new IdentityIssuingRequest.IIRData(now, keypair.PublicKey, cap);
+            iir._claims = new IirClaims(now, keypair.PublicKey, cap);
             iir.Seal(keypair.PrivateKey);
             return iir;
         }
@@ -101,8 +101,8 @@ namespace ShiftEverywhere.DiME
             if (components.Length != 3 ) { throw new ArgumentException("Unexpected number of components found then decoding identity issuing request."); }
             this.Profile = int.Parse(components[0].Substring(1));
             byte[] json = Utility.FromBase64(components[1]);
-            this._data = JsonSerializer.Deserialize<IdentityIssuingRequest.IIRData>(json);
-            this._capabilities = new List<string>(this._data.cap).ConvertAll(str => { Capability cap; Enum.TryParse<Capability>(str, true, out cap); return cap; });
+            this._claims = JsonSerializer.Deserialize<IirClaims>(json);
+            this._capabilities = new List<string>(this._claims.cap).ConvertAll(str => { Capability cap; Enum.TryParse<Capability>(str, true, out cap); return cap; });
             this._signature = components[2];
             this._encoded = encoded.Substring(0, encoded.LastIndexOf(IdentityIssuingRequest._MAIN_DELIMITER));
             this.Verify();
@@ -116,7 +116,7 @@ namespace ShiftEverywhere.DiME
                 builder.Append('i'); // The header of an DiME identity issuing request
                 builder.Append(this.Profile);
                 builder.Append(Dime._MAIN_DELIMITER);
-                builder.Append(Utility.ToBase64(JsonSerializer.Serialize(this._data)));
+                builder.Append(Utility.ToBase64(JsonSerializer.Serialize(this._claims)));
                 this._encoded = builder.ToString();
             }
             return this._encoded;
@@ -126,7 +126,7 @@ namespace ShiftEverywhere.DiME
 
         #region -- PRIVATE --
         
-        private struct IIRData
+        private struct IirClaims
         {
             public long iat { get; set; }
             public string iky { get; set; }
@@ -134,7 +134,7 @@ namespace ShiftEverywhere.DiME
             public string[] cap { get; set; }
 
             [JsonConstructor]
-            public IIRData(long iat, string iky, string[] cap = null)
+            public IirClaims(long iat, string iky, string[] cap = null)
             {
                 this.iat = iat;
                 this.iky = iky;
@@ -142,16 +142,8 @@ namespace ShiftEverywhere.DiME
             }
         }
         
-        private IdentityIssuingRequest.IIRData _data;
+        private IirClaims _claims;
         private List<Capability> _capabilities { get; set; }
-
-        private IdentityIssuingRequest(IdentityIssuingRequest.IIRData parameters, int profile = Crypto.DEFUALT_PROFILE) 
-        {
-            if (!Crypto.SupportedProfile(profile)) { throw new ArgumentException("Unsupported cryptography profile."); }
-            this._data = parameters;
-            this._capabilities = new List<string>(this._data.cap).ConvertAll(str => { Capability cap; Enum.TryParse<Capability>(str, true, out cap); return cap; });
-            this.Profile = profile;
-        }
 
         private void CompleteCapabilities(List<Capability> allowedCapabilities, bool isSelfSign)
         {

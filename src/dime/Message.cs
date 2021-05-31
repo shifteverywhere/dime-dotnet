@@ -20,19 +20,19 @@ namespace ShiftEverywhere.DiME
         /// to the issuer unmodified. This allows for stateless message sending.</summary>
         public byte[] State { get { return this._state != null ? Utility.FromBase64(this._state) : null; } set { Reset(); this._state = value != null ? Utility.ToBase64(value) : null; } }
         /// <summary>A unique identity for the message. If a message is modfied after it has been sealed, then this id changes.</summary>
-        public Guid Id { get { return this._data.uid; } }
+        public Guid Id { get { return this._claims.uid; } }
         /// <summary>The id of the receiver.</summary>
-        public Guid SubjectId { get { return this._data.sub; } set { Reset(); this._data.sub = value; } }
+        public Guid SubjectId { get { return this._claims.sub; } set { Reset(); this._claims.sub = value; } }
         /// <summary>The id of the issuer (subject id of the issuer).</summary>
-        public Guid IssuerId { get { return this._data.iss; } set { Reset(); this._data.iss = value; } }
+        public Guid IssuerId { get { return this._claims.iss; } set { Reset(); this._claims.iss = value; } }
         /// <summary>The timestamp of when the message was created (issued).</summary>
-        public long IssuedAt { get { return this._data.iat; } set { Reset(); this._data.iat = value; } }
+        public long IssuedAt { get { return this._claims.iat; } set { Reset(); this._claims.iat = value; } }
         /// <summary>The timestamp of when the message is expired and is no longer valid.</summary>
-        public long ExpiresAt { get { return this._data.exp; } set { Reset(); this._data.exp = value; } }
+        public long ExpiresAt { get { return this._claims.exp; } set { Reset(); this._claims.exp = value; } }
         /// <summary>!NOT IMPLEMENTED!</summary>
-        public string ExchangeKey { get { return this._data.xky; } set { Reset(); this._data.xky = value; } }
+        public string ExchangeKey { get { return this._claims.xky; } set { Reset(); this._claims.xky = value; } }
         /// <summary>A link to another message. Used when responding to anther message.</summary>
-        public string LinkedTo { get { return this._data.lnk; } set { Reset(); this._data.lnk = value; } }
+        public string LinkedTo { get { return this._claims.lnk; } set { Reset(); this._claims.lnk = value; } }
 
         public Message() { }
 
@@ -48,7 +48,7 @@ namespace ShiftEverywhere.DiME
             long now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
             this.Profile = issuerIdentity.Profile;
             this._identity = issuerIdentity;
-            this._data = new Message.MessageData(Guid.NewGuid(), subjectId, issuerIdentity.SubjectId, now, (now + validFor));
+            this._claims = new MessageClaims(Guid.NewGuid(), subjectId, issuerIdentity.SubjectId, now, (now + validFor));
         }
 
         public override void Seal(string privateKey)
@@ -57,18 +57,7 @@ namespace ShiftEverywhere.DiME
             base.Seal(privateKey);
         }
 
-        public override void Verify() { Verify(null); }
-
-        /// <summary>Will verify the data in the fields in the message object. If a message is passed, then it will
-        /// also verify the 'LinkedTo' field. The signature of the message object will be verified with the public key from 
-        /// the 'Identity.TrustedIdentity' property.</summary>
-        /// <param name="linkedMessage">A linked message that should be considred during verification.</param>
-        /// <exception cref="UnsupportedProfileException">If an invalid cryptographic profile version is set.</exception>
-        /// <exception cref="DataFormatException">If no payload has been set in the message, or linked message value is invalid.</exception>
-        /// <exception cref="DateExpirationException">If 'IssuedAt' and/or 'ExpiresAt' contain invalid values, or the message has expired.</exception>
-        /// <exception cref="IntegrityException">If the signature failes validation, or cannot be validated.</exception>
-        public void Verify(Message linkedMessage = null)
-        {
+        public override void Verify() { 
             if (!Crypto.SupportedProfile(this.Profile)) { throw new UnsupportedProfileException("Unsupported cryptography profile version."); }
             if (this._payload == null || this._payload.Length == 0) { throw new DataFormatException("Missing payload in message."); }
             // Verify IssuedAt and ExpiresAt
@@ -78,18 +67,29 @@ namespace ShiftEverywhere.DiME
             if (this.ExpiresAt < now) { throw new DateExpirationException("Passed expiration date."); }
             // Verify identity
             this.Identity.Verify();
-            // Verify linkedMessage
-            if (this._data.lnk != null && linkedMessage != null)
-            {
-                string[] components = this._data.lnk.Split(new char[] { ':' });
-                if (components == null || components.Length != 2) { throw new DataFormatException("Invalid message link."); }
-                string msgHash = linkedMessage.Thumbprint();
-                if (components[0] != linkedMessage.Id.ToString() || components[1] != msgHash) { throw new IntegrityException("Linked message mismatch."); }
-            }
             // Verify signature
             if (this._signature == null) { throw new IntegrityException("Signature missing."); }
             if (this.Identity.SubjectId != this.IssuerId) { throw new IntegrityException("Issuing identity subject id does not match issuer id of the message."); }
             Crypto.VerifySignature(this.Profile, Encode(), this._signature, this.Identity.IdentityKey);
+         }
+
+        /// <summary>Will verify the data in the fields in the message object. If a message is passed, then it will
+        /// also verify the 'LinkedTo' field. The signature of the message object will be verified with the public key from 
+        /// the 'Identity.TrustedIdentity' property.</summary>
+        /// <param name="linkedMessage">A linked message that should be considred during verification.</param>
+        /// <exception cref="UnsupportedProfileException">If an invalid cryptographic profile version is set.</exception>
+        /// <exception cref="DataFormatException">If no payload has been set in the message, or linked message value is invalid.</exception>
+        /// <exception cref="DateExpirationException">If 'IssuedAt' and/or 'ExpiresAt' contain invalid values, or the message has expired.</exception>
+        /// <exception cref="IntegrityException">If the signature failes validation, or cannot be validated.</exception>
+        public void Verify(Message linkedMessage)
+        {
+            if (linkedMessage == null) { throw new ArgumentNullException(nameof(linkedMessage), "Message to veryfi with must not be null."); }
+            if (this._claims.lnk == null || this._claims.lnk.Length == 0) { throw new DataFormatException("No linked message found, unable to verify."); }
+            Verify();
+            string[] components = this._claims.lnk.Split(new char[] { ':' });
+            if (components == null || components.Length != 2) { throw new DataFormatException("Invalid data found in message link field."); }
+            string msgHash = linkedMessage.Thumbprint();
+            if (components[0] != linkedMessage.Id.ToString() || components[1] != msgHash) { throw new IntegrityException("Failed to verify message link (provided message did not match)."); }
         }
 
         /// <summary>Will set a message payload. This may be any valid byte-array, at export this will be
@@ -119,7 +119,7 @@ namespace ShiftEverywhere.DiME
         {
             Reset();
             if (message == null) { throw new ArgumentNullException(nameof(message), "Message to link must not be null."); }
-            this._data.lnk = string.Format("{0}:{1}",
+            this._claims.lnk = string.Format("{0}:{1}",
                                            message.Id.ToString(),
                                            message.Thumbprint());
         }
@@ -137,7 +137,7 @@ namespace ShiftEverywhere.DiME
             if (!Crypto.SupportedProfile(this.Profile)) { throw new UnsupportedProfileException("Unsupported cryptography profile."); }
             byte[] identityBytes = Utility.FromBase64(components[1]);
             this.Identity = Dime.Import<Identity>(System.Text.Encoding.UTF8.GetString(identityBytes, 0, identityBytes.Length));
-            this._data = JsonSerializer.Deserialize<Message.MessageData>(Utility.FromBase64(components[2]));
+            this._claims = JsonSerializer.Deserialize<MessageClaims>(Utility.FromBase64(components[2]));
             this._payload = components[3];
             if(components.Length == 6)
             {
@@ -158,7 +158,7 @@ namespace ShiftEverywhere.DiME
                 builder.Append(Dime._MAIN_DELIMITER);
                 builder.Append(Utility.ToBase64(this.Identity.Export()));
                 builder.Append(Dime._MAIN_DELIMITER);
-                builder.Append(Utility.ToBase64(JsonSerializer.Serialize(this._data)));
+                builder.Append(Utility.ToBase64(JsonSerializer.Serialize(this._claims)));
                 builder.Append(Dime._MAIN_DELIMITER);
                 builder.Append(this._payload);
                 if ( this.State != null)
@@ -174,11 +174,8 @@ namespace ShiftEverywhere.DiME
         #endregion
 
         #region -- PRIVATE --
-        private Identity _identity;
-        private string _state;
-        private string _payload;
 
-        private struct MessageData
+        private struct MessageClaims
         {
             public Guid uid { get; set; }
             public Guid sub { get; set; }
@@ -191,7 +188,7 @@ namespace ShiftEverywhere.DiME
             public string lnk { get; set; }
 
             [JsonConstructor]
-            public MessageData(Guid uid, Guid sub, Guid iss, long iat, long exp, string xky = null, string lnk = null)
+            public MessageClaims(Guid uid, Guid sub, Guid iss, long iat, long exp, string xky = null, string lnk = null)
             {
                 this.uid = uid;
                 this.sub = sub;
@@ -202,20 +199,17 @@ namespace ShiftEverywhere.DiME
                 this.lnk = lnk;
             }
         }
-        private Message.MessageData _data;
+        private MessageClaims _claims;
+        private Identity _identity;
+        private string _state;
+        private string _payload;
 
-        private Message(Identity issuerIdentity, Message.MessageData parameters, int profile = Crypto.DEFUALT_PROFILE)
-        {
-            this._identity = issuerIdentity;
-            this._data = parameters;
-            this.Profile = profile;
-        }
 
         private void Reset()
         {
             if (this.IsSealed)
             {
-                this._data.uid = Guid.NewGuid();
+                this._claims.uid = Guid.NewGuid();
                 this._encoded = null;
                 this._signature = null;
             }

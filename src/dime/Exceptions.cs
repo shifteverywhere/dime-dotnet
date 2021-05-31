@@ -9,7 +9,7 @@ namespace ShiftEverywhere.DiME
         public UnsupportedKeyTypeException() : base() { }
         public UnsupportedKeyTypeException(string message) : base(message) { }
         public UnsupportedKeyTypeException(string message, Exception innerException) : base(message, innerException) { }
-        public UnsupportedKeyTypeException(SerializationInfo info, StreamingContext context) : base(info, context) { }
+        protected UnsupportedKeyTypeException(SerializationInfo info, StreamingContext context) : base(info, context) { }
     }
 
     [Serializable]
@@ -18,7 +18,7 @@ namespace ShiftEverywhere.DiME
         public UnsupportedProfileException() : base() { }
         public UnsupportedProfileException(string message) : base(message) { }
         public UnsupportedProfileException(string message, Exception innerException) : base(message, innerException) { }
-        public UnsupportedProfileException(SerializationInfo info, StreamingContext context) : base(info, context) { }
+        protected UnsupportedProfileException(SerializationInfo info, StreamingContext context) : base(info, context) { }
     }
 
     [Serializable]
@@ -27,7 +27,7 @@ namespace ShiftEverywhere.DiME
         public UntrustedIdentityException() : base() { }
         public UntrustedIdentityException(string message) : base(message) { }
         public UntrustedIdentityException(string message, Exception innerException) : base(message, innerException) { }
-        public UntrustedIdentityException(SerializationInfo info, StreamingContext context) : base(info, context) { }
+        protected UntrustedIdentityException(SerializationInfo info, StreamingContext context) : base(info, context) { }
     }
 
     [Serializable]
@@ -36,7 +36,7 @@ namespace ShiftEverywhere.DiME
         public IntegrityException() : base() { }
         public IntegrityException(string message) : base(message) { }
         public IntegrityException(string message, Exception innerException) : base(message, innerException) { }
-        public IntegrityException(SerializationInfo info, StreamingContext context) : base(info, context) { }
+        protected IntegrityException(SerializationInfo info, StreamingContext context) : base(info, context) { }
     }
 
     [Serializable]
@@ -45,7 +45,7 @@ namespace ShiftEverywhere.DiME
         public DateExpirationException() : base() { }
         public DateExpirationException(string message) : base(message) { }
         public DateExpirationException(string message, Exception innerException) : base(message, innerException) { }
-        public DateExpirationException(SerializationInfo info, StreamingContext context) : base(info, context) { }
+        protected DateExpirationException(SerializationInfo info, StreamingContext context) : base(info, context) { }
     }
 
     [Serializable]
@@ -54,7 +54,7 @@ namespace ShiftEverywhere.DiME
         public KeyMissmatchException() : base() { }
         public KeyMissmatchException(string message) : base(message) { }
         public KeyMissmatchException(string message, Exception innerException) : base(message, innerException) { }
-        public KeyMissmatchException(SerializationInfo info, StreamingContext context) : base(info, context) { }
+        protected KeyMissmatchException(SerializationInfo info, StreamingContext context) : base(info, context) { }
     }
 
     [Serializable]
@@ -63,7 +63,7 @@ namespace ShiftEverywhere.DiME
         public ImmutableException() : base() { }
         public ImmutableException(string message) : base(message) { }
         public ImmutableException(string message, Exception innerException) : base(message, innerException) { }
-        public ImmutableException(SerializationInfo info, StreamingContext context) : base(info, context) { }
+        protected ImmutableException(SerializationInfo info, StreamingContext context) : base(info, context) { }
     }
 
     [Serializable]
@@ -72,7 +72,7 @@ namespace ShiftEverywhere.DiME
         public IdentityCapabilityException() : base() { }
         public IdentityCapabilityException(string message) : base(message) { }
         public IdentityCapabilityException(string message, Exception innerException) : base(message, innerException) { }
-        public IdentityCapabilityException(SerializationInfo info, StreamingContext context) : base(info, context) { }
+        protected IdentityCapabilityException(SerializationInfo info, StreamingContext context) : base(info, context) { }
     }
 
     [Serializable]
@@ -81,7 +81,7 @@ namespace ShiftEverywhere.DiME
         public DataFormatException() : base() { }
         public DataFormatException(string message) : base(message) { }
         public DataFormatException(string message, Exception innerException) : base(message, innerException) { }
-        public DataFormatException(SerializationInfo info, StreamingContext context) : base(info, context) { }
+        protected DataFormatException(SerializationInfo info, StreamingContext context) : base(info, context) { }
     }
 
 }

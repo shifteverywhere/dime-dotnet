@@ -17,17 +17,17 @@ namespace ShiftEverywhere.DiME
         /// <summary>The identity of the issuer, and thus sealer (signer), of the enveloper.</summary>
         public Identity Identity { get { return this._identity; } set { this.Reset(); this._identity = value; } }
         /// <summary>A unique identity for the envelope. If an envelope is modfied after it has been sealed, then this id changes.</summary>
-        public Guid Id { get { return this._data.uid; } }
+        public Guid Id { get { return this._claims.uid; } }
         /// <summary>A list of messages kept inside the envelope.</summary>
         public List<Message> Messages { get; private set; }
         /// <summary>The id of the receiver.</summary>
-        public Guid SubjectId { get { return this._data.sub; } set { this.Reset(); this._data.sub = value; } }
+        public Guid SubjectId { get { return this._claims.sub; } set { this.Reset(); this._claims.sub = value; } }
         /// <summary>The id of the issuer (subject id of the issuer).</summary>
-        public Guid IssuerId { get { return this._data.iss; } set { this.Reset(); this._data.iss = value; } }
+        public Guid IssuerId { get { return this._claims.iss; } set { this.Reset(); this._claims.iss = value; } }
         /// <summary>The timestamp of when the envelope was created (issued).</summary>
-        public long IssuedAt { get { return this._data.iat; } set { this.Reset(); this._data.iat = value; } }
+        public long IssuedAt { get { return this._claims.iat; } set { this.Reset(); this._claims.iat = value; } }
         /// <summary>The timestamp of when the envelope is expired and is no longer valid.</summary>
-        public long ExpiresAt { get { return this._data.exp; } set { this.Reset(); this._data.exp = value; } }
+        public long ExpiresAt { get { return this._claims.exp; } set { this.Reset(); this._claims.exp = value; } }
 
         public Envelope() { }
 
@@ -41,7 +41,7 @@ namespace ShiftEverywhere.DiME
         {
             this._identity = issuerIdentity;
             long now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-            this._data = new EnvelopeData(Guid.NewGuid(), subjectId, issuerIdentity.SubjectId, now, (now + validFor));
+            this._claims = new EnvelopeClaims(Guid.NewGuid(), subjectId, issuerIdentity.SubjectId, now, (now + validFor));
             this.Profile = profile;
         }
         
@@ -106,8 +106,13 @@ namespace ShiftEverywhere.DiME
                     if (message.LinkedTo != null)
                     {
                         linkedMessage = this.Messages.Find(element => message.LinkedTo.StartsWith(element.Id.ToString()));
+                        message.Verify(linkedMessage);
                     }
-                    message.Verify(linkedMessage);
+                    else
+                    {
+                        message.Verify();
+                    }
+                    
                 }
             }
             // Verify signature
@@ -129,7 +134,7 @@ namespace ShiftEverywhere.DiME
             if (!Crypto.SupportedProfile(this.Profile)) { throw new UnsupportedProfileException("Unsupported cryptography profile."); }
             byte[] identityBytes = Utility.FromBase64(components[1]);
             this.Identity = Dime.Import<Identity>(System.Text.Encoding.UTF8.GetString(identityBytes, 0, identityBytes.Length));
-            this._data = JsonSerializer.Deserialize<Envelope.EnvelopeData>(Utility.FromBase64(components[3]));
+            this._claims = JsonSerializer.Deserialize<EnvelopeClaims>(Utility.FromBase64(components[3]));
             byte[] msgBytes = Utility.FromBase64(components[2]);
             string[] msgArray = System.Text.Encoding.UTF8.GetString(msgBytes, 0, msgBytes.Length).Split(new char[] { ';' });
             this.Messages = new List<Message>();
@@ -138,15 +143,15 @@ namespace ShiftEverywhere.DiME
                 Message message = Dime.Import<Message>(msg);
                 this.Messages.Add(message); 
             }
-            this._encoded = encoded.Substring(0, encoded.LastIndexOf(Dime._MAIN_DELIMITER));;
-            this._signature = components[components.Length - 1];;
+            this._encoded = encoded.Substring(0, encoded.LastIndexOf(Dime._MAIN_DELIMITER));
+            this._signature = components[components.Length - 1];
         }
 
         protected override string Encode()
         {
             if (this._encoded == null) 
             {  
-                // TODO: verify all values (messages == null ??)
+                if (this.Messages == null || this.Messages.Count == 0) { throw new DataFormatException("No messages added to envelope."); }
                 StringBuilder envBuilder = new StringBuilder();
                 envBuilder.Append('E'); // This is the header of an DiME envelope
                 envBuilder.Append(this.Profile);
@@ -161,7 +166,7 @@ namespace ShiftEverywhere.DiME
                 msgBuilder.Remove(msgBuilder.Length - 1, 1); 
                 envBuilder.Append(Utility.ToBase64(msgBuilder.ToString()));
                 envBuilder.Append(Dime._MAIN_DELIMITER);
-                envBuilder.Append(Utility.ToBase64(JsonSerializer.Serialize(this._data)));
+                envBuilder.Append(Utility.ToBase64(JsonSerializer.Serialize(this._claims)));
                 this._encoded = envBuilder.ToString();
             }
             return this._encoded;
@@ -171,7 +176,7 @@ namespace ShiftEverywhere.DiME
 
         #region -- PRIVATE --
 
-        private struct EnvelopeData
+        private struct EnvelopeClaims
         {
             public Guid uid { get; set; }
             public Guid sub { get; set; }
@@ -180,7 +185,7 @@ namespace ShiftEverywhere.DiME
             public long exp { get; set; }
 
             [JsonConstructor]
-            public EnvelopeData(Guid uid, Guid sub, Guid iss, long iat, long exp)
+            public EnvelopeClaims(Guid uid, Guid sub, Guid iss, long iat, long exp)
             {
                 this.uid = uid;
                 this.sub = sub;
@@ -189,14 +194,14 @@ namespace ShiftEverywhere.DiME
                 this.exp = exp;
             }
         }
-        private Envelope.EnvelopeData _data;
+        private EnvelopeClaims _claims;
         private Identity _identity;
 
         private void Reset()
         {
             if (this.IsSealed)
             {
-                this._data.uid = Guid.NewGuid();
+                this._claims.uid = Guid.NewGuid();
                 this._encoded = null;
                 this._signature = null;
             }

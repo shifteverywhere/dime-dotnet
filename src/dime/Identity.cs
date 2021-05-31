@@ -11,18 +11,16 @@ namespace ShiftEverywhere.DiME
     {
         #region -- PUBLIC --
         public static Identity TrustedIdentity; // TODO: make this thread safe
-        /// <summary>The cryptography profile that is used with the identity.</summary>
-        //public int Profile { get; private set; }
         /// <summary>A unique UUID (GUID) of the identity. Same as the "sub" field.</summary>
-        public Guid SubjectId { get { return this._data.sub; } }        
+        public Guid SubjectId { get { return this._claims.sub; } }        
         /// <summary>The date when the identity was issued, i.e. approved by the issuer. Same as the "iat" field.</summary>
-        public long IssuedAt { get { return this._data.iat; } }
+        public long IssuedAt { get { return this._claims.iat; } }
         /// <summary>The date when the identity will expire and should not be accepted anymore. Same as the "exp" field.</summary>
-        public long ExpiresAt { get { return this._data.exp; } } 
+        public long ExpiresAt { get { return this._claims.exp; } } 
         /// <summary>A unique UUID (GUID) of the issuer of the identity. Same as the "iss" field. If same value as subjectId, then this is a self-issued identity.</summary>
-        public Guid IssuerId { get { return this._data.iss; } }
+        public Guid IssuerId { get { return this._claims.iss; } }
         /// <summary>The public key associated with the identity. Same as the "iky" field.</summary>
-        public string IdentityKey { get { return this._data.iky; } }
+        public string IdentityKey { get { return this._claims.iky; } }
         /// <summary>The trust chain of signed public keys.</summary>
         public Identity TrustChain { get; internal set; }
         /// <summary>Imports an identity from a DiME encoded string.</summary>
@@ -76,7 +74,7 @@ namespace ShiftEverywhere.DiME
             this.Profile = profile;
             this._capabilities = capabilities;
             string[] cap = capabilities.ConvertAll(c => c.ToString().ToLower()).ToArray();
-            this._data = new Identity.IdentityData(subjectId, issuerId, issuedAt, expiresAt, identityKey, cap);
+            this._claims = new IdentityClaims(subjectId, issuerId, issuedAt, expiresAt, identityKey, cap);
             
         }
 
@@ -92,8 +90,8 @@ namespace ShiftEverywhere.DiME
             this.Profile = int.Parse(components[0].Substring(1));
             if (!Crypto.SupportedProfile(this.Profile)) { throw new ArgumentException("Unsupported cryptography profile."); }
             byte[] json = Utility.FromBase64(components[1]);
-            this._data = JsonSerializer.Deserialize<Identity.IdentityData>(json);
-            this._capabilities = new List<string>(this._data.cap).ConvertAll(str => { Capability cap; Enum.TryParse<Capability>(str, true, out cap); return cap; });
+            this._claims = JsonSerializer.Deserialize<IdentityClaims>(json);
+            this._capabilities = new List<string>(this._claims.cap).ConvertAll(str => { Capability cap; Enum.TryParse<Capability>(str, true, out cap); return cap; });
             if (components.Length == 4)
             {
                 byte[] issIdentity = Utility.FromBase64(components[2]);
@@ -111,7 +109,7 @@ namespace ShiftEverywhere.DiME
                 builder.Append('I'); // The header of a DiME identity
                 builder.Append(this.Profile);
                 builder.Append(Dime._MAIN_DELIMITER);
-                builder.Append(Utility.ToBase64(JsonSerializer.Serialize(this._data)));
+                builder.Append(Utility.ToBase64(JsonSerializer.Serialize(this._claims)));
                 if (this.TrustChain != null)
                 {
                     builder.Append(Dime._MAIN_DELIMITER);
@@ -126,8 +124,7 @@ namespace ShiftEverywhere.DiME
 
         #region -- PRIVATE --
 
-        private List<Capability> _capabilities { get; set; }
-        private struct IdentityData
+        private struct IdentityClaims
         {
             public Guid sub { get; set; }
             public Guid iss { get; set; }
@@ -138,7 +135,7 @@ namespace ShiftEverywhere.DiME
             public string[] cap { get; set; }
 
             [JsonConstructor]
-            public IdentityData(Guid sub, Guid iss, long iat, long exp, string iky, string[] cap = null)
+            public IdentityClaims(Guid sub, Guid iss, long iat, long exp, string iky, string[] cap = null)
             {
                 if (DateTimeOffset.UtcNow.ToUnixTimeSeconds() > exp) { throw new ArgumentException("Expiration must be in the future."); }
                 if (iat > exp) { throw new ArgumentException("Expiration must be after issue date."); }
@@ -150,7 +147,8 @@ namespace ShiftEverywhere.DiME
                 this.cap = cap;
             }
         }
-        private Identity.IdentityData _data;
+        private IdentityClaims _claims;
+        private List<Capability> _capabilities { get; set; }
         
         #endregion
 
