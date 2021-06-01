@@ -1,4 +1,12 @@
-﻿using System;
+﻿//
+//  Program.cs
+//  DiME - Digital Identity Message Envelope
+//  Compact messaging format for assertion and use of digital identities
+//
+//  Released under the MIT licence, see LICENSE for more information.
+//  Copyright © 2021 Shift Everywhere AB. All rights reserved.
+//
+using System;
 using System.Text;
 using System.Collections.Generic;
 using ShiftEverywhere.DiME;
