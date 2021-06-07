@@ -36,7 +36,7 @@ namespace ShiftEverywhere.DiMETest
             Attachment attachment = new Attachment();
             attachment.AddItem(text);
             try {
-                string encoded = attachment.Export();
+                attachment.Export();
             } catch (IntegrityException) { return; } // All is well
             Assert.IsTrue(false, "Should not happen.");
         }

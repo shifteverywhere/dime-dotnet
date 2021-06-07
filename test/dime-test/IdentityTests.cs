@@ -8,6 +8,7 @@
 //
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
+using System.Text;
 using System.Collections.Generic;
 using ShiftEverywhere.DiME;
 
@@ -179,6 +180,75 @@ namespace ShiftEverywhere.DiMETest
             Assert.IsTrue(identity.HasCapability(Capability.Generic));
             Assert.IsNotNull(identity.TrustChain);
             Assert.AreEqual(new Guid("843703b0-781c-4e56-b306-0a5eb57c5fc9"), identity.TrustChain.SubjectId);
+        }
+
+       [TestMethod]
+        public void AttachmentTest1()
+        {
+            KeyBox key = KeyBox.Generate(KeyType.Exchange);
+            Attachment attachment = new Attachment();
+            attachment.AddItem(Encoding.UTF8.GetBytes(key.Export()));
+            Identity sender = Commons.SenderIdentity;
+            sender.Attachment = attachment;
+        }
+
+       [TestMethod]
+        public void AttachmentTest2()
+        {
+            Attachment attachment = new Attachment();
+            attachment.AddItem(Encoding.UTF8.GetBytes(KeyBox.Generate(KeyType.Exchange).Export()));
+            attachment.Seal(Commons.SenderKeypair.Key);
+            Identity sender = Commons.SenderIdentity;
+            sender.Attachment = attachment;
+            string encoded = sender.Export();
+            Assert.IsNotNull(encoded);
+            Assert.IsTrue(encoded.Length > 0);
+            Assert.IsTrue(encoded.StartsWith("I" + (int)attachment.Profile));
+            string[] parts = encoded.Split(new char[] { ':' });
+            Assert.IsTrue(parts.Length == 2);
+            Assert.IsTrue(parts[1].StartsWith("a" + (int)attachment.Profile));
+        }
+
+        [TestMethod]
+        public void AttachmentTest3()
+        {
+            Attachment attachment = new Attachment();
+            attachment.AddItem(Encoding.UTF8.GetBytes(KeyBox.Generate(KeyType.Exchange).Export()));
+            Identity sender = Commons.SenderIdentity;
+            sender.Attachment = attachment;
+            try {
+                sender.Export();
+            } catch (IntegrityException) { return; } // All is well
+            Assert.IsTrue(false, "Should not happen.");
+        }
+
+        [TestMethod]
+        public void AttachmentTest4()
+        {
+            KeyBox[] keysIn = new KeyBox[3] { KeyBox.Generate(KeyType.Exchange), 
+                                              KeyBox.Generate(KeyType.Exchange), 
+                                              KeyBox.Generate(KeyType.Exchange) };
+            Attachment attachment = new Attachment();
+            attachment.AddItem(Encoding.UTF8.GetBytes(keysIn[0].Export()));
+            attachment.AddItem(Encoding.UTF8.GetBytes(keysIn[1].Export()));
+            attachment.AddItem(Encoding.UTF8.GetBytes(keysIn[2].Export()));
+            attachment.Seal(Commons.SenderKeypair.Key);
+            Identity sender1 = Commons.SenderIdentity;
+            Commons.SenderIdentity.Attachment = attachment;
+            string encoded = sender1.Export();
+            
+            Identity sender2 = Dime.Import<Identity>(encoded);
+            Assert.IsTrue(sender2.Attachment.Items.Count == 3);
+            KeyBox[] keysOut = new KeyBox[3];
+            for (int i = 0; i < 3; i++)
+            {
+                byte[] keyBytes = sender2.Attachment.Items[i];
+                keysOut[i] = Dime.Import<KeyBox>(System.Text.Encoding.UTF8.GetString(keyBytes, 0, keyBytes.Length));
+                Assert.AreEqual(keysIn[i].Id, keysOut[i].Id);
+                Assert.AreEqual(keysIn[i].Type, keysOut[i].Type);
+                Assert.AreEqual(keysIn[i].Key, keysOut[i].Key);
+                Assert.AreEqual(keysIn[i].PublicKey, keysOut[i].PublicKey);
+            }
         }
 
     }

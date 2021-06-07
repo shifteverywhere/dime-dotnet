@@ -32,9 +32,26 @@ namespace ShiftEverywhere.DiME
         public string IdentityKey { get { return this._claims.iky; } }
         /// <summary>The trust chain of signed public keys.</summary>
         public Identity TrustChain { get; internal set; }
+        public Attachment Attachment { get; set; }
         
         public Identity() { }
-        
+        public override string Export() 
+        {
+            string encoded = base.Export();
+            if (this.Attachment != null)
+            {
+                StringBuilder builder = new StringBuilder();
+                builder.Append(encoded);
+                builder.Append(Dime._ATTATCHMENT_DELIMITER);
+                builder.Append(this.Attachment.Export());
+                return builder.ToString();
+            }
+            else
+            {
+                return encoded;
+            }
+        }
+
         /// <summary>Checks if the identity is self-signed (signed/seald by itself).</summary>
         /// <returns>Boolean to indicate if it is self-signed or not.</returns>
         public bool IsSelfSigned() 
@@ -96,8 +113,11 @@ namespace ShiftEverywhere.DiME
         protected override void Populate(string encoded) 
         {
             if (Dime.GetType(encoded) != typeof(Identity)) { throw new DataFormatException("Invalid header."); }
-            string[] components = encoded.Split(new char[] { Identity._MAIN_DELIMITER });
-            if (components.Length != 3 && components.Length != 4) { throw new ArgumentException("Unexpected number of components found then decoding identity."); }
+            string[] parts = encoded.Split(new char[] { Dime._ATTATCHMENT_DELIMITER });
+            if (parts.Length == 0 || parts[0] == null) { throw new DataFormatException("Invalid format."); }
+            // Parse identity            
+            string[] components = parts[0].Split(new char[] { Dime._COMPONENT_DELIMITER });
+            if (components.Length != 3 && components.Length != 4) { throw new ArgumentException("Unexpected number of components found when decoding identity."); }
             ProfileVersion profile;
             Enum.TryParse<ProfileVersion>(components[0].Substring(1), true, out profile);
             this.Profile = profile;
@@ -110,8 +130,13 @@ namespace ShiftEverywhere.DiME
                 byte[] issIdentity = Utility.FromBase64(components[2]);
                 this.TrustChain = Dime.Import<Identity>(System.Text.Encoding.UTF8.GetString(issIdentity, 0, issIdentity.Length));
             }
-            this._encoded = encoded.Substring(0, encoded.LastIndexOf(Identity._MAIN_DELIMITER));
+            this._encoded = encoded.Substring(0, parts[0].LastIndexOf(Identity._COMPONENT_DELIMITER));
             this._signature = components[components.Length - 1];
+            // Parse attachment
+            if (parts.Length == 2 && parts[1] != null)
+            {
+                this.Attachment = Dime.Import<Attachment>(parts[1]);
+            }
         }
 
         protected override string Encode()
