@@ -139,7 +139,7 @@ namespace ShiftEverywhere.DiME
         protected override void Populate(string encoded)
         {
             if (Dime.GetType(encoded) != typeof(Message)) { throw new DataFormatException("Invalid header."); }
-            string[] components = encoded.Split(new char[] { Dime._MAIN_DELIMITER });
+            string[] components = encoded.Split(new char[] { Dime._COMPONENT_DELIMITER });
             if (components.Length != 5 && components.Length != 6) { throw new DataFormatException("Unexpected number of components found when decoding identity."); }
             ProfileVersion profile;
             Enum.TryParse<ProfileVersion>(components[0].Substring(1), true, out profile);
@@ -153,7 +153,7 @@ namespace ShiftEverywhere.DiME
             {
                 this._state = components[4];
             }
-            this._encoded = encoded.Substring(0, encoded.LastIndexOf(Message._MAIN_DELIMITER));
+            this._encoded = encoded.Substring(0, encoded.LastIndexOf(Message._COMPONENT_DELIMITER));
             this._signature = components[components.Length - 1];
         }
 
@@ -164,15 +164,15 @@ namespace ShiftEverywhere.DiME
                 StringBuilder builder = new StringBuilder(); 
                 builder.Append('M'); // The header of an DiME message
                 builder.Append((int)this.Profile);
-                builder.Append(Dime._MAIN_DELIMITER);
+                builder.Append(Dime._COMPONENT_DELIMITER);
                 builder.Append(Utility.ToBase64(this.Identity.Export()));
-                builder.Append(Dime._MAIN_DELIMITER);
+                builder.Append(Dime._COMPONENT_DELIMITER);
                 builder.Append(Utility.ToBase64(JsonSerializer.Serialize(this._claims)));
-                builder.Append(Dime._MAIN_DELIMITER);
+                builder.Append(Dime._COMPONENT_DELIMITER);
                 builder.Append(this._payload);
                 if ( this.State != null)
                 {
-                    builder.Append(Dime._MAIN_DELIMITER);
+                    builder.Append(Dime._COMPONENT_DELIMITER);
                     builder.Append(this._state);
                 }
                 this._encoded = builder.ToString();

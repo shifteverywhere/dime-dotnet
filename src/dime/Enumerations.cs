@@ -50,7 +50,9 @@ namespace ShiftEverywhere.DiME
         /// <summary>Key type for asymmetric key used for signing.</summary>
         Identity,
         /// <summary>Key type for asymmetric keys used for key exchange (agreement).</summary>
-        Exchange
+        Exchange,
+        /// <summary>Key type for secret (symmetric) keys, used for encryption.
+        Secret
     }
 
 }

@@ -24,11 +24,11 @@ namespace ShiftEverywhere.DiMEConsole
 
         public Program()
         {
-            this.trustedKeypair = KeyBox.GenerateKey(KeyType.Identity);
+            this.trustedKeypair = KeyBox.Generate(KeyType.Identity);
             this.trustedIdentity = GenerateIdentity(this.trustedKeypair);
-            this.serviceProviderKeypair = KeyBox.GenerateKey(KeyType.Identity);
+            this.serviceProviderKeypair = KeyBox.Generate(KeyType.Identity);
             this.serviceProviderIdentity = GenerateIdentity(this.serviceProviderKeypair);
-            this.mobileKeypair = KeyBox.GenerateKey(KeyType.Identity);
+            this.mobileKeypair = KeyBox.Generate(KeyType.Identity);
             this.mobileIdentity = GenerateIdentity(this.mobileKeypair);
             Dime.SetTrustedIdentity(this.trustedIdentity);
         }

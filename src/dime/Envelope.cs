@@ -73,10 +73,13 @@ namespace ShiftEverywhere.DiME
         /// <exception cref="IntegrityException">If the message added is not first sealed.</exception>
         public void AddMessage(Message message)
         {
-            if (!message.IsSealed) { throw new IntegrityException("Message must be sealed before being added to an envelope."); }
-            Reset();
-            if (this.Messages == null) { this.Messages = new List<Message>(); }
-            this.Messages.Add(message);            
+            if (message != null)
+            {
+                if (!message.IsSealed) { throw new IntegrityException("Message must be sealed before being added to an envelope."); }
+                Reset();
+                if (this.Messages == null) { this.Messages = new List<Message>(); }
+                this.Messages.Add(message);            
+            }
         }
 
         /// <summary>Will remove all messages in the envelope. Call to this function will reset the envelope and it
@@ -136,7 +139,7 @@ namespace ShiftEverywhere.DiME
         protected override void Populate(string encoded)
         {
             if (Dime.GetType(encoded) != typeof(Envelope)) { throw new DataFormatException("Invalid header."); }
-            string[] components = encoded.Split(new char[] { Envelope._MAIN_DELIMITER });
+            string[] components = encoded.Split(new char[] { Envelope._COMPONENT_DELIMITER });
             if (components.Length != 5) { throw new DataFormatException("Unexpected number of components found then decoding identity."); }
             ProfileVersion profile;
             Enum.TryParse<ProfileVersion>(components[0].Substring(1), true, out profile);
@@ -146,14 +149,14 @@ namespace ShiftEverywhere.DiME
             this.Identity = Dime.Import<Identity>(System.Text.Encoding.UTF8.GetString(identityBytes, 0, identityBytes.Length));
             this._claims = JsonSerializer.Deserialize<EnvelopeClaims>(Utility.FromBase64(components[3]));
             byte[] msgBytes = Utility.FromBase64(components[2]);
-            string[] msgArray = System.Text.Encoding.UTF8.GetString(msgBytes, 0, msgBytes.Length).Split(new char[] { ';' });
+            string[] msgArray = System.Text.Encoding.UTF8.GetString(msgBytes, 0, msgBytes.Length).Split(new char[] { Dime._ARRAY_ITEM_DELIMITER });
             this.Messages = new List<Message>();
             foreach(string msg in msgArray)
             {
                 Message message = Dime.Import<Message>(msg);
                 this.Messages.Add(message); 
             }
-            this._encoded = encoded.Substring(0, encoded.LastIndexOf(Dime._MAIN_DELIMITER));
+            this._encoded = encoded.Substring(0, encoded.LastIndexOf(Dime._COMPONENT_DELIMITER));
             this._signature = components[components.Length - 1];
         }
 
@@ -164,9 +167,9 @@ namespace ShiftEverywhere.DiME
                 StringBuilder envBuilder = new StringBuilder();
                 envBuilder.Append('E'); // This is the header of an DiME envelope
                 envBuilder.Append((int)this.Profile);
-                envBuilder.Append(Dime._MAIN_DELIMITER);
+                envBuilder.Append(Dime._COMPONENT_DELIMITER);
                 envBuilder.Append(Utility.ToBase64(this.Identity.Export()));
-                envBuilder.Append(Dime._MAIN_DELIMITER);
+                envBuilder.Append(Dime._COMPONENT_DELIMITER);
                 StringBuilder msgBuilder = new StringBuilder();
                 foreach (Message message in this.Messages)
                 {
@@ -174,7 +177,7 @@ namespace ShiftEverywhere.DiME
                 }
                 msgBuilder.Remove(msgBuilder.Length - 1, 1); 
                 envBuilder.Append(Utility.ToBase64(msgBuilder.ToString()));
-                envBuilder.Append(Dime._MAIN_DELIMITER);
+                envBuilder.Append(Dime._COMPONENT_DELIMITER);
                 envBuilder.Append(Utility.ToBase64(JsonSerializer.Serialize(this._claims)));
                 this._encoded = envBuilder.ToString();
             }

@@ -30,7 +30,7 @@ namespace ShiftEverywhere.DiME
         public KeyBox() { }
 
         /// <summary></summary>
-        public static KeyBox GenerateKey(KeyType type, ProfileVersion profile = Crypto.DEFUALT_PROFILE)
+        public static KeyBox Generate(KeyType type, ProfileVersion profile = Crypto.DEFUALT_PROFILE)
         {
             return Crypto.GenerateKeyPair(profile, type);
         }
@@ -54,7 +54,7 @@ namespace ShiftEverywhere.DiME
 
             if (key == null || key.Length == 0) { throw new ArgumentNullException(nameof(key), "Key must not be empty or null."); }
             if ((type == KeyType.Identity || type == KeyType.Exchange) && (publicKey == null || publicKey.Length == 0)) { throw new ArgumentNullException(nameof(publicKey), "A public key must be provided for asymmetric keys."); }
-            this._claims = new KeypairClaims(id, type, key, publicKey);
+            this._claims = new KeyBoxClaims(id, type, key, publicKey);
             this.Profile = profile;
             this._encoded = null;
         }
@@ -66,14 +66,14 @@ namespace ShiftEverywhere.DiME
         protected override void Populate(string encoded)
         {
             if (Dime.GetType(encoded) != typeof(KeyBox)) { throw new ArgumentException("Invalid header."); }
-            string[] components = encoded.Split(new char[] { Dime._MAIN_DELIMITER });
+            string[] components = encoded.Split(new char[] { Dime._COMPONENT_DELIMITER });
             if (components.Length != 2) { throw new ArgumentException("Unexpected number of components found then decoding keypair."); }
             ProfileVersion profile;
             Enum.TryParse<ProfileVersion>(components[0].Substring(1), true, out profile);
             this.Profile = profile;
             if (!Crypto.SupportedProfile(this.Profile)) { throw new UnsupportedProfileException(); }
             byte[] json = Utility.FromBase64(components[1]);
-            this._claims = JsonSerializer.Deserialize<KeypairClaims>(json);
+            this._claims = JsonSerializer.Deserialize<KeyBoxClaims>(json);
         }
 
         protected override void Verify(string publicKey) { /* Keypair objects are not yet signed, so just ignore verification. */ }
@@ -85,7 +85,7 @@ namespace ShiftEverywhere.DiME
                 StringBuilder builder = new StringBuilder();
                 builder.Append('k') ;// The header of an DiME keybox
                 builder.Append((int)this.Profile);
-                builder.Append(Dime._MAIN_DELIMITER);
+                builder.Append(Dime._COMPONENT_DELIMITER);
                 builder.Append(Utility.ToBase64(JsonSerializer.Serialize(this._claims)));
                 this._encoded = builder.ToString();
             }
@@ -96,7 +96,7 @@ namespace ShiftEverywhere.DiME
 
         #region -- PRIVATE --
 
-        private struct KeypairClaims
+        private struct KeyBoxClaims
         {
             public Guid kid { get; set; }
             public KeyType kty { get; set; }
@@ -106,7 +106,7 @@ namespace ShiftEverywhere.DiME
             public string pub { get; set; }
 
             [JsonConstructor]
-            public KeypairClaims(Guid kid, KeyType kty, string key, string pub)
+            public KeyBoxClaims(Guid kid, KeyType kty, string key, string pub)
             {
                 this.kid = kid;
                 this.kty = kty;
@@ -114,7 +114,7 @@ namespace ShiftEverywhere.DiME
                 this.pub = pub;
             }
         }
-        private KeypairClaims _claims;
+        private KeyBoxClaims _claims;
 
         #endregion
     }

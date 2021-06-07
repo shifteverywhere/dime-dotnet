@@ -15,6 +15,7 @@ namespace ShiftEverywhere.DiME
     public abstract class Dime
     {
         #region -- PUBLIC --
+        
         ///<summary>A shared trusted identity that acts as the root identity in the trust chain.</summary>
         public static Identity TrustedIdentity { get { lock(Dime._lock) { return Dime._trustedIdentity; } } }
         /// <summary>The cryptography profile version that is used within the object.</summary>
@@ -45,6 +46,7 @@ namespace ShiftEverywhere.DiME
                 case 'E': return typeof(Envelope);
                 case 'i': return typeof(IdentityIssuingRequest);
                 case 'k': return typeof(KeyBox);
+                case 'a': return typeof(Attachment);
                 default: return null;
             }
         }
@@ -56,7 +58,7 @@ namespace ShiftEverywhere.DiME
             if (!this.IsSealed) { throw new IntegrityException("Signature missing, cannot export object."); }
             StringBuilder builder = new StringBuilder();
             builder.Append(Encode());
-            builder.Append(Dime._MAIN_DELIMITER);
+            builder.Append(Dime._COMPONENT_DELIMITER);
             builder.Append(this._signature);
             return builder.ToString();
         }
@@ -111,10 +113,13 @@ namespace ShiftEverywhere.DiME
 
         protected virtual void Verify(string publicKey)
         {
+            if (this._signature == null || this._signature.Length == 0) { throw new IntegrityException("Signature missing"); }
             Crypto.VerifySignature(this.Profile, Encode(), this._signature, publicKey);
         }
 
-        protected const char _MAIN_DELIMITER = '.';
+        protected const char _COMPONENT_DELIMITER = '.';
+        protected const char _ARRAY_ITEM_DELIMITER = ';';
+        protected const char _ATTATCHMENT_DELIMITER = ':';
         protected string _signature;
         protected string _encoded;
 

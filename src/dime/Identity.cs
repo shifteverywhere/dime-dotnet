@@ -121,11 +121,11 @@ namespace ShiftEverywhere.DiME
                 StringBuilder builder = new StringBuilder();
                 builder.Append('I'); // The header of a DiME identity
                 builder.Append((int)this.Profile);
-                builder.Append(Dime._MAIN_DELIMITER);
+                builder.Append(Dime._COMPONENT_DELIMITER);
                 builder.Append(Utility.ToBase64(JsonSerializer.Serialize(this._claims)));
                 if (this.TrustChain != null)
                 {
-                    builder.Append(Dime._MAIN_DELIMITER);
+                    builder.Append(Dime._COMPONENT_DELIMITER);
                     builder.Append(Utility.ToBase64(this.TrustChain.Export()));
                 }
                 this._encoded = builder.ToString();

@@ -105,7 +105,7 @@ namespace ShiftEverywhere.DiME
         protected override void Populate(string encoded) 
         {
             if (Dime.GetType(encoded) != typeof(IdentityIssuingRequest)) { throw new ArgumentException("Invalid header."); }
-            string[] components = encoded.Split(new char[] { IdentityIssuingRequest._MAIN_DELIMITER });
+            string[] components = encoded.Split(new char[] { IdentityIssuingRequest._COMPONENT_DELIMITER });
             if (components.Length != 3 ) { throw new ArgumentException("Unexpected number of components found then decoding identity issuing request."); }
             ProfileVersion profile;
             Enum.TryParse<ProfileVersion>(components[0].Substring(1), true, out profile);
@@ -114,7 +114,7 @@ namespace ShiftEverywhere.DiME
             this._claims = JsonSerializer.Deserialize<IirClaims>(json);
             this._capabilities = new List<string>(this._claims.cap).ConvertAll(str => { Capability cap; Enum.TryParse<Capability>(str, true, out cap); return cap; });
             this._signature = components[2];
-            this._encoded = encoded.Substring(0, encoded.LastIndexOf(IdentityIssuingRequest._MAIN_DELIMITER));
+            this._encoded = encoded.Substring(0, encoded.LastIndexOf(IdentityIssuingRequest._COMPONENT_DELIMITER));
         }
 
         protected override string Encode()
@@ -124,7 +124,7 @@ namespace ShiftEverywhere.DiME
                 StringBuilder builder = new StringBuilder(); 
                 builder.Append('i'); // The header of an DiME identity issuing request
                 builder.Append((int)this.Profile);
-                builder.Append(Dime._MAIN_DELIMITER);
+                builder.Append(Dime._COMPONENT_DELIMITER);
                 builder.Append(Utility.ToBase64(JsonSerializer.Serialize(this._claims)));
                 this._encoded = builder.ToString();
             }

@@ -22,7 +22,7 @@ namespace ShiftEverywhere.DiMETest
             Dime.SetTrustedIdentity(Commons.TrustedIdentity);
             ProfileVersion profile = ProfileVersion.One;
             Guid subjectId = Guid.NewGuid();
-            KeyBox keypair = KeyBox.GenerateKey(KeyType.Identity, profile);
+            KeyBox keypair = KeyBox.Generate(KeyType.Identity, profile);
             Identity issuer = Commons.SenderIdentity;
             long now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
             Message message = new Message(subjectId, issuer, 10);
