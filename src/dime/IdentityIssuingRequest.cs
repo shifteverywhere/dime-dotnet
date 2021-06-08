@@ -18,6 +18,8 @@ namespace ShiftEverywhere.DiME
     public class IdentityIssuingRequest: Dime
     {
         #region -- PUBLIC --
+
+        public const string Identifier = "aW8uZGltZWZvcm1hdC5paXI"; // base64 of io.dimeformat.iir
         public const long VALID_FOR_1_YEAR = 365 * 24 * 60 * 60;
         /// <summary></summary>
         public long IssuedAt { get { return this._claims.iat;} }
@@ -104,37 +106,29 @@ namespace ShiftEverywhere.DiME
 
         protected override void Populate(string encoded) 
         {
-            if (Dime.GetType(encoded) != typeof(IdentityIssuingRequest)) { throw new ArgumentException("Invalid header."); }
-            string[] components = encoded.Split(new char[] { IdentityIssuingRequest._COMPONENT_DELIMITER });
-            if (components.Length != 3 ) { throw new ArgumentException("Unexpected number of components found then decoding identity issuing request."); }
-            ProfileVersion profile;
-            Enum.TryParse<ProfileVersion>(components[0].Substring(1), true, out profile);
-            this.Profile = profile;
-            byte[] json = Utility.FromBase64(components[1]);
+            string[] components = encoded.Split(new char[] { Dime._COMPONENT_DELIMITER });
+            if (components.Length != IdentityIssuingRequest._NBR_EXPECTED_COMPONENTS ) { throw new DataFormatException($"Unexpected number of components for identity issuing request, expected {IdentityIssuingRequest._NBR_EXPECTED_COMPONENTS}, got {components.Length}."); }
+            if (components[IdentityIssuingRequest._IDENTIFIER_INDEX] != IdentityIssuingRequest.Identifier) { throw new DataFormatException($"Unexpected object identifier, expected: \"{IdentityIssuingRequest.Identifier}\", got \"{components[IdentityIssuingRequest._IDENTIFIER_INDEX]}\"."); }
+            byte[] json = Utility.FromBase64(components[IdentityIssuingRequest._CLAIMS_INDEX]);
             this._claims = JsonSerializer.Deserialize<IirClaims>(json);
             this._capabilities = new List<string>(this._claims.cap).ConvertAll(str => { Capability cap; Enum.TryParse<Capability>(str, true, out cap); return cap; });
-            this._signature = components[2];
-            this._encoded = encoded.Substring(0, encoded.LastIndexOf(IdentityIssuingRequest._COMPONENT_DELIMITER));
         }
 
-        protected override string Encode()
+        protected override void Encode(StringBuilder builder)
         {
-            if (this._encoded == null) 
-            { 
-                StringBuilder builder = new StringBuilder(); 
-                builder.Append('i'); // The header of an DiME identity issuing request
-                builder.Append((int)this.Profile);
-                builder.Append(Dime._COMPONENT_DELIMITER);
-                builder.Append(Utility.ToBase64(JsonSerializer.Serialize(this._claims)));
-                this._encoded = builder.ToString();
-            }
-            return this._encoded;
+            builder.Append(IdentityIssuingRequest.Identifier);
+            builder.Append(Dime._COMPONENT_DELIMITER);
+            builder.Append(Utility.ToBase64(JsonSerializer.Serialize(this._claims)));
         }
 
         #endregion
 
         #region -- PRIVATE --
         
+        private const int _NBR_EXPECTED_COMPONENTS = 2;
+        private const int _IDENTIFIER_INDEX = 0;
+        private const int _CLAIMS_INDEX = 1;
+
         private struct IirClaims
         {
             public long iat { get; set; }

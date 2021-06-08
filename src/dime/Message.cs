@@ -20,29 +20,31 @@ namespace ShiftEverywhere.DiME
     public class Message: Dime
     {
         #region -- PUBLIC --
+
+        public const string Identifier = "aW8uZGltZWZvcm1hdC5tc2c"; // base64 of io.dimeformat.msg
         /// <summary>The cryptographic profile version used for this envelope.</summary>
-        public new ProfileVersion Profile { get { return base.Profile; } set { Reset(); base.Profile = value; } }
+        public new ProfileVersion Profile { get { return base.Profile; } set { Unseal(); base.Profile = value; } }
         /// <summary>The identity of the issuer, and thus sealer (signer), of the message.</summary>
-        public Identity Identity { get { return this._identity; } set { Reset(); this._identity = value; } }
+        public Identity Identity { get { return this._identity; } set { Unseal(); this._identity = value; } }
         /// <summary>The state property may be used by an issuer to store data that should be returned back
         /// to the issuer unmodified. This allows for stateless message sending.</summary>
-        public byte[] State { get { return this._state != null ? Utility.FromBase64(this._state) : null; } set { Reset(); this._state = value != null ? Utility.ToBase64(value) : null; } }
+        public byte[] State { get { return this._state != null ? Utility.FromBase64(this._state) : null; } set { Unseal(); this._state = value != null ? Utility.ToBase64(value) : null; } }
         /// <summary>A unique identity for the message. If a message is modfied after it has been sealed, then this id changes.</summary>
         public Guid Id { get { return this._claims.uid; } }
         /// <summary>The id of the receiver.</summary>
-        public Guid SubjectId { get { return this._claims.sub; } set { Reset(); this._claims.sub = value; } }
+        public Guid SubjectId { get { return this._claims.sub; } set { Unseal(); this._claims.sub = value; } }
         /// <summary>The id of the issuer (subject id of the issuer).</summary>
-        public Guid IssuerId { get { return this._claims.iss; } set { Reset(); this._claims.iss = value; } }
+        public Guid IssuerId { get { return this._claims.iss; } set { Unseal(); this._claims.iss = value; } }
         /// <summary>The timestamp of when the message was created (issued).</summary>
-        public long IssuedAt { get { return this._claims.iat; } set { Reset(); this._claims.iat = value; } }
+        public long IssuedAt { get { return this._claims.iat; } set { Unseal(); this._claims.iat = value; } }
         /// <summary>The timestamp of when the message is expired and is no longer valid.</summary>
-        public long ExpiresAt { get { return this._claims.exp; } set { Reset(); this._claims.exp = value; } }
+        public long ExpiresAt { get { return this._claims.exp; } set { Unseal(); this._claims.exp = value; } }
         /// <summary>!NOT IMPLEMENTED! (E2EE)</summary>
         public Guid? KeyId { get { return this._claims.kid; } }
         /// <summary>!NOT IMPLEMENTED! (E2EE)</summary>
         public string ExchangeKey { get { return this._claims.xky; } }
         /// <summary>A link to another message. Used when responding to anther message.</summary>
-        public string LinkedTo { get { return this._claims.lnk; } set { Reset(); this._claims.lnk = value; } }
+        public string LinkedTo { get { return this._claims.lnk; } set { Unseal(); this._claims.lnk = value; } }
 
         public Message() { }
 
@@ -78,9 +80,8 @@ namespace ShiftEverywhere.DiME
             // Verify identity
             this.Identity.Verify();
             // Verify signature
-            if (this._signature == null) { throw new IntegrityException("Signature missing."); }
             if (this.Identity.SubjectId != this.IssuerId) { throw new IntegrityException("Issuing identity subject id does not match issuer id of the message."); }
-            Crypto.VerifySignature(this.Profile, Encode(), this._signature, this.Identity.IdentityKey);
+            base.Verify(this.Identity.IdentityKey);
          }
 
         /// <summary>Will verify the data in the fields in the message object. If a message is passed, then it will
@@ -102,12 +103,18 @@ namespace ShiftEverywhere.DiME
             if (components[0] != linkedMessage.Id.ToString() || components[1] != msgHash) { throw new IntegrityException("Failed to verify message link (provided message did not match)."); }
         }
 
+        public override string Thumbprint()
+        {
+            if (this._payload == null || this._payload.Length == 0) { throw new DataFormatException("Unable to generate thumbprint, missing payload."); }
+            return base.Thumbprint();
+        }
+
         /// <summary>Will set a message payload. This may be any valid byte-array, at export this will be
         /// encoded as a Base64 string. If a payload is already set, then the old will be overwritten.</summary>
         /// <param name="payload">The payload to set.</param>
         public void SetPayload(byte[] payload)
         {
-            Reset();
+            Unseal();
             this._payload = Utility.ToBase64(payload);
         }
 
@@ -125,11 +132,9 @@ namespace ShiftEverywhere.DiME
         /// <exception cref="ArgumentNullException">If the passed message object is null.</exception> 
         public void LinkMessage(Message message)
         {
-            Reset();
+            Unseal();
             if (message == null) { throw new ArgumentNullException(nameof(message), "Message to link must not be null."); }
-            this._claims.lnk = string.Format("{0}:{1}",
-                                           message.Id.ToString(),
-                                           message.Thumbprint());
+            this._claims.lnk = $"{message.Id.ToString()}:{message.Thumbprint()}";
         }
 
         #endregion
@@ -138,51 +143,47 @@ namespace ShiftEverywhere.DiME
 
         protected override void Populate(string encoded)
         {
-            if (Dime.GetType(encoded) != typeof(Message)) { throw new DataFormatException("Invalid header."); }
             string[] components = encoded.Split(new char[] { Dime._COMPONENT_DELIMITER });
-            if (components.Length != 5 && components.Length != 6) { throw new DataFormatException("Unexpected number of components found when decoding identity."); }
-            ProfileVersion profile;
-            Enum.TryParse<ProfileVersion>(components[0].Substring(1), true, out profile);
-            this.Profile = profile;
-            if (!Crypto.SupportedProfile(this.Profile)) { throw new UnsupportedProfileException("Unsupported cryptography profile."); }
-            byte[] identityBytes = Utility.FromBase64(components[1]);
+            if (components.Length != Message._NBR_EXPECTED_COMPONENTS_MIN &&
+                components.Length != Message._NBR_EXPECTED_COMPONENTS_MAX) { throw new DataFormatException($"Unexpected number of components for identity issuing request, expected {Message._NBR_EXPECTED_COMPONENTS_MIN} OR {Message._NBR_EXPECTED_COMPONENTS_MAX}, got {components.Length}."); }
+            if (components[Message._IDENTIFIER_INDEX] != Message.Identifier) { throw new DataFormatException($"Unexpected object identifier, expected: \"{Message.Identifier}\", got \"{components[Message._IDENTIFIER_INDEX]}\"."); }
+            byte[] identityBytes = Utility.FromBase64(components[Message._IDENTITY_INDEX]);
             this.Identity = Dime.Import<Identity>(System.Text.Encoding.UTF8.GetString(identityBytes, 0, identityBytes.Length));
-            this._claims = JsonSerializer.Deserialize<MessageClaims>(Utility.FromBase64(components[2]));
-            this._payload = components[3];
-            if(components.Length == 6)
+            this._claims = JsonSerializer.Deserialize<MessageClaims>(Utility.FromBase64(components[Message._CLAIMS_INDEX]));
+            this._payload = components[Message._PAYLOAD_INDEX];
+            if(components.Length == Message._NBR_EXPECTED_COMPONENTS_MAX)
             {
-                this._state = components[4];
+                this._state = components[Message._STATE_INDEX];
             }
-            this._encoded = encoded.Substring(0, encoded.LastIndexOf(Message._COMPONENT_DELIMITER));
-            this._signature = components[components.Length - 1];
         }
 
-        protected override string Encode()
+        protected override void Encode(StringBuilder builder)
         {
-            if ( this._encoded == null ) 
-            {  
-                StringBuilder builder = new StringBuilder(); 
-                builder.Append('M'); // The header of an DiME message
-                builder.Append((int)this.Profile);
+            builder.Append(Message.Identifier);
+            builder.Append(Dime._COMPONENT_DELIMITER);
+            builder.Append(Utility.ToBase64(this.Identity.Export()));
+            builder.Append(Dime._COMPONENT_DELIMITER);
+            builder.Append(Utility.ToBase64(JsonSerializer.Serialize(this._claims)));
+            builder.Append(Dime._COMPONENT_DELIMITER);
+            builder.Append(this._payload);
+            if ( this.State != null)
+            {
                 builder.Append(Dime._COMPONENT_DELIMITER);
-                builder.Append(Utility.ToBase64(this.Identity.Export()));
-                builder.Append(Dime._COMPONENT_DELIMITER);
-                builder.Append(Utility.ToBase64(JsonSerializer.Serialize(this._claims)));
-                builder.Append(Dime._COMPONENT_DELIMITER);
-                builder.Append(this._payload);
-                if ( this.State != null)
-                {
-                    builder.Append(Dime._COMPONENT_DELIMITER);
-                    builder.Append(this._state);
-                }
-                this._encoded = builder.ToString();
+                builder.Append(this._state);
             }
-            return this._encoded;
         }        
 
         #endregion
 
         #region -- PRIVATE --
+
+        private const int _NBR_EXPECTED_COMPONENTS_MIN = 4;
+        private const int _NBR_EXPECTED_COMPONENTS_MAX = 5;
+        private const int _IDENTIFIER_INDEX = 0;
+        private const int _IDENTITY_INDEX = 1;
+        private const int _CLAIMS_INDEX = 2;
+        private const int _PAYLOAD_INDEX = 3;
+        private const int _STATE_INDEX = 3;
 
         private struct MessageClaims
         {
@@ -216,14 +217,14 @@ namespace ShiftEverywhere.DiME
         private string _state;
         private string _payload;
 
-        private void Reset()
+        protected override bool Unseal()
         {
-            if (this.IsSealed)
+            if (base.Unseal())
             {
                 this._claims.uid = Guid.NewGuid();
-                this._encoded = null;
-                this._signature = null;
+                return true;
             }
+            return false;
         }
 
         #endregion

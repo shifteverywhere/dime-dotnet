@@ -43,7 +43,7 @@ namespace ShiftEverywhere.DiME
         {
             if (item != null)
             {
-                Reset();
+                Unseal();
                 if (this.Items == null) { this.Items = new List<byte[]>(); }
                 this.Items.Add(item);
             }
@@ -51,7 +51,7 @@ namespace ShiftEverywhere.DiME
 
         public void RemoveAllItems()
         {
-            Reset();
+            Unseal();
             this.Items = null;
         }
 
@@ -76,42 +76,25 @@ namespace ShiftEverywhere.DiME
             {
                 this.Items.Add(Utility.FromBase64(encodedItem));
             }
-            this._encoded = encoded.Substring(0, encoded.LastIndexOf(Dime._COMPONENT_DELIMITER));
-            this._signature = components[components.Length - 1];
         }        
 
-       protected override string Encode()
+       protected override void Encode(StringBuilder builder)
         {
-              if ( this._encoded == null ) 
-            {  
-                StringBuilder mainBuilder = new StringBuilder();
-                mainBuilder.Append('a') ;// The header of an DiME attachment
-                mainBuilder.Append((int)this.Profile);
-                mainBuilder.Append(Dime._COMPONENT_DELIMITER);
-                StringBuilder itemsBuilder = new StringBuilder();
-                foreach (byte[] item in this.Items)
-                {
-                    itemsBuilder.AppendFormat("{0};", Utility.ToBase64(item));
-                }
-                itemsBuilder.Remove(itemsBuilder.Length - 1, 1);
-                mainBuilder.Append(Utility.ToBase64(itemsBuilder.ToString()));
-                this._encoded = mainBuilder.ToString();
+            builder.Append('a') ;// The header of an DiME attachment
+            builder.Append((int)this.Profile);
+            builder.Append(Dime._COMPONENT_DELIMITER);
+            StringBuilder itemsBuilder = new StringBuilder();
+            foreach (byte[] item in this.Items)
+            {
+                itemsBuilder.AppendFormat("{0};", Utility.ToBase64(item));
             }
-            return this._encoded;
+            itemsBuilder.Remove(itemsBuilder.Length - 1, 1);
+            builder.Append(Utility.ToBase64(itemsBuilder.ToString()));
         }
 
         #endregion
 
         #region -- PRIVATE --
-
-        private void Reset()
-        {
-            if (this.IsSealed)
-            {
-                this._encoded = null;
-                this._signature = null;
-            }
-        }
 
         #endregion
 

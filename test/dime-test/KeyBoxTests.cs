@@ -29,13 +29,13 @@ namespace ShiftEverywhere.DiMETest
         [TestMethod]
         public void ImportTest1()
         {
-            string encoded = "k1.eyJraWQiOiI4MThiNDBlMC03YzM2LTRlZTQtYTExMC0zMzMxNmFlOGI1MjkiLCJrdHkiOjEsImtleSI6Ik1DNENBUUF3QlFZREsyVndCQ0lFSUY2T0pcdTAwMkJvOE5mcDF4NzRxZXhyRWIyYy96Z2p0eXdOM2FKUDhVblNhQi8vNCIsInB1YiI6Ik1Db3dCUVlESzJWd0F5RUE0dEU1eUlTYjNlZjFaNUxRWTBRWjdRZ0JmUkFcdTAwMkJyNkFJSEVtd1pYWDcwZkkifQ";
+            string encoded = "DI1.aW8uZGltZWZvcm1hdC5reWI.eyJraWQiOiJkMzJjMWE4MC00MGM0LTQ2NjgtOGY5My0zYjU5OWQyMzNlMTMiLCJrdHkiOjEsImtleSI6Ik1DNENBUUF3QlFZREsyVndCQ0lFSU9NZWZRempmdVEwRFlhZjNad013UVEzZ3NYT05BNHBHU0ltSXhYaTZ5dkgiLCJwdWIiOiJNQ293QlFZREsyVndBeUVBRkdGNlYva1x1MDAyQk9vbTFcdTAwMkJhZlVPS2V5NjNMMGtzSnBpV3E4XHUwMDJCdFx1MDAyQnliZEJMMFgwIn0";
             KeyBox keypair = Dime.Import<KeyBox>(encoded);
             Assert.AreEqual(ProfileVersion.One, keypair.Profile);
             Assert.AreEqual(KeyType.Identity, keypair.Type);
-            Assert.AreEqual(new Guid("818b40e0-7c36-4ee4-a110-33316ae8b529"), keypair.Id);
-            Assert.AreEqual("MC4CAQAwBQYDK2VwBCIEIF6OJ\u002Bo8Nfp1x74qexrEb2c/zgjtywN3aJP8UnSaB//4", keypair.Key);
-            Assert.AreEqual("MCowBQYDK2VwAyEA4tE5yISb3ef1Z5LQY0QZ7QgBfRA\u002Br6AIHEmwZXX70fI", keypair.PublicKey);
+            Assert.AreEqual(new Guid("d32c1a80-40c4-4668-8f93-3b599d233e13"), keypair.Id);
+            Assert.AreEqual("MC4CAQAwBQYDK2VwBCIEIOMefQzjfuQ0DYaf3ZwMwQQ3gsXONA4pGSImIxXi6yvH", keypair.Key);
+            Assert.AreEqual("MCowBQYDK2VwAyEAFGF6V/k\u002BOom1\u002BafUOKey63L0ksJpiWq8\u002Bt\u002BybdBL0X0", keypair.PublicKey);
         }
 
         [TestMethod]

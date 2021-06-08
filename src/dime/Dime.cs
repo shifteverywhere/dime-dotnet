@@ -15,21 +15,36 @@ namespace ShiftEverywhere.DiME
     public abstract class Dime
     {
         #region -- PUBLIC --
-        
+
+        public const string DIME_HEADER = "DI";
+
         ///<summary>A shared trusted identity that acts as the root identity in the trust chain.</summary>
         public static Identity TrustedIdentity { get { lock(Dime._lock) { return Dime._trustedIdentity; } } }
         /// <summary>The cryptography profile version that is used within the object.</summary>
         public ProfileVersion Profile { get; protected set; }
         /// <summary>Indicates if the object is sealed or not (signed).</summary>
         public bool IsSealed { get { return (this._signature != null && this._signature.Length > 0); } }
+        /// <summary>Indicates if the object can be sealed or not (signed).</summary>
+        public bool Sealable { get; protected set; } = true;
 
         ///<summary>Creates an object from an encoded DiME string.</summary>
         ///<param name="encoded">The encoded DiME string to decode.</param>
         ///<returns>An initialized DiME object.</returns>
         public static T Import<T>(string encoded) where T: Dime, new()
         {
-            T dime = new T(); 
-            dime.Populate(encoded);
+            if (!encoded.StartsWith(Dime.DIME_HEADER)) { throw new DataFormatException("Invalid header."); }
+            T dime = new T();
+            ProfileVersion profile;
+            Enum.TryParse<ProfileVersion>(encoded.Substring(Dime.DIME_HEADER.Length, 1), true, out profile);
+            Crypto.SupportedProfile(profile);
+            dime.Profile = profile;
+            string encodedObject = (dime.Sealable) ? encoded.Substring(0, encoded.LastIndexOf(Dime._COMPONENT_DELIMITER)) : encoded;
+            dime.Populate(encodedObject.Substring(encodedObject.IndexOf(Dime._COMPONENT_DELIMITER)+ 1));
+            if (dime.Sealable)
+            {
+                dime._signature = encoded.Substring(encoded.LastIndexOf(Dime._COMPONENT_DELIMITER) + 1);
+            }
+            dime._encoded = encodedObject;
             return dime;
         }
 
@@ -55,12 +70,12 @@ namespace ShiftEverywhere.DiME
         ///<returns>An encoded DiME string.</returns>
         public virtual string Export() 
         {
-            if (!this.IsSealed) { throw new IntegrityException("Signature missing, cannot export object."); }
-            StringBuilder builder = new StringBuilder();
-            builder.Append(Encode());
-            builder.Append(Dime._COMPONENT_DELIMITER);
-            builder.Append(this._signature);
-            return builder.ToString();
+            if (this.Sealable && !this.IsSealed) { throw new IntegrityException("Signature missing."); }
+            if (this._signature != null)
+            {
+                return $"{this.Encoded}{Dime._COMPONENT_DELIMITER}{this._signature}";
+            }
+            return this.Encoded;
         }
 
         /// <summary>This will seal a message by signing it using the provided private key (of key type 'Identity').
@@ -74,19 +89,19 @@ namespace ShiftEverywhere.DiME
         /// <exception cref="DateExpirationException">If 'IssuedAt' and/or 'ExpiresAt' contain invalid values, or the message has expired.</exception>
         public virtual void Seal(string privateKey)
         {
+            if (!this.Sealable) { throw new IntegrityException("Object is not sealable."); }
             if (!this.IsSealed)
             {
                 if (privateKey == null) { throw new ArgumentNullException(nameof(privateKey), "Private key for signing cannot be null."); }
-                this._signature = Crypto.GenerateSignature(this.Profile, Encode(), privateKey);
+                this._signature = Crypto.GenerateSignature(this.Profile, this.Encoded, privateKey);
             }
         }
 
         /// <summary>Generates a cryptographically unique thumbprint of the DiME object.</summary>
         /// <returns>An unique thumbprint.</returns>
-        public string Thumbprint()
+        public virtual string Thumbprint()
         {
-            if (!this.IsSealed) { throw new IntegrityException("Unable to generate thumbprint, objected not sealed."); }
-            return Crypto.GenerateHash(this.Profile, Encode());
+            return Crypto.GenerateHash(this.Profile, this.Encoded);
         }
 
         ///<summary>Set the shared trusted identity, which forms the basis of the trust chain. All identities will be verified
@@ -114,16 +129,41 @@ namespace ShiftEverywhere.DiME
         protected virtual void Verify(string publicKey)
         {
             if (this._signature == null || this._signature.Length == 0) { throw new IntegrityException("Signature missing"); }
-            Crypto.VerifySignature(this.Profile, Encode(), this._signature, publicKey);
+            Crypto.VerifySignature(this.Profile, this.Encoded, this._signature, publicKey);
         }
 
         protected const char _COMPONENT_DELIMITER = '.';
         protected const char _ARRAY_ITEM_DELIMITER = ';';
         protected const char _ATTATCHMENT_DELIMITER = ':';
-        protected string _signature;
-        protected string _encoded;
+        
+        protected string Encoded 
+        { 
+            get 
+            { 
+                if (this._encoded == null)
+                {
+                    StringBuilder builder = new StringBuilder();
+                    builder.Append(Dime.DIME_HEADER);
+                    builder.Append((int)this.Profile);
+                    builder.Append(Dime._COMPONENT_DELIMITER);
+                    Encode(builder);
+                    this._encoded = builder.ToString();
+                }
+                return this._encoded;
+            } 
+        }
 
-        protected abstract string Encode();
+        protected abstract void Encode(StringBuilder builder);
+
+        protected virtual bool Unseal()
+        {
+            if (this.IsSealed) {
+                this._encoded = null;
+                this._signature = null;
+                return true;
+            }
+            return false;
+        }
 
         #endregion
 
@@ -131,6 +171,8 @@ namespace ShiftEverywhere.DiME
 
         private static readonly object _lock = new object();
         private static Identity _trustedIdentity;
+        private string _encoded;
+        private string _signature;
 
         #endregion 
 

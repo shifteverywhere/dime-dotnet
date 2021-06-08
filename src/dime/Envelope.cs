@@ -20,22 +20,25 @@ namespace ShiftEverywhere.DiME
     public class Envelope: Dime
     {
         #region -- PUBLIC --
+
+        public const string Identifier = "aW8uZGltZWZvcm1hdC5lbnY"; // base64 of io.dimeformat.env
+
         ///<summary>The cryptographic profile version used for this envelope.</summary>
-        public new ProfileVersion Profile { get { return base.Profile; } set { Reset(); base.Profile = value; } }
+        public new ProfileVersion Profile { get { return base.Profile; } set { Unseal(); base.Profile = value; } }
         /// <summary>The identity of the issuer, and thus sealer (signer), of the enveloper.</summary>
-        public Identity Identity { get { return this._identity; } set { this.Reset(); this._identity = value; } }
+        public Identity Identity { get { return this._identity; } set { this.Unseal(); this._identity = value; } }
         /// <summary>A unique identity for the envelope. If an envelope is modfied after it has been sealed, then this id changes.</summary>
         public Guid Id { get { return this._claims.uid; } }
         /// <summary>A list of messages kept inside the envelope.</summary>
         public List<Message> Messages { get; private set; }
         /// <summary>The id of the receiver.</summary>
-        public Guid SubjectId { get { return this._claims.sub; } set { this.Reset(); this._claims.sub = value; } }
+        public Guid SubjectId { get { return this._claims.sub; } set { this.Unseal(); this._claims.sub = value; } }
         /// <summary>The id of the issuer (subject id of the issuer).</summary>
-        public Guid IssuerId { get { return this._claims.iss; } set { this.Reset(); this._claims.iss = value; } }
+        public Guid IssuerId { get { return this._claims.iss; } set { this.Unseal(); this._claims.iss = value; } }
         /// <summary>The timestamp of when the envelope was created (issued).</summary>
-        public long IssuedAt { get { return this._claims.iat; } set { this.Reset(); this._claims.iat = value; } }
+        public long IssuedAt { get { return this._claims.iat; } set { this.Unseal(); this._claims.iat = value; } }
         /// <summary>The timestamp of when the envelope is expired and is no longer valid.</summary>
-        public long ExpiresAt { get { return this._claims.exp; } set { this.Reset(); this._claims.exp = value; } }
+        public long ExpiresAt { get { return this._claims.exp; } set { this.Unseal(); this._claims.exp = value; } }
 
         public Envelope() { }
 
@@ -67,6 +70,12 @@ namespace ShiftEverywhere.DiME
             base.Seal(privateKey);
         }
 
+        public override string Thumbprint()
+        {
+            if (this.Messages == null || this.Messages.Count == 0) { throw new DataFormatException("Unable to generate thumbprint, no messages added."); }
+            return base.Thumbprint();
+        }
+
         /// <summary>Adds a message to the envelope. Call to this function will reset the envelope and it
         /// needs to be sealed again. Messages must have been sealed before being added to an envelope.</summary>
         /// <param name="message">The message object to add to the envelope</param>
@@ -76,7 +85,7 @@ namespace ShiftEverywhere.DiME
             if (message != null)
             {
                 if (!message.IsSealed) { throw new IntegrityException("Message must be sealed before being added to an envelope."); }
-                Reset();
+                Unseal();
                 if (this.Messages == null) { this.Messages = new List<Message>(); }
                 this.Messages.Add(message);            
             }
@@ -86,11 +95,11 @@ namespace ShiftEverywhere.DiME
         /// needs to be sealed again.</summary>
         public void RemoveAllMessages()
         {
-            Reset();
+            Unseal();
             this.Messages = null;
         }
 
-        public override void Verify() { Verify(false); }
+        public override void Verify() { this.Verify(false); }
 
         /// <summary>Will verify the data in the fields in the evelope object. It will also verify all underlaying
         /// objects if 'shallowVerification' is set to true (or omitted). The signature of the envelope object will
@@ -127,9 +136,8 @@ namespace ShiftEverywhere.DiME
                 }
             }
             // Verify signature
-            if (this._signature == null) { throw new IntegrityException("Signature missing."); }
             if (this.Identity.SubjectId != this.IssuerId) { throw new IntegrityException("Issuing identity subject id does not match issuer id of the envelope."); }
-            Crypto.VerifySignature(this.Profile, Encode(), this._signature, this.Identity.IdentityKey);
+            base.Verify(this.Identity.IdentityKey);
         }
 
         #endregion
@@ -138,17 +146,12 @@ namespace ShiftEverywhere.DiME
 
         protected override void Populate(string encoded)
         {
-            if (Dime.GetType(encoded) != typeof(Envelope)) { throw new DataFormatException("Invalid header."); }
-            string[] components = encoded.Split(new char[] { Envelope._COMPONENT_DELIMITER });
-            if (components.Length != 5) { throw new DataFormatException("Unexpected number of components found then decoding identity."); }
-            ProfileVersion profile;
-            Enum.TryParse<ProfileVersion>(components[0].Substring(1), true, out profile);
-            this.Profile = profile;
-            if (!Crypto.SupportedProfile(this.Profile)) { throw new UnsupportedProfileException("Unsupported cryptography profile."); }
-            byte[] identityBytes = Utility.FromBase64(components[1]);
+            string[] components = encoded.Split(new char[] { Dime._COMPONENT_DELIMITER });
+            if (components.Length != Envelope._NBR_EXPECTED_COMPONENTS ) { throw new DataFormatException($"Unexpected number of components for identity issuing request, expected {Envelope._NBR_EXPECTED_COMPONENTS}, got {components.Length}."); }
+            if (components[Envelope._IDENTIFIER_INDEX] != Envelope.Identifier) { throw new DataFormatException($"Unexpected object identifier, expected: \"{Envelope.Identifier}\", got \"{components[Envelope._IDENTIFIER_INDEX]}\"."); }
+            byte[] identityBytes = Utility.FromBase64(components[Envelope._IDENTITY_INDEX]);
             this.Identity = Dime.Import<Identity>(System.Text.Encoding.UTF8.GetString(identityBytes, 0, identityBytes.Length));
-            this._claims = JsonSerializer.Deserialize<EnvelopeClaims>(Utility.FromBase64(components[3]));
-            byte[] msgBytes = Utility.FromBase64(components[2]);
+            byte[] msgBytes = Utility.FromBase64(components[Envelope._MESSAGES_INDEX]);
             string[] msgArray = System.Text.Encoding.UTF8.GetString(msgBytes, 0, msgBytes.Length).Split(new char[] { Dime._ARRAY_ITEM_DELIMITER });
             this.Messages = new List<Message>();
             foreach(string msg in msgArray)
@@ -156,37 +159,35 @@ namespace ShiftEverywhere.DiME
                 Message message = Dime.Import<Message>(msg);
                 this.Messages.Add(message); 
             }
-            this._encoded = encoded.Substring(0, encoded.LastIndexOf(Dime._COMPONENT_DELIMITER));
-            this._signature = components[components.Length - 1];
+            this._claims = JsonSerializer.Deserialize<EnvelopeClaims>(Utility.FromBase64(components[Envelope._CLAIMS_INDEX]));
         }
 
-        protected override string Encode()
+        protected override void Encode(StringBuilder builder)
         {
-            if (this._encoded == null) 
-            {  
-                StringBuilder envBuilder = new StringBuilder();
-                envBuilder.Append('E'); // This is the header of an DiME envelope
-                envBuilder.Append((int)this.Profile);
-                envBuilder.Append(Dime._COMPONENT_DELIMITER);
-                envBuilder.Append(Utility.ToBase64(this.Identity.Export()));
-                envBuilder.Append(Dime._COMPONENT_DELIMITER);
-                StringBuilder msgBuilder = new StringBuilder();
-                foreach (Message message in this.Messages)
-                {
-                    msgBuilder.AppendFormat("{0};", message.Export());
-                }
-                msgBuilder.Remove(msgBuilder.Length - 1, 1); 
-                envBuilder.Append(Utility.ToBase64(msgBuilder.ToString()));
-                envBuilder.Append(Dime._COMPONENT_DELIMITER);
-                envBuilder.Append(Utility.ToBase64(JsonSerializer.Serialize(this._claims)));
-                this._encoded = envBuilder.ToString();
+            builder.Append(Envelope.Identifier);
+            builder.Append(Dime._COMPONENT_DELIMITER);
+            builder.Append(Utility.ToBase64(this.Identity.Export()));
+            builder.Append(Dime._COMPONENT_DELIMITER);
+            StringBuilder msgBuilder = new StringBuilder();
+            foreach (Message message in this.Messages)
+            {
+                msgBuilder.AppendFormat("{0};", message.Export());
             }
-            return this._encoded;
+            msgBuilder.Remove(msgBuilder.Length - 1, 1); 
+            builder.Append(Utility.ToBase64(msgBuilder.ToString()));
+            builder.Append(Dime._COMPONENT_DELIMITER);
+            builder.Append(Utility.ToBase64(JsonSerializer.Serialize(this._claims)));
         }
 
         #endregion
 
         #region -- PRIVATE --
+
+        private const int _NBR_EXPECTED_COMPONENTS = 4;
+        private const int _IDENTIFIER_INDEX = 0;
+        private const int _IDENTITY_INDEX = 1;
+        private const int _MESSAGES_INDEX = 2;
+        private const int _CLAIMS_INDEX = 3;
 
         private struct EnvelopeClaims
         {
@@ -209,15 +210,16 @@ namespace ShiftEverywhere.DiME
         private EnvelopeClaims _claims;
         private Identity _identity;
 
-        private void Reset()
+         protected override bool Unseal()
         {
-            if (this.IsSealed)
+            if (base.Unseal())
             {
                 this._claims.uid = Guid.NewGuid();
-                this._encoded = null;
-                this._signature = null;
+                return true;
             }
+            return false;
         }
+        
         #endregion
     }
 

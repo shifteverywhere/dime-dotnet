@@ -6,6 +6,8 @@
 //  Released under the MIT licence, see LICENSE for more information.
 //  Copyright © 2021 Shift Everywhere AB. All rights reserved.
 //
+/*
+TODO: uncomment when attachment is implemented (again)
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.Text;
@@ -124,3 +126,4 @@ namespace ShiftEverywhere.DiMETest
     }
 
 }
+*/

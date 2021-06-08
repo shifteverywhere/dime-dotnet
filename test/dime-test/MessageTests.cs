@@ -70,8 +70,8 @@ namespace ShiftEverywhere.DiMETest
             string encoded = message.Export();
             Assert.IsNotNull(encoded);
             Assert.IsTrue(encoded.Length > 0);
-            Assert.IsTrue(encoded.StartsWith("M" + (int)message.Profile));
-            Assert.IsTrue(encoded.Split(new char[] { '.' }).Length == 5);          
+            Assert.IsTrue(encoded.StartsWith(Dime.DIME_HEADER));
+            Assert.IsTrue(encoded.Split(new char[] { '.' }).Length == 6);          
         }  
 
         [TestMethod]
@@ -112,22 +112,22 @@ namespace ShiftEverywhere.DiMETest
         public void ImportTest1()
         {   
             Dime.SetTrustedIdentity(Commons.TrustedIdentity);
-            string encoded = "M1.STEuZXlKemRXSWlPaUpoWWpWaU9HTXdaQzFtWkRJNExUUmpNekF0T0RReVppMHpORGRpTkRoak9EWmtZbU1pTENKcGMzTWlPaUkzTVdVeVltVTFZeTAzTVdWa0xUUXlZalF0WW1ZNU1pMDRabUppWm1VMk1qQTNOMk1pTENKcFlYUWlPakUyTWpFNU56SXdNalFzSW1WNGNDSTZNVFkxTXpVd09EQXlOQ3dpYVd0NUlqb2lUVU52ZDBKUldVUkxNbFozUVhsRlFXbFRkR1IxU25wd2RVdHFjMHRLTlZ4MU1EQXlRbTVQT1VSMFIwTk9TMXBpY0ZCR1RUVlBORlJFUnpNMVMwVklaeUlzSW1OaGNDSTZXeUpoZFhSb2IzSnBlbVVpWFgwLndDV20xT3ExMHFVK3hPYVZVTTJwR1dHUmQxakgxc2FWYXRGMUc2Zy93UFUySHY5dGFSWGhINGtWVWc0NnFjcU0yTTRKd0JVZm8xbWM2dU10Z1JOSkJR.eyJ1aWQiOiIyMzdlNWVlMi1hMDIwLTQ0YmYtOTZlZC02ZWVmNmZjZTE5NWMiLCJzdWIiOiIzODAxOTVkOC01ZjUyLTQzZmItOGVjNi0zN2RiYWRhZWNiNDkiLCJpc3MiOiJhYjViOGMwZC1mZDI4LTRjMzAtODQyZi0zNDdiNDhjODZkYmMiLCJpYXQiOjE2MjIwNjEwMjgsImV4cCI6MTY1MzU5NzAyOH0.UmFjZWNhciBpcyByYWNlY2FyIGJhY2t3YXJkcy4.w66UHVASUtiIZAEbNTMel9VSFpiJ+IkuBiB2xZFQRZxi+7Xp4D+Ti9v5WF93Dqf0Jd20Wa9mFPsdhitWoPa/Bg";
+            string encoded = "DI1.aW8uZGltZWZvcm1hdC5tc2c.REkxLmFXOHVaR2x0WldadmNtMWhkQzVwWkEuZXlKemRXSWlPaUkwTVRRMFpUa3dNaTB3WXpGa0xUUTRORGd0T1RCbVl5MWxaREJrT1RNek9HSTJNek1pTENKcGMzTWlPaUk1WVdVNE5EVm1aaTA0TnpRM0xUUXlZV0l0WW1SaFlpMWxZbU14TldNNE9HRTNOMlFpTENKcFlYUWlPakUyTWpNeE9ERXhNemNzSW1WNGNDSTZNVFkxTkRjeE56RXpOeXdpYVd0NUlqb2lUVU52ZDBKUldVUkxNbFozUVhsRlFUbHpZVlZEUW5OY2RUQXdNa0pOTkhOU2FqVnVhVVoxUmxaWEwzTTFZazVGVUd4eVZsTTNTMGxNVm1aelVGSnFieUlzSW1OaGNDSTZXeUpuWlc1bGNtbGpJaXdpYVdSbGJuUnBabmtpWFgwLlJFa3hMbUZYT0hWYVIyeDBXbGRhZG1OdE1XaGtRelZ3V2tFdVpYbEtlbVJYU1dsUGFVazFXVmRWTkU1RVZtMWFhVEEwVG5wUk0weFVVWGxaVjBsMFdXMVNhRmxwTVd4WmJVMTRUbGROTkU5SFJUTk9NbEZwVEVOS2NHTXpUV2xQYVVrelRsUkJNRTVxUVROTmFUQXhUV3BaTkV4VVVURmFWR2QwV1cxV2FFNVRNREphUkZGNFQxZEZOVTV0U1hsT2FrVnBURU5LY0ZsWVVXbFBha1V5VFdwTmVFOUVRVFJOVkdOelNXMVdOR05EU1RaTlZHTTBUVVJuTWsxRVozaE9lWGRwWVZkME5VbHFiMmxVVlU1MlpEQktVbGRWVWt4TmJGb3pVVmhzUmxGWGRIUmFiRlpYVW01bk1scFVRbHBpYTJ4d1QxWldZV0l4VVhsVlZrcEZUa2RhUkZGNlNUQldWMHBTV2toc01XSklUalJpV0dSalpGUkJkMDFyU2t0V1UwbHpTVzFPYUdORFNUWlhlVXB1V2xjMWJHTnRiR3BKYVhkcFlWaE9lbVJYVldsWVdEQXVkeXRMTUV3Mk1FSnVaM1ZDWW14Nk0zWmtjV2RKSzJkbk1HOURXWEYxZUhGVk5qQlFUVFZrUzFSVFIxTmpiMUJpYkRVM01sRnpTM0p0VlRGdmQwWnFWMHQzTjNSUVZUVndjR1ZSWlNzd2IyRnlVMHBLUkdjLk1KdS85c0tYK3VGNWtnRFNiSEh3ck50Rk9LSjk2dXBoNDdCRmRMWC9SVEthU3BBUU5WRlFjMTAzdkhwWTRLaVVQcURSd0w3eCtwUGRxTzlLcDl6ZEJR.eyJ1aWQiOiJjNGY3ZDJhNC0xNTQ5LTQ0ZGYtOGVhMS01MDVhMmQ5OThhYmYiLCJzdWIiOiIyNjBmZWM3Zi1jODgzLTQ4ZjMtODFmMS1lYTkyZTZiNTM1YmYiLCJpc3MiOiI0MTQ0ZTkwMi0wYzFkLTQ4NDgtOTBmYy1lZDBkOTMzOGI2MzMiLCJpYXQiOjE2MjMxODMxOTIsImV4cCI6MTYyMzE4MzIwMn0.UmFjZWNhciBpcyByYWNlY2FyIGJhY2t3YXJkcy4.MgxHn8hjzvK5Mggn3FEc/6iS71CbAf5xLWWHpQhSAkcMrUpGhYAqMt7lO8QXqR4xEPHm7nBUaU+o2vA1NImWCQ";
             Message message = Dime.Import<Message>(encoded);
             Assert.AreEqual(ProfileVersion.One, message.Profile);
-            Assert.AreEqual(new Guid("237e5ee2-a020-44bf-96ed-6eef6fce195c"), message.Id);
-            Assert.AreEqual(new Guid("380195d8-5f52-43fb-8ec6-37dbadaecb49"), message.SubjectId);
-            Assert.AreEqual(new Guid("ab5b8c0d-fd28-4c30-842f-347b48c86dbc"), message.IssuerId);
+            Assert.AreEqual(new Guid("c4f7d2a4-1549-44df-8ea1-505a2d998abf"), message.Id);
+            Assert.AreEqual(new Guid("260fec7f-c883-48f3-81f1-ea92e6b535bf"), message.SubjectId);
+            Assert.AreEqual(new Guid("4144e902-0c1d-4848-90fc-ed0d9338b633"), message.IssuerId);
             Assert.AreEqual("Racecar is racecar backwards.", System.Text.Encoding.UTF8.GetString(message.GetPayload()));
-            Assert.AreEqual(1622061028, message.IssuedAt);
-            Assert.AreEqual(1653597028, message.ExpiresAt);
+            Assert.AreEqual(1623183192, message.IssuedAt);
+            Assert.AreEqual(1623183202, message.ExpiresAt);
             Assert.IsNull(message.State);
             Assert.IsNotNull(message.Identity);
             Assert.AreEqual(message.IssuerId, message.Identity.SubjectId);
-            Assert.AreEqual(new Guid("71e2be5c-71ed-42b4-bf92-8fbbfe62077c"), message.Identity.IssuerId);
-            Assert.AreEqual(1621972024, message.Identity.IssuedAt);
-            Assert.AreEqual(1653508024, message.Identity.ExpiresAt);
-            Assert.AreEqual("MCowBQYDK2VwAyEAiStduJzpuKjsKJ5\u002BnO9DtGCNKZbpPFM5O4TDG35KEHg", message.Identity.IdentityKey);
+            Assert.AreEqual(new Guid("9ae845ff-8747-42ab-bdab-ebc15c88a77d"), message.Identity.IssuerId);
+            Assert.AreEqual(1623181137, message.Identity.IssuedAt);
+            Assert.AreEqual(1654717137, message.Identity.ExpiresAt);
+            Assert.AreEqual("MCowBQYDK2VwAyEA9saUCBs\u002BM4sRj5niFuFVW/s5bNEPlrVS7KILVfsPRjo", message.Identity.IdentityKey);
         } 
 
         [TestMethod]
@@ -256,10 +256,9 @@ namespace ShiftEverywhere.DiMETest
         {
             Dime.SetTrustedIdentity(Commons.TrustedIdentity);
             Message message = new Message(Commons.ReceiverIdentity.SubjectId, Commons.SenderIdentity, 100);
-            message.SetPayload(Encoding.UTF8.GetBytes("Racecar is racecar backwards."));
             try {
                 message.Thumbprint();
-            } catch (IntegrityException) { return; } // All is well
+            } catch (DataFormatException) { return; } // All is well
             Assert.IsTrue(false, "Should not happen.");
         }
  

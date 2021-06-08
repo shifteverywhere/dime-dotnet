@@ -17,6 +17,8 @@ namespace ShiftEverywhere.DiME
     {
         #region -- PUBLIC --
 
+        public const string Identifier = "aW8uZGltZWZvcm1hdC5reWI"; // base64 of io.dimeformat.kyb
+
         /// <summary></summary>
         public Guid Id { get { return this._claims.kid; } }
         /// <summary></summary>
@@ -27,18 +29,12 @@ namespace ShiftEverywhere.DiME
         public string PublicKey { get { return this._claims.pub; } }
 
         /// <summary></summary>
-        public KeyBox() { }
+        public KeyBox() { this.Sealable = false; }
 
         /// <summary></summary>
         public static KeyBox Generate(KeyType type, ProfileVersion profile = Crypto.DEFUALT_PROFILE)
         {
             return Crypto.GenerateKeyPair(profile, type);
-        }
-
-        /// <summary></summary>
-        public override string Export() 
-        {
-            return Encode();
         }
 
         /// <summary></summary>
@@ -51,12 +47,11 @@ namespace ShiftEverywhere.DiME
         internal KeyBox(Guid id, KeyType type, string key, string publicKey, ProfileVersion profile)
         {
             if (!Crypto.SupportedProfile(profile)) { throw new UnsupportedProfileException(); }
-
             if (key == null || key.Length == 0) { throw new ArgumentNullException(nameof(key), "Key must not be empty or null."); }
             if ((type == KeyType.Identity || type == KeyType.Exchange) && (publicKey == null || publicKey.Length == 0)) { throw new ArgumentNullException(nameof(publicKey), "A public key must be provided for asymmetric keys."); }
+            this.Sealable = false;
             this._claims = new KeyBoxClaims(id, type, key, publicKey);
             this.Profile = profile;
-            this._encoded = null;
         }
 
         #endregion
@@ -65,36 +60,29 @@ namespace ShiftEverywhere.DiME
 
         protected override void Populate(string encoded)
         {
-            if (Dime.GetType(encoded) != typeof(KeyBox)) { throw new ArgumentException("Invalid header."); }
             string[] components = encoded.Split(new char[] { Dime._COMPONENT_DELIMITER });
-            if (components.Length != 2) { throw new ArgumentException("Unexpected number of components found then decoding keypair."); }
-            ProfileVersion profile;
-            Enum.TryParse<ProfileVersion>(components[0].Substring(1), true, out profile);
-            this.Profile = profile;
-            if (!Crypto.SupportedProfile(this.Profile)) { throw new UnsupportedProfileException(); }
-            byte[] json = Utility.FromBase64(components[1]);
+            if (components.Length != KeyBox._NBR_EXPECTED_COMPONENTS) { throw new DataFormatException($"Unexpected number of components for identity issuing request, expected {KeyBox._NBR_EXPECTED_COMPONENTS}, got {components.Length}."); }
+            if (components[KeyBox._IDENTIFIER_INDEX] != KeyBox.Identifier) { throw new DataFormatException($"Unexpected object identifier, expected: \"{KeyBox.Identifier}\", got \"{components[KeyBox._IDENTIFIER_INDEX]}\"."); }
+            byte[] json = Utility.FromBase64(components[KeyBox._CLAIMS_INDEX]);
             this._claims = JsonSerializer.Deserialize<KeyBoxClaims>(json);
         }
 
         protected override void Verify(string publicKey) { /* Keypair objects are not yet signed, so just ignore verification. */ }
 
-        protected override string Encode()
+        protected override void Encode(StringBuilder builder)
         {
-            if ( this._encoded == null ) 
-            {  
-                StringBuilder builder = new StringBuilder();
-                builder.Append('k') ;// The header of an DiME keybox
-                builder.Append((int)this.Profile);
-                builder.Append(Dime._COMPONENT_DELIMITER);
-                builder.Append(Utility.ToBase64(JsonSerializer.Serialize(this._claims)));
-                this._encoded = builder.ToString();
-            }
-            return this._encoded;
+            builder.Append(KeyBox.Identifier);
+            builder.Append(Dime._COMPONENT_DELIMITER);
+            builder.Append(Utility.ToBase64(JsonSerializer.Serialize(this._claims)));
         }
 
         #endregion
 
         #region -- PRIVATE --
+
+        private const int _NBR_EXPECTED_COMPONENTS = 2;
+        private const int _IDENTIFIER_INDEX = 0;
+        private const int _CLAIMS_INDEX = 1;
 
         private struct KeyBoxClaims
         {

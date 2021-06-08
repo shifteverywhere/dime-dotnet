@@ -20,6 +20,9 @@ namespace ShiftEverywhere.DiME
     public class Identity: Dime
     {
         #region -- PUBLIC --
+
+        public const string Identifier = "aW8uZGltZWZvcm1hdC5pZA"; // base64 of io.dimeformat.id
+
         /// <summary>A unique UUID (GUID) of the identity. Same as the "sub" field.</summary>
         public Guid SubjectId { get { return this._claims.sub; } }        
         /// <summary>The date when the identity was issued, i.e. approved by the issuer. Same as the "iat" field.</summary>
@@ -112,55 +115,42 @@ namespace ShiftEverywhere.DiME
 
         protected override void Populate(string encoded) 
         {
-            if (Dime.GetType(encoded) != typeof(Identity)) { throw new DataFormatException("Invalid header."); }
-            string[] parts = encoded.Split(new char[] { Dime._ATTATCHMENT_DELIMITER });
-            if (parts.Length == 0 || parts[0] == null) { throw new DataFormatException("Invalid format."); }
-            // Parse identity            
-            string[] components = parts[0].Split(new char[] { Dime._COMPONENT_DELIMITER });
-            if (components.Length != 3 && components.Length != 4) { throw new ArgumentException("Unexpected number of components found when decoding identity."); }
-            ProfileVersion profile;
-            Enum.TryParse<ProfileVersion>(components[0].Substring(1), true, out profile);
-            this.Profile = profile;
-            if (!Crypto.SupportedProfile(this.Profile)) { throw new ArgumentException("Unsupported cryptography profile."); }
-            byte[] json = Utility.FromBase64(components[1]);
+            string[] components = encoded.Split(new char[] { Dime._COMPONENT_DELIMITER });
+            if (components.Length != Identity._NBR_EXPECTED_COMPONENTS_MIN &&
+                components.Length != Identity._NBR_EXPECTED_COMPONENTS_MAX) { throw new DataFormatException($"Unexpected number of components for identity issuing request, expected {Identity._NBR_EXPECTED_COMPONENTS_MIN} OR {Identity._NBR_EXPECTED_COMPONENTS_MAX}, got {components.Length}."); }
+            if (components[Identity._IDENTIFIER_INDEX] != Identity.Identifier) { throw new DataFormatException($"Unexpected object identifier, expected: \"{Identity.Identifier}\", got \"{components[Identity._IDENTIFIER_INDEX]}\"."); }
+
+            byte[] json = Utility.FromBase64(components[Identity._CLAIMS_INDEX]);
             this._claims = JsonSerializer.Deserialize<IdentityClaims>(json);
             this._capabilities = new List<string>(this._claims.cap).ConvertAll(str => { Capability cap; Enum.TryParse<Capability>(str, true, out cap); return cap; });
-            if (components.Length == 4)
+            if (components.Length == Identity._NBR_EXPECTED_COMPONENTS_MAX) // There is also a trust chain identity 
             {
-                byte[] issIdentity = Utility.FromBase64(components[2]);
+                byte[] issIdentity = Utility.FromBase64(components[Identity._CHAIN_INDEX]);
                 this.TrustChain = Dime.Import<Identity>(System.Text.Encoding.UTF8.GetString(issIdentity, 0, issIdentity.Length));
-            }
-            this._encoded = encoded.Substring(0, parts[0].LastIndexOf(Identity._COMPONENT_DELIMITER));
-            this._signature = components[components.Length - 1];
-            // Parse attachment
-            if (parts.Length == 2 && parts[1] != null)
-            {
-                this.Attachment = Dime.Import<Attachment>(parts[1]);
             }
         }
 
-        protected override string Encode()
+        protected override void Encode(StringBuilder builder)
         {
-            if (this._encoded == null) 
-            {  
-                StringBuilder builder = new StringBuilder();
-                builder.Append('I'); // The header of a DiME identity
-                builder.Append((int)this.Profile);
+            builder.Append(Identity.Identifier);
+            builder.Append(Dime._COMPONENT_DELIMITER);
+            builder.Append(Utility.ToBase64(JsonSerializer.Serialize(this._claims)));
+            if (this.TrustChain != null)
+            {
                 builder.Append(Dime._COMPONENT_DELIMITER);
-                builder.Append(Utility.ToBase64(JsonSerializer.Serialize(this._claims)));
-                if (this.TrustChain != null)
-                {
-                    builder.Append(Dime._COMPONENT_DELIMITER);
-                    builder.Append(Utility.ToBase64(this.TrustChain.Export()));
-                }
-                this._encoded = builder.ToString();
+                builder.Append(Utility.ToBase64(this.TrustChain.Export()));
             }
-            return this._encoded;
         }
 
         #endregion
 
         #region -- PRIVATE --
+
+        private const int _NBR_EXPECTED_COMPONENTS_MIN = 2;
+        private const int _NBR_EXPECTED_COMPONENTS_MAX = 3;
+        private const int _IDENTIFIER_INDEX = 0;
+        private const int _CLAIMS_INDEX = 1;
+        private const int _CHAIN_INDEX = 2;
 
         private struct IdentityClaims
         {
