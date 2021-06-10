@@ -18,11 +18,12 @@ namespace ShiftEverywhere.DiME
     public class IdentityIssuingRequest: Dime
     {
         #region -- PUBLIC --
-
-        public const string Identifier = "aW8uZGltZWZvcm1hdC5paXI"; // base64 of io.dimeformat.iir
-        public const long VALID_FOR_1_YEAR = 365 * 24 * 60 * 60;
+        public const string ITID = "aW8uZGltZWZvcm1hdC5paXI"; // base64 of io.dimeformat.iir
+        public override string TypeId { get { return IdentityIssuingRequest.ITID; } } 
         /// <summary></summary>
-        public long IssuedAt { get { return this._claims.iat;} }
+        public override Guid Id { get { return this._claims.uid; } }
+        /// <summary></summary>
+        public long IssuedAt { get { return this._claims.iat; } }
         /// <summary></summary>
         public string IdentityKey { get { return this._claims.iky; } }
 
@@ -53,15 +54,15 @@ namespace ShiftEverywhere.DiME
             {
                 cap = new string[1] { Capability.Generic.ToString().ToLower() };
             }
-            iir._claims = new IirClaims(now, keypair.PublicKey, cap);
-            iir.Seal(keypair.Key);
+            iir._claims = new IirClaims((int)iir.Profile,Guid.NewGuid(), now, keypair.PublicKey, cap);
+            iir._signature = Crypto.GenerateSignature(iir.Profile, iir.Encoded(), keypair.Key);
             return iir;
         }
 
-        public override void Verify()
+        public void Verify()
         {
-            if (DateTimeOffset.UtcNow.ToUnixTimeSeconds() < this.IssuedAt) { throw new DateExpirationException("An identity issuing request cannot be issued in the future."); }
-            base.Verify(this.IdentityKey);
+            if (DateTimeOffset.UtcNow.ToUnixTimeSeconds() < this.IssuedAt) { throw new DateExpirationException("An identity issuing request cannot be issued at in the future."); }
+            Crypto.VerifySignature(this.Profile, this._encoded, this._signature, this.IdentityKey);
         }
 
         public bool WantsCapability(Capability capability)
@@ -88,7 +89,7 @@ namespace ShiftEverywhere.DiME
                 long now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
                 Guid issuerId = issuerIdentity != null ? issuerIdentity.SubjectId : subjectId;
                 Identity identity = new Identity(subjectId, this.IdentityKey, now, (now + validFor), issuerId, this._capabilities, this.Profile);
-                if (Identity.TrustedIdentity != null && issuerIdentity != null && issuerIdentity.SubjectId != Identity.TrustedIdentity.SubjectId)
+                if (Dime.TrustedIdentity != null && issuerIdentity != null && issuerIdentity.SubjectId != Dime.TrustedIdentity.SubjectId)
                 {
                     issuerIdentity.Verify();
                     // The chain will only be set if this is not the trusted identity (and as long as one is set)
@@ -102,51 +103,67 @@ namespace ShiftEverywhere.DiME
 
         #endregion
 
-        #region -- PROTECTED --
+        #region -- INTERNAL --
 
-        protected override void Populate(string encoded) 
+        internal override void Populate(string encoded) 
         {
             string[] components = encoded.Split(new char[] { Dime._COMPONENT_DELIMITER });
             if (components.Length != IdentityIssuingRequest._NBR_EXPECTED_COMPONENTS ) { throw new DataFormatException($"Unexpected number of components for identity issuing request, expected {IdentityIssuingRequest._NBR_EXPECTED_COMPONENTS}, got {components.Length}."); }
-            if (components[IdentityIssuingRequest._IDENTIFIER_INDEX] != IdentityIssuingRequest.Identifier) { throw new DataFormatException($"Unexpected object identifier, expected: \"{IdentityIssuingRequest.Identifier}\", got \"{components[IdentityIssuingRequest._IDENTIFIER_INDEX]}\"."); }
+            if (components[IdentityIssuingRequest._IDENTIFIER_INDEX] != this.TypeId) { throw new DataFormatException($"Unexpected object identifier, expected: \"{this.TypeId}\", got \"{components[IdentityIssuingRequest._IDENTIFIER_INDEX]}\"."); }
             byte[] json = Utility.FromBase64(components[IdentityIssuingRequest._CLAIMS_INDEX]);
             this._claims = JsonSerializer.Deserialize<IirClaims>(json);
+            this.Profile = (ProfileVersion)this._claims.ver;
             this._capabilities = new List<string>(this._claims.cap).ConvertAll(str => { Capability cap; Enum.TryParse<Capability>(str, true, out cap); return cap; });
+            this._encoded = encoded.Substring(0, encoded.LastIndexOf(Dime._COMPONENT_DELIMITER));
+            this._signature = encoded.Substring(encoded.LastIndexOf(Dime._COMPONENT_DELIMITER) + 1);
         }
 
-        protected override void Encode(StringBuilder builder)
+        internal override string Encoded(bool includeSignature = false)
         {
-            builder.Append(IdentityIssuingRequest.Identifier);
-            builder.Append(Dime._COMPONENT_DELIMITER);
-            builder.Append(Utility.ToBase64(JsonSerializer.Serialize(this._claims)));
+            if (this._encoded == null)
+            {
+                StringBuilder builder = new StringBuilder();
+                builder.Append(this.TypeId);
+                builder.Append(Dime._COMPONENT_DELIMITER);
+                builder.Append(Utility.ToBase64(JsonSerializer.Serialize(this._claims)));
+                this._encoded = builder.ToString();
+            }
+             return (includeSignature) ? $"{this._encoded}{Dime._COMPONENT_DELIMITER}{this._signature}" : this._encoded;
         }
 
         #endregion
 
         #region -- PRIVATE --
         
-        private const int _NBR_EXPECTED_COMPONENTS = 2;
+        private const int _NBR_EXPECTED_COMPONENTS = 3;
         private const int _IDENTIFIER_INDEX = 0;
         private const int _CLAIMS_INDEX = 1;
 
+        private IirClaims _claims;
+        private List<Capability> _capabilities { get; set; }
+
+        private string _encoded;
+        private string _signature;
+
         private struct IirClaims
         {
+            public int ver { get; set; }
+            public Guid uid { get; set; }
             public long iat { get; set; }
             public string iky { get; set; }
             [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
             public string[] cap { get; set; }
 
             [JsonConstructor]
-            public IirClaims(long iat, string iky, string[] cap = null)
+            public IirClaims(int ver, Guid uid, long iat, string iky, string[] cap = null)
             {
+                this.ver = ver;
+                this.uid = uid;
                 this.iat = iat;
                 this.iky = iky;
                 this.cap = cap;
             }
         }
-        
-        private IirClaims _claims;
-        private List<Capability> _capabilities { get; set; }
 
         private void CompleteCapabilities(List<Capability> allowedCapabilities, bool isSelfSign)
         {

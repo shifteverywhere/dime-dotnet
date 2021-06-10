@@ -59,26 +59,26 @@ namespace ShiftEverywhere.DiMETest
         public void ExportTest1()
         {
             IdentityIssuingRequest iir = IdentityIssuingRequest.Generate(KeyBox.Generate(KeyType.Identity));
-            string encoded = iir.Export();
-            Assert.IsNotNull(encoded);
-            Assert.IsTrue(encoded.Length > 0);
-            Assert.IsTrue(encoded.Split(new char[] { '.' }).Length == 4);
-            Assert.IsTrue(encoded.StartsWith(Dime.DIME_HEADER));
+            string exported = iir.Export();
+            Assert.IsNotNull(exported);
+            Assert.IsTrue(exported.Length > 0);
+            Assert.IsTrue(exported.Split(new char[] { '.' }).Length == 3);
+            Assert.IsTrue(exported.StartsWith(Dime.HEADER));
         }
 
         [TestMethod]
-        public void ImportTest1()
+        public void ImportTest2()
         {
-            string encoded = "DI1.aW8uZGltZWZvcm1hdC5paXI.eyJpYXQiOjE2MjMxNzY4MDYsImlreSI6Ik1Db3dCUVlESzJWd0F5RUFPVTZBekptZkx5Y2tFaHZnTC9JYmtXZTJITkxJNWNaRmNIWHhjY2FuXHUwMDJCOU0iLCJjYXAiOlsiZ2VuZXJpYyJdfQ.nx1TFhbx7vhfu9c+RS6LJVpHy/eIKEKt1bx5rTU6pg7n+t+IIbWSdl3gT/B044jxhgl9uo1j7k+SCqxf0V2cAA";
-            IdentityIssuingRequest iir = Dime.Import<IdentityIssuingRequest>(encoded);
+            string exported = "DiME:aW8uZGltZWZvcm1hdC5paXI.eyJ2ZXIiOjEsInVpZCI6IjU3NDYyMWQ2LTdkY2UtNDE2Yi05ZDE0LWVkNWFiMjNiMTUzMSIsImlhdCI6MTYyMzM0MjE4NSwiaWt5IjoiTUNvd0JRWURLMlZ3QXlFQUpjU1NPenFYVm5Edms0RkNKXHUwMDJCVEpXdlpCWTcwMG5BWVNQZm4vUW9MczJSayIsImNhcCI6WyJnZW5lcmljIl19.YepImfzz4YPvvzzaay8bLCrkjz4ZpeY6lBhfBoF0RawbMbxcnk3Xo2QjfAOQoY6ISvNRX2EtXAdsABMXaeNHAQ";
+            IdentityIssuingRequest iir = Dime.Import<IdentityIssuingRequest>(exported);
             Assert.IsNotNull(iir);
             Assert.AreEqual(ProfileVersion.One, iir.Profile);
-            Assert.AreEqual(1623176806, iir.IssuedAt);
+            Assert.AreEqual(new Guid("574621d6-7dce-416b-9d14-ed5ab23b1531"), iir.Id);
+            Assert.AreEqual(1623342185, iir.IssuedAt);
             Assert.IsTrue(iir.WantsCapability(Capability.Generic));
-            Assert.AreEqual("MCowBQYDK2VwAyEAOU6AzJmfLyckEhvgL/IbkWe2HNLI5cZFcHXxccan\u002B9M", iir.IdentityKey);
+            Assert.AreEqual("MCowBQYDK2VwAyEAJcSSOzqXVnDvk4FCJ\u002BTJWvZBY700nAYSPfn/QoLs2Rk", iir.IdentityKey);
             iir.Verify();
         }
-
     }
 
 }

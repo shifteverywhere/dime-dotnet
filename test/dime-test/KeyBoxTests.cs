@@ -27,22 +27,32 @@ namespace ShiftEverywhere.DiMETest
         }
 
         [TestMethod]
+        public void EncodedTest1()
+        {
+            KeyBox keypair = KeyBox.Generate(KeyType.Identity);
+            string encoded = keypair.Export();
+            Assert.IsNotNull(encoded);
+            Assert.IsTrue(encoded.StartsWith(Dime.HEADER));
+            Assert.IsTrue(encoded.Split(".").Length == 2);
+        }
+
+        [TestMethod]
         public void ImportTest1()
         {
-            string encoded = "DI1.aW8uZGltZWZvcm1hdC5reWI.eyJraWQiOiJkMzJjMWE4MC00MGM0LTQ2NjgtOGY5My0zYjU5OWQyMzNlMTMiLCJrdHkiOjEsImtleSI6Ik1DNENBUUF3QlFZREsyVndCQ0lFSU9NZWZRempmdVEwRFlhZjNad013UVEzZ3NYT05BNHBHU0ltSXhYaTZ5dkgiLCJwdWIiOiJNQ293QlFZREsyVndBeUVBRkdGNlYva1x1MDAyQk9vbTFcdTAwMkJhZlVPS2V5NjNMMGtzSnBpV3E4XHUwMDJCdFx1MDAyQnliZEJMMFgwIn0";
+            string encoded ="DiME:aW8uZGltZWZvcm1hdC5reWI.eyJ2ZXIiOjEsImtpZCI6IjEzZDNhNTAxLWM4ZjYtNGIyYS04YjM3LThiOWJlMDNkYTJiYiIsImt0eSI6MSwia2V5IjoiTUM0Q0FRQXdCUVlESzJWd0JDSUVJTjAxRVx1MDAyQllpTHBWdFBpQnRsdWtKQ2R3TmJKZXByZ1FhQm5XRkxLQ0V6OVBaIiwicHViIjoiTUNvd0JRWURLMlZ3QXlFQUVPOHdZa1cydWd0aGRNR014djBjajAwVi9IZ3BnOENHU2JMM3BGOXZLNlEifQ";
             KeyBox keypair = Dime.Import<KeyBox>(encoded);
             Assert.AreEqual(ProfileVersion.One, keypair.Profile);
             Assert.AreEqual(KeyType.Identity, keypair.Type);
-            Assert.AreEqual(new Guid("d32c1a80-40c4-4668-8f93-3b599d233e13"), keypair.Id);
-            Assert.AreEqual("MC4CAQAwBQYDK2VwBCIEIOMefQzjfuQ0DYaf3ZwMwQQ3gsXONA4pGSImIxXi6yvH", keypair.Key);
-            Assert.AreEqual("MCowBQYDK2VwAyEAFGF6V/k\u002BOom1\u002BafUOKey63L0ksJpiWq8\u002Bt\u002BybdBL0X0", keypair.PublicKey);
+            Assert.AreEqual(new Guid("13d3a501-c8f6-4b2a-8b37-8b9be03da2bb"), keypair.Id);
+            Assert.AreEqual("MC4CAQAwBQYDK2VwBCIEIN01E\u002BYiLpVtPiBtlukJCdwNbJeprgQaBnWFLKCEz9PZ", keypair.Key);
+            Assert.AreEqual("MCowBQYDK2VwAyEAEO8wYkW2ugthdMGMxv0cj00V/Hgpg8CGSbL3pF9vK6Q", keypair.PublicKey);
         }
 
         [TestMethod]
         public void KeypairTest3()
         {
             try {
-                KeyBox keypair = KeyBox.Generate(KeyType.Identity, 0);
+                KeyBox keypair = KeyBox.Generate(KeyType.Identity, ProfileVersion.Two);
             } catch (UnsupportedProfileException) { return; } // All is well
             Assert.IsTrue(false, "This should not happen.");
         }
