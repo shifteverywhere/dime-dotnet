@@ -23,8 +23,6 @@ namespace ShiftEverywhere.DiME
 
         public const string ITID = "aW8uZGltZWZvcm1hdC5tc2c"; // base64 of io.dimeformat.msg
 
-        public override string TypeId { get { return Message.ITID; } }
-
         /// <summary>A unique identity for the message.</summary>
         public override Guid Id { get { return this._claims.uid; } }
         /// <summary>The id of the receiver.</summary>
@@ -119,14 +117,13 @@ namespace ShiftEverywhere.DiME
         internal override void Populate(string encoded)
         {
             string[] sections = encoded.Split(new char[] { Dime._SECTION_DELIMITER });
-            if (sections.Length != Message._NBR_EXPECTED_SECTIONS) { throw new DataFormatException($"Unexpected number of components, expected {Message._NBR_EXPECTED_SECTIONS}, got {sections.Length}."); }
             // section 0 - Identity
             this.Issuer = Dime.Import<Identity>(sections[Message._IDENTITY_SECTION_INDEX]);
             this.Profile = this.Issuer.Profile;
             // section 1 - Envelope
             string[] components = sections[Message._MESSAGE_SECTION_INDEX].Split(new char[] { Dime._COMPONENT_DELIMITER });
             if (components.Length != Message._NBR_EXPECTED_COMPONENTS) { throw new DataFormatException($"Unexpected number of components for identity issuing request, expected {Message._NBR_EXPECTED_COMPONENTS}, got {components.Length}."); }
-            if (components[Message._IDENTIFIER_INDEX] != this.TypeId) { throw new DataFormatException($"Unexpected object identifier, expected: \"{this.TypeId}\", got \"{components[Message._IDENTIFIER_INDEX]}\"."); }
+            if (components[Message._IDENTIFIER_INDEX] != Message.ITID) { throw new DataFormatException($"Unexpected object identifier, expected: \"{Message.ITID}\", got \"{components[Message._IDENTIFIER_INDEX]}\"."); }
             this._claims = JsonSerializer.Deserialize<MessageClaims>(Utility.FromBase64(components[Message._CLAIMS_INDEX]));
             this._payload = components[Message._PAYLOAD_INDEX];
             this._encoded = encoded.Substring(0, encoded.LastIndexOf(Dime._COMPONENT_DELIMITER));
@@ -140,7 +137,7 @@ namespace ShiftEverywhere.DiME
                 StringBuilder builder = new StringBuilder();
                 builder.Append(this.Issuer.Encoded(true));
                 builder.Append(Dime._SECTION_DELIMITER);
-                builder.Append(this.TypeId);
+                builder.Append(Message.ITID);
                 builder.Append(Dime._COMPONENT_DELIMITER);
                 builder.Append(Utility.ToBase64(JsonSerializer.Serialize(this._claims)));
                 builder.Append(Dime._COMPONENT_DELIMITER);

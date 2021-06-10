@@ -18,10 +18,7 @@ namespace ShiftEverywhere.DiME
         #region -- PUBLIC --
 
         public const string ITID = "aW8uZGltZWZvcm1hdC5reWI"; // base64 of io.dimeformat.kyb
-
-        public override string TypeId { get { return KeyBox.ITID; } }
         /// <summary></summary>
-
         public override Guid Id { get { return this._claims.kid; } }
         /// <summary></summary>
         public KeyType Type { get { return this._claims.kty; } }
@@ -55,7 +52,7 @@ namespace ShiftEverywhere.DiME
         {
             string[] components = encoded.Split(new char[] { Dime._COMPONENT_DELIMITER });
             if (components.Length != KeyBox._NBR_EXPECTED_COMPONENTS) { throw new DataFormatException($"Unexpected number of components for identity issuing request, expected {KeyBox._NBR_EXPECTED_COMPONENTS}, got {components.Length}."); }
-            if (components[KeyBox._IDENTIFIER_INDEX] != this.TypeId) { throw new DataFormatException($"Unexpected object identifier, expected: \"{this.TypeId}\", got \"{components[KeyBox._IDENTIFIER_INDEX]}\"."); }
+            if (components[KeyBox._IDENTIFIER_INDEX] != KeyBox.ITID) { throw new DataFormatException($"Unexpected object identifier, expected: \"{KeyBox.ITID}\", got \"{components[KeyBox._IDENTIFIER_INDEX]}\"."); }
             byte[] json = Utility.FromBase64(components[KeyBox._CLAIMS_INDEX]);
             this._claims = JsonSerializer.Deserialize<KeyBoxClaims>(json);
             this.Profile = (ProfileVersion)this._claims.ver;
@@ -67,7 +64,7 @@ namespace ShiftEverywhere.DiME
             if (this._encoded == null)
             {
                 StringBuilder builder = new StringBuilder();
-                builder.Append(this.TypeId);
+                builder.Append(KeyBox.ITID);
                 builder.Append(Dime._COMPONENT_DELIMITER);
                 builder.Append(Utility.ToBase64(JsonSerializer.Serialize(this._claims)));
                 this._encoded = builder.ToString();

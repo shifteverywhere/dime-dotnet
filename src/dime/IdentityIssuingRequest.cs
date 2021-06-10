@@ -19,7 +19,6 @@ namespace ShiftEverywhere.DiME
     {
         #region -- PUBLIC --
         public const string ITID = "aW8uZGltZWZvcm1hdC5paXI"; // base64 of io.dimeformat.iir
-        public override string TypeId { get { return IdentityIssuingRequest.ITID; } } 
         /// <summary></summary>
         public override Guid Id { get { return this._claims.uid; } }
         /// <summary></summary>
@@ -109,7 +108,7 @@ namespace ShiftEverywhere.DiME
         {
             string[] components = encoded.Split(new char[] { Dime._COMPONENT_DELIMITER });
             if (components.Length != IdentityIssuingRequest._NBR_EXPECTED_COMPONENTS ) { throw new DataFormatException($"Unexpected number of components for identity issuing request, expected {IdentityIssuingRequest._NBR_EXPECTED_COMPONENTS}, got {components.Length}."); }
-            if (components[IdentityIssuingRequest._IDENTIFIER_INDEX] != this.TypeId) { throw new DataFormatException($"Unexpected object identifier, expected: \"{this.TypeId}\", got \"{components[IdentityIssuingRequest._IDENTIFIER_INDEX]}\"."); }
+            if (components[IdentityIssuingRequest._IDENTIFIER_INDEX] != IdentityIssuingRequest.ITID) { throw new DataFormatException($"Unexpected object identifier, expected: \"{IdentityIssuingRequest.ITID}\", got \"{components[IdentityIssuingRequest._IDENTIFIER_INDEX]}\"."); }
             byte[] json = Utility.FromBase64(components[IdentityIssuingRequest._CLAIMS_INDEX]);
             this._claims = JsonSerializer.Deserialize<IirClaims>(json);
             this.Profile = (ProfileVersion)this._claims.ver;
@@ -123,7 +122,7 @@ namespace ShiftEverywhere.DiME
             if (this._encoded == null)
             {
                 StringBuilder builder = new StringBuilder();
-                builder.Append(this.TypeId);
+                builder.Append(IdentityIssuingRequest.ITID);
                 builder.Append(Dime._COMPONENT_DELIMITER);
                 builder.Append(Utility.ToBase64(JsonSerializer.Serialize(this._claims)));
                 this._encoded = builder.ToString();

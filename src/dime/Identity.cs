@@ -21,9 +21,7 @@ namespace ShiftEverywhere.DiME
     {
         #region -- PUBLIC --
 
-        public const string ITID = "aW8uZGltZWZvcm1hdC5pZA";
-
-        public override string TypeId { get { return Identity.ITID; } } // base64 of io.dimeformat.id
+        public const string ITID = "aW8uZGltZWZvcm1hdC5pZA"; // base64 of io.dimeformat.id
 
         public override Guid Id { get { return this._claims.uid; } }
         /// <summary>A unique UUID (GUID) of the identity. Same as the "sub" field.</summary>
@@ -88,7 +86,7 @@ namespace ShiftEverywhere.DiME
             string[] components = encoded.Split(new char[] { Dime._COMPONENT_DELIMITER });
             if (components.Length != Identity._NBR_EXPECTED_COMPONENTS_MIN &&
                 components.Length != Identity._NBR_EXPECTED_COMPONENTS_MAX) { throw new DataFormatException($"Unexpected number of components for identity issuing request, expected {Identity._NBR_EXPECTED_COMPONENTS_MIN} OR {Identity._NBR_EXPECTED_COMPONENTS_MAX}, got {components.Length}."); }
-            if (components[Identity._IDENTIFIER_INDEX] != this.TypeId) { throw new DataFormatException($"Unexpected object identifier, expected: \"{this.TypeId}\", got \"{components[Identity._IDENTIFIER_INDEX]}\"."); }
+            if (components[Identity._IDENTIFIER_INDEX] != Identity.ITID) { throw new DataFormatException($"Unexpected object identifier, expected: \"{Identity.ITID}\", got \"{components[Identity._IDENTIFIER_INDEX]}\"."); }
             byte[] json = Utility.FromBase64(components[Identity._CLAIMS_INDEX]);
             this._claims = JsonSerializer.Deserialize<IdentityClaims>(json);
             this.Profile = (ProfileVersion)this._claims.ver;
@@ -107,7 +105,7 @@ namespace ShiftEverywhere.DiME
             if (this._encoded == null)
             {
                 StringBuilder builder = new StringBuilder();
-                builder.Append(this.TypeId);
+                builder.Append(Identity.ITID);
                 builder.Append(Dime._COMPONENT_DELIMITER);
                 builder.Append(Utility.ToBase64(JsonSerializer.Serialize(this._claims)));
                 if (this.TrustChain != null)

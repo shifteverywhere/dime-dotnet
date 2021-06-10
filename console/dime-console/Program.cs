@@ -81,17 +81,14 @@ namespace ShiftEverywhere.DiMEConsole
             Console.WriteLine("++++++++++++++++++++++++++++++++++++++++++++++" + Environment.NewLine);
 
             /** At back-end side **/
-            // !!!!! NOTE: This will be done diffrently soon !!!!!
-            /*Message serviceProviderMessageAtBackEnd = Dime.Import<Message>(serviceProviderMessageEncoded);
+            Message serviceProviderMessageAtBackEnd = Dime.Import<Message>(serviceProviderMessageEncoded);
             serviceProviderMessageAtBackEnd.Verify();
-            Envelope backEndEnvelope = new Envelope(prg.trustedIdentity, prg.mobileIdentity.SubjectId, 120);
-            backEndEnvelope.AddMessage(serviceProviderMessage);
-            backEndEnvelope.Seal(prg.trustedKeypair.Key);
-            string backEndEnvelopeEncoded = backEndEnvelope.Export();
+            serviceProviderMessageAtBackEnd.SetVerifiedToken(prg.trustedIdentity, prg.trustedKeypair.Key);
+            string backEndMessageEncoded = serviceProviderMessageAtBackEnd.Export();
             // ==> Send 'backEndEnvelopeEncoded' to mobile
             Console.WriteLine("++++++++++++++++++++++++++++++++++++++++++++++" + Environment.NewLine + "Back End Envelope -> moblie");
-            Console.WriteLine(backEndEnvelopeEncoded.ToString());
-            Console.WriteLine("++++++++++++++++++++++++++++++++++++++++++++++" + Environment.NewLine);*/
+            Console.WriteLine(backEndMessageEncoded.ToString());
+            Console.WriteLine("++++++++++++++++++++++++++++++++++++++++++++++" + Environment.NewLine);
 
             /** At mobile side **/
             Message serviceProviderMessageAtMobile = Dime.Import<Message>(serviceProviderMessageEncoded);
@@ -107,21 +104,17 @@ namespace ShiftEverywhere.DiMEConsole
             Console.WriteLine("++++++++++++++++++++++++++++++++++++++++++++++" + Environment.NewLine);
 
             /** At back-end side **/
-            // !!!!! NOTE: This will be done diffrently soon !!!!!
-            /*Envelope mobleEnvelopeAtBackEnd = Dime.Import<Envelope>(mobileEnvelopeEncoded);
-            //mobleEnvelopeAtBackEnd.Verify(); //ToDo: exception is thrown because it is self-signed
-            Envelope finalBackEndEnvelope = new Envelope(prg.trustedIdentity, mobileEnvelope.SubjectId, 120);
-            finalBackEndEnvelope.AddMessage(mobleEnvelopeAtBackEnd.Items[0]);
-            finalBackEndEnvelope.AddMessage(mobleEnvelopeAtBackEnd.Items[1]);
-            finalBackEndEnvelope.Seal(prg.trustedKeypair.Key);
-            string finalBackEndEnvelopeEncoded = finalBackEndEnvelope.Export();
+            Message mobileMessageAtBackEnd = Dime.Import<Message>(mobileMessageEncoded);
+            mobileMessageAtBackEnd.Verify();
+            mobileMessageAtBackEnd.SetVerifiedToken(prg.trustedIdentity, prg.trustedKeypair.Key);
+            string finalBackEndMessageEncoded = mobileMessageAtBackEnd.Export();
             // ==> Send 'finalBackEndEnvelopeEncoded' to service provider
             Console.WriteLine("++++++++++++++++++++++++++++++++++++++++++++++" + Environment.NewLine + "Backend Envelope -> Service Provider Back End");
-            Console.WriteLine(backEndEnvelopeEncoded);
-            Console.WriteLine("++++++++++++++++++++++++++++++++++++++++++++++" + Environment.NewLine);*/
+            Console.WriteLine(finalBackEndMessageEncoded);
+            Console.WriteLine("++++++++++++++++++++++++++++++++++++++++++++++" + Environment.NewLine);
 
             /** At service provider side **/
-            Message mobileResponseMessageAtServiceProvider = Dime.Import<Message>(mobileMessageEncoded);
+            Message mobileResponseMessageAtServiceProvider = Dime.Import<Message>(finalBackEndMessageEncoded);
             mobileResponseMessageAtServiceProvider.Verify(); //ToDo: exception is thrown because it is self-signed
             string responcePayload = System.Text.Encoding.UTF8.GetString(mobileResponseMessageAtServiceProvider.GetPayload(), 0, mobileResponseMessageAtServiceProvider.GetPayload().Length);
             Console.WriteLine("++++++++++++++++++++++++++++++++++++++++++++++" + Environment.NewLine + "Response From Mobile");
