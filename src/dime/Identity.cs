@@ -81,7 +81,7 @@ namespace ShiftEverywhere.DiME
             this.Profile = profile;
         }
 
-        internal override void Populate(string encoded) 
+        internal override void Populate(Identity issuer, string encoded) 
         {
             string[] components = encoded.Split(new char[] { Dime._COMPONENT_DELIMITER });
             if (components.Length != Identity._NBR_EXPECTED_COMPONENTS_MIN &&
@@ -96,8 +96,6 @@ namespace ShiftEverywhere.DiME
                 byte[] issIdentity = Utility.FromBase64(components[Identity._CHAIN_INDEX]);
                 this.TrustChain = Dime.Import<Identity>(System.Text.Encoding.UTF8.GetString(issIdentity, 0, issIdentity.Length));
             }
-            this._encoded = encoded.Substring(0, encoded.LastIndexOf(Dime._COMPONENT_DELIMITER));
-            this._signature = encoded.Substring(encoded.LastIndexOf(Dime._COMPONENT_DELIMITER) + 1);
         }
 
         internal override string Encoded(bool includeSignature = false)
@@ -125,6 +123,16 @@ namespace ShiftEverywhere.DiME
                 if (privateKey == null) { throw new ArgumentNullException(nameof(privateKey), "Private key for signing cannot be null."); }
                 this._signature = Crypto.GenerateSignature(this.Profile, this.Encoded(), privateKey);
             }
+        }
+
+        #endregion
+
+        # region -- PROTECTED --
+        
+        protected override void FixateEncoded(string encoded)
+        {
+            this._encoded = encoded.Substring(0, encoded.LastIndexOf(Dime._COMPONENT_DELIMITER));
+            this._signature = encoded.Substring(encoded.LastIndexOf(Dime._COMPONENT_DELIMITER) + 1);
         }
 
         #endregion

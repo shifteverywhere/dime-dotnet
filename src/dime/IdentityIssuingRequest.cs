@@ -104,7 +104,7 @@ namespace ShiftEverywhere.DiME
 
         #region -- INTERNAL --
 
-        internal override void Populate(string encoded) 
+        internal override void Populate(Identity issuer, string encoded) 
         {
             string[] components = encoded.Split(new char[] { Dime._COMPONENT_DELIMITER });
             if (components.Length != IdentityIssuingRequest._NBR_EXPECTED_COMPONENTS ) { throw new DataFormatException($"Unexpected number of components for identity issuing request, expected {IdentityIssuingRequest._NBR_EXPECTED_COMPONENTS}, got {components.Length}."); }
@@ -113,8 +113,6 @@ namespace ShiftEverywhere.DiME
             this._claims = JsonSerializer.Deserialize<IirClaims>(json);
             this.Profile = (ProfileVersion)this._claims.ver;
             this._capabilities = new List<string>(this._claims.cap).ConvertAll(str => { Capability cap; Enum.TryParse<Capability>(str, true, out cap); return cap; });
-            this._encoded = encoded.Substring(0, encoded.LastIndexOf(Dime._COMPONENT_DELIMITER));
-            this._signature = encoded.Substring(encoded.LastIndexOf(Dime._COMPONENT_DELIMITER) + 1);
         }
 
         internal override string Encoded(bool includeSignature = false)
@@ -128,6 +126,16 @@ namespace ShiftEverywhere.DiME
                 this._encoded = builder.ToString();
             }
              return (includeSignature) ? $"{this._encoded}{Dime._COMPONENT_DELIMITER}{this._signature}" : this._encoded;
+        }
+
+        #endregion
+
+        # region -- PROTECTED --
+        
+        protected override void FixateEncoded(string encoded)
+        {
+            this._encoded = encoded.Substring(0, encoded.LastIndexOf(Dime._COMPONENT_DELIMITER));
+            this._signature = encoded.Substring(encoded.LastIndexOf(Dime._COMPONENT_DELIMITER) + 1);
         }
 
         #endregion

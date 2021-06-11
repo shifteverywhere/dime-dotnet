@@ -17,7 +17,7 @@ namespace ShiftEverywhere.DiME
     /// optionally encrypted (using end-to-end encryption). Responses to messages may be linked with the orginal message, thus
     /// creating a strong cryptographical link. The entity that created the message signs it before exporting and thus sealing
     /// it's content. </summary>
-    public class Message: Dime
+    public class Message: Dime, IAttached
     {
         #region -- PUBLIC --
 
@@ -115,20 +115,15 @@ namespace ShiftEverywhere.DiME
 
         #region -- INTERNAL --
 
-        internal override void Populate(string encoded)
+        internal override void Populate(Identity issuer, string encoded)
         {
-            string[] sections = encoded.Split(new char[] { Dime._SECTION_DELIMITER });
-            // section 0 - Identity
-            this.Issuer = Dime.Import<Identity>(sections[Message._IDENTITY_SECTION_INDEX]);
+            this.Issuer = issuer;
             this.Profile = this.Issuer.Profile;
-            // section 1 - Envelope
-            string[] components = sections[Message._MESSAGE_SECTION_INDEX].Split(new char[] { Dime._COMPONENT_DELIMITER });
+            string[] components = encoded.Split(new char[] { Dime._COMPONENT_DELIMITER });
             if (components.Length != Message._NBR_EXPECTED_COMPONENTS) { throw new DataFormatException($"Unexpected number of components for identity issuing request, expected {Message._NBR_EXPECTED_COMPONENTS}, got {components.Length}."); }
             if (components[Message._IDENTIFIER_INDEX] != Message.ITID) { throw new DataFormatException($"Unexpected object identifier, expected: \"{Message.ITID}\", got \"{components[Message._IDENTIFIER_INDEX]}\"."); }
             this._claims = JsonSerializer.Deserialize<MessageClaims>(Utility.FromBase64(components[Message._CLAIMS_INDEX]));
             this._payload = components[Message._PAYLOAD_INDEX];
-            this._encoded = encoded.Substring(0, encoded.LastIndexOf(Dime._COMPONENT_DELIMITER));
-            this._signature = components[_SIGNATURE_INDEX];
         }
 
         internal override string Encoded(bool includeSignature = false)
@@ -151,16 +146,22 @@ namespace ShiftEverywhere.DiME
 
         #endregion
 
+        # region -- PROTECTED --
+        
+        protected override void FixateEncoded(string encoded)
+        {
+            this._encoded = encoded.Substring(0, encoded.LastIndexOf(Dime._COMPONENT_DELIMITER));
+            this._signature = encoded.Substring(encoded.LastIndexOf(Dime._COMPONENT_DELIMITER) + 1);
+        }
+
+        #endregion
+
         #region -- PRIVATE --
 
-        private const int _NBR_EXPECTED_SECTIONS = 2;
-        private const int _IDENTITY_SECTION_INDEX = 0;
-        private const int _MESSAGE_SECTION_INDEX = 1;
         private const int _NBR_EXPECTED_COMPONENTS = 4;
         private const int _IDENTIFIER_INDEX = 0;
         private const int _CLAIMS_INDEX = 1;
         private const int _PAYLOAD_INDEX = 2;
-        private const int _SIGNATURE_INDEX = 3;
         private MessageClaims _claims;
         private string _encoded;
         private string _signature;

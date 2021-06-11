@@ -48,7 +48,7 @@ namespace ShiftEverywhere.DiME
             this.Profile = profile;
         }
 
-        internal override void Populate(string encoded)
+        internal override void Populate(Identity issuer, string encoded)
         {
             string[] components = encoded.Split(new char[] { Dime._COMPONENT_DELIMITER });
             if (components.Length != KeyBox._NBR_EXPECTED_COMPONENTS) { throw new DataFormatException($"Unexpected number of components for identity issuing request, expected {KeyBox._NBR_EXPECTED_COMPONENTS}, got {components.Length}."); }
@@ -56,7 +56,6 @@ namespace ShiftEverywhere.DiME
             byte[] json = Utility.FromBase64(components[KeyBox._CLAIMS_INDEX]);
             this._claims = JsonSerializer.Deserialize<KeyBoxClaims>(json);
             this.Profile = (ProfileVersion)this._claims.ver;
-            this._encoded = encoded;
         }
 
         internal override string Encoded(bool includeSignature = false)
@@ -70,6 +69,15 @@ namespace ShiftEverywhere.DiME
                 this._encoded = builder.ToString();
             }
             return this._encoded;
+        }
+
+        #endregion
+
+        # region -- PROTECTED --
+       
+        protected override void FixateEncoded(string encoded)
+        {
+            this._encoded = encoded;
         }
 
         #endregion
