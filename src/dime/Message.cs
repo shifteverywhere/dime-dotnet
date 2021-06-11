@@ -79,6 +79,7 @@ namespace ShiftEverywhere.DiME
                 string msgHash = linkedMessage.Thumbprint();
                 if (components[0] != linkedMessage.Id.ToString() || components[1] != msgHash) { throw new IntegrityException("Failed to verify message link (provided message did not match)."); }
             }
+            // TODO: validate issuer
             Crypto.VerifySignature(this.Issuer.Profile, Encoded(), this._signature, this.Issuer.IdentityKey);
          }
 

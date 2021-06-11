@@ -93,6 +93,7 @@ namespace ShiftEverywhere.DiMEConsole
             /** At mobile side **/
             Message serviceProviderMessageAtMobile = Dime.Import<Message>(serviceProviderMessageEncoded);
             serviceProviderMessageAtMobile.Verify();
+            serviceProviderMessageAtMobile.ValidateVerifiedToken(prg.trustedIdentity);
             string messagePayload = System.Text.Encoding.UTF8.GetString(serviceProviderMessageAtMobile.GetPayload(), 0, serviceProviderMessageAtMobile.GetPayload().Length);
             Console.WriteLine("Message from service provider: " + messagePayload);
             Message mobileResponseMessage = prg.GenerateMessage(prg.mobileIdentity, prg.serviceProviderIdentity, "Luke, who's your father?");
@@ -115,7 +116,8 @@ namespace ShiftEverywhere.DiMEConsole
 
             /** At service provider side **/
             Message mobileResponseMessageAtServiceProvider = Dime.Import<Message>(finalBackEndMessageEncoded);
-            mobileResponseMessageAtServiceProvider.Verify(); //ToDo: exception is thrown because it is self-signed
+            mobileResponseMessageAtServiceProvider.Verify(); 
+            mobileResponseMessageAtServiceProvider.ValidateVerifiedToken(prg.trustedIdentity);
             string responcePayload = System.Text.Encoding.UTF8.GetString(mobileResponseMessageAtServiceProvider.GetPayload(), 0, mobileResponseMessageAtServiceProvider.GetPayload().Length);
             Console.WriteLine("++++++++++++++++++++++++++++++++++++++++++++++" + Environment.NewLine + "Response From Mobile");
             Console.WriteLine(responcePayload);
