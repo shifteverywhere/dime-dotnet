@@ -11,6 +11,8 @@ using System.Text;
 
 namespace ShiftEverywhere.DiME
 {
+    public interface IAttached { }
+
     public abstract class Dime
     {
         #region -- PUBLIC --
@@ -44,15 +46,46 @@ namespace ShiftEverywhere.DiME
         public static T Import<T>(string encoded) where T: Dime, new()
         {
             string encodedDime = (encoded.StartsWith(Dime.HEADER)) ? encoded.Substring(encoded.IndexOf(Dime._SECTION_DELIMITER) + 1) : encoded;
+            string[] encodedSections = encodedDime.Split(Dime._SECTION_DELIMITER);
+            string fixatedEncoded = encodedDime;
             T item = new T();
-             // TODO: refactor parsing
-            string[] sections = encoded.Split(Dime._SECTION_DELIMITER);
-            if (sections.Length == 4)
+            if ((item as IAttached) != null)
             {
-                item._verifiedToken = sections[3];
+                if (encodedSections.Length < Dime._MIN_SECTIONS_IN_ATTACHED || encodedSections.Length > Dime._MAX_SECTIONS_IN_ATTACHED) { throw new DataFormatException("Invalid DiME format."); }
+                Identity issuer = Dime.Import<Identity>(encodedSections[Dime._ATTACHED_IDENTITY_INDEX]);
+                item.Populate(issuer, encodedSections[Dime._ATTACHED_ITEM_INDEX]);
+                if (encodedSections.Length == Dime._MAX_SECTIONS_IN_ATTACHED) 
+                { 
+                    item._verifiedToken = encodedSections[Dime._ATTACHED_VERIFYTOKEN_INDEX];
+                    fixatedEncoded = encodedDime.Substring(0, encodedDime.LastIndexOf(Dime._SECTION_DELIMITER));
+                }
             }
-            item.Populate(encodedDime);
+            else
+            {
+                if (encodedSections.Length > Dime._MAX_SECTIONS_IN_DETACHED) { throw new DataFormatException("Invalid DiME format."); }
+                item.Populate(null, encodedSections[Dime._DETACHED_ITEM_INDEX]);
+                if (encodedSections.Length == Dime._MAX_SECTIONS_IN_DETACHED) 
+                { 
+                    item._verifiedToken = encodedSections[Dime._DETACHED_VERIFYTOKEN_INDEX];
+                    fixatedEncoded = encodedDime.Substring(0, encodedDime.LastIndexOf(Dime._SECTION_DELIMITER));
+                }
+            }
+            item.FixateEncoded(fixatedEncoded ?? encodedDime);
             return item;
+        }
+
+        public string Export()
+        {
+            StringBuilder builder = new StringBuilder();
+            builder.Append(Dime.HEADER);
+            builder.Append(Dime._SECTION_DELIMITER);
+            builder.Append(this.Encoded(true));
+            if (this._verifiedToken != null)
+            {
+                builder.Append(Dime._SECTION_DELIMITER);
+                builder.Append(this._verifiedToken);
+            }
+            return builder.ToString();
         }
 
         public string Thumbprint()
@@ -94,23 +127,9 @@ namespace ShiftEverywhere.DiME
 
         internal const char _COMPONENT_DELIMITER = '.';
         internal const char _ARRAY_ITEM_DELIMITER = ';';
-        internal const char _SECTION_DELIMITER = ':';  
+        internal const char _SECTION_DELIMITER = ':';
 
-        public string Export()
-        {
-            StringBuilder builder = new StringBuilder();
-            builder.Append(Dime.HEADER);
-            builder.Append(Dime._SECTION_DELIMITER);
-            builder.Append(this.Encoded(true));
-            if (this._verifiedToken != null)
-            {
-                builder.Append(Dime._SECTION_DELIMITER);
-                builder.Append(this._verifiedToken);
-            }
-            return builder.ToString();
-        }
-
-        internal abstract void Populate(string encoded);
+        internal abstract void Populate(Identity issuer, string encoded);
 
         internal abstract string Encoded(bool includeSignature = false);
         
@@ -118,9 +137,20 @@ namespace ShiftEverywhere.DiME
 
         #region -- PROTECTED --
 
+        protected abstract void FixateEncoded(string encoded);
+
         #endregion
 
         #region -- PRIVATE --
+
+        private const int _MIN_SECTIONS_IN_ATTACHED = 2;
+        private const int _MAX_SECTIONS_IN_ATTACHED = 3;
+        private const int _ATTACHED_IDENTITY_INDEX = 0;
+        private const int _ATTACHED_ITEM_INDEX = 1;
+        private const int _ATTACHED_VERIFYTOKEN_INDEX = 2;
+        private const int _MAX_SECTIONS_IN_DETACHED = 2;
+        private const int _DETACHED_ITEM_INDEX = 0;
+        private const int _DETACHED_VERIFYTOKEN_INDEX = 1;
 
         private static readonly object _lock = new object();
         private static Identity _trustedIdentity;
