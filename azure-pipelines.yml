@@ -46,3 +46,7 @@ steps:
     nuGetFeedType: 'internal'
     publishVstsFeed: '2af06473-dd8d-43cf-956f-b80a8c8e345e/d6181c9d-076d-4a46-8f4b-3eff5f1594e9'
     allowPackageConflicts: true
+    versioningScheme: byPrereleaseNumber
+    majorVersion: '1' # Required when versioningScheme == ByPrereleaseNumber
+    minorVersion: '0' # Required when versioningScheme == ByPrereleaseNumber
+    patchVersion: '1' # Required when versioningScheme == ByPrereleaseNumber
