@@ -1,14 +1,18 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net5.0</TargetFramework>
-    <Description>DiME is an open standard for authentication and authorization through digital identities.</Description>
-    <Copyright>MIT License</Copyright>
+    <Description>DiME is an open standard for authentication and authorization through digital identities.
+- Compact messaging format for assertion and practical use of digital identities
+
+Released under the MIT licence, see LICENSE for more information.</Description>
+    <Copyright>Copyright © 2021 Shift Everywhere AB. All rights reserved.</Copyright>
     <Product>DiME - Digital Identity Message Envelope</Product>
     <Company>ShiftEveryWhere</Company>
     <Authors>Niclas Kjellin</Authors>
     <PackageId>DiME</PackageId>
     <PackageTags>Digital Identity</PackageTags>
+    <PackageLicenseExpression></PackageLicenseExpression>
   </PropertyGroup>
 
   <ItemGroup>
