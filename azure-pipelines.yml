@@ -31,10 +31,7 @@ steps:
     command: 'pack'
     packagesToPack: 'src/dime/dime.csproj'
     nobuild: true
-    versioningScheme: 'byPrereleaseNumber'
-    majorVersion: '1'
-    minorVersion: '1'
-    patchVersion: '0'
+    versioningScheme: 'off'
 
 # The last task is a nuget command, nuget push
 # This will push any .nupkg files to the 'TestFeed' artifact feed
