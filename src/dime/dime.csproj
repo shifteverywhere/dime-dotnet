@@ -1,11 +1,18 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net5.0</TargetFramework>
+    <Description>DiME is an open standard for authentication and authorization through digital identities.</Description>
+    <Copyright>MIT License</Copyright>
+    <Product>DiME - Digital Identity Message Envelope</Product>
+    <Company>ShiftEveryWhere</Company>
+    <Authors>Niclas Kjellin</Authors>
+    <PackageId>DiME</PackageId>
+    <PackageTags>Digital Identity</PackageTags>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="NSec.Cryptography" Version="20.2.0"/>
+    <PackageReference Include="NSec.Cryptography" Version="20.2.0" />
   </ItemGroup>
 
 </Project>
