@@ -8,7 +8,6 @@
 //
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
-using System.Text;
 using System.Collections.Generic;
 using ShiftEverywhere.DiME;
 
@@ -107,12 +106,10 @@ namespace ShiftEverywhere.DiMETest
             KeyBox keypair = KeyBox.Generate(KeyType.Identity);
             Identity untrustedSender = IdentityIssuingRequest.Generate(keypair).IssueIdentity(Guid.NewGuid(), 120, caps,  keypair,  null);
             Dime.SetTrustedIdentity(Commons.TrustedIdentity);
-            KeyList keylist1 = new KeyList(untrustedSender, new List<KeyBox>() { KeyBox.Generate(KeyType.Exchange) }, Commons.ReceiverIdentity.SubjectId, 120);
-            keylist1.Seal(keypair.Key, false);
-            string encoded = keylist1.Export();
-            KeyList keylist2 = Dime.Import<KeyList>(encoded);
+            KeyList keylist = new KeyList(untrustedSender, new List<KeyBox>() { KeyBox.Generate(KeyType.Exchange) }, Commons.ReceiverIdentity.SubjectId, 120);
+            keylist.Seal(keypair.Key, false);
             try {
-                keylist2.Verify();
+                keylist.Verify();
             } catch (UntrustedIdentityException) { return; } // All is well
             Assert.IsTrue(false, "Should not happen.");
         }

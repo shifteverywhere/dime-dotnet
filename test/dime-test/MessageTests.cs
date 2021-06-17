@@ -9,6 +9,7 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.Text;
+using System.Collections.Generic;
 using ShiftEverywhere.DiME;
 
 namespace ShiftEverywhere.DiMETest
@@ -93,13 +94,29 @@ namespace ShiftEverywhere.DiMETest
         public void VerifyTest1()
         {
             Dime.SetTrustedIdentity(Commons.TrustedIdentity);
-            try{
-                Message message = new Message(Commons.ReceiverIdentity, Commons.SenderIdentity, -10);
-                message.SetPayload(Encoding.UTF8.GetBytes("Racecar is racecar backwards."));
-                message.Seal(Commons.SenderKeypair.Key);
+            Message message = new Message(Commons.ReceiverIdentity, Commons.SenderIdentity, -10);
+            message.SetPayload(Encoding.UTF8.GetBytes("Racecar is racecar backwards."));
+            message.Seal(Commons.SenderKeypair.Key);
+            try {
                 message.Verify();
             } catch (DateExpirationException) { return; } // All is well
             Assert.IsTrue(false, "Should not happen.");     
+        }
+
+        [TestMethod]
+        public void VerifyTest2()
+        {
+            List<Capability> caps = new List<Capability> { Capability.Identify };
+            KeyBox keypair = KeyBox.Generate(KeyType.Identity);
+            Identity untrustedSender = IdentityIssuingRequest.Generate(keypair).IssueIdentity(Guid.NewGuid(), 120, caps,  keypair,  null);
+            Dime.SetTrustedIdentity(Commons.TrustedIdentity);
+            Message message = new Message(Commons.ReceiverIdentity, untrustedSender, 120);
+            message.SetPayload(Encoding.UTF8.GetBytes("Racecar is racecar backwards."));
+            message.Seal(keypair.Key);
+            try {
+                message.Verify();
+            } catch (UntrustedIdentityException) { return; } // All is well
+            Assert.IsTrue(false, "Should not happen.");
         }
 
         [TestMethod]

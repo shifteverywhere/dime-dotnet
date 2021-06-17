@@ -22,7 +22,6 @@ namespace ShiftEverywhere.DiME
         #region -- PUBLIC --
 
         public const string ITID = "aW8uZGltZWZvcm1hdC5tc2c"; // base64 of io.dimeformat.msg
-
         /// <summary>A unique identity for the message.</summary>
         public override Guid Id { get { return this._claims.uid; } }
         /// <summary>The id of the receiver.</summary>
@@ -36,21 +35,21 @@ namespace ShiftEverywhere.DiME
         /// <summary>A link to another message. Used when responding to anther message.</summary>
         public string LinkedTo { get { return this._claims.lnk; } }
         public Identity Issuer { get; private set; }
-
         public bool IsSealed { get { return (this._signature != null); } }
 
         public Message() { }
 
-        public Message(Identity audience, Identity issuer, long? validFor = null)
+        public Message(Guid audienceId, Identity issuer, long? validFor = null)
         {
-            if (audience == null) { throw new ArgumentNullException(nameof(audience), "Audience (receiver) identity must not be null."); }
             if (issuer == null) { throw new ArgumentNullException(nameof(issuer), "Issuer (sender) identity must not be null."); }
             long iat = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
             long? exp = (validFor.HasValue && validFor.Value > 0) ? iat + validFor.Value : null; 
             this.Issuer = issuer;
-            this._claims = new MessageClaims(Guid.NewGuid(), audience.SubjectId, issuer.SubjectId, iat, exp, null, null, null);
+            this._claims = new MessageClaims(Guid.NewGuid(), audienceId, issuer.SubjectId, iat, exp, null, null, null);
             this.Profile = issuer.Profile;
         }
+
+        public Message(Identity audience, Identity issuer, long? validFor = null) : this(audience.SubjectId, issuer, validFor) { }
 
         public Message Seal(string privateKey)
         {
@@ -79,7 +78,7 @@ namespace ShiftEverywhere.DiME
                 string msgHash = linkedMessage.Thumbprint();
                 if (components[0] != linkedMessage.Id.ToString() || components[1] != msgHash) { throw new IntegrityException("Failed to verify message link (provided message did not match)."); }
             }
-            // TODO: validate issuer
+            this.Issuer.Verify();
             Crypto.VerifySignature(this.Issuer.Profile, Encoded(), this._signature, this.Issuer.IdentityKey);
          }
 
