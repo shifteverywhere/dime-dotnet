@@ -58,6 +58,14 @@ namespace ShiftEverywhere.DiME
             this.Profile = (ProfileVersion)this._claims.ver;
         }
 
+        internal string Encoded(bool includeKey, bool includeSignature)
+        {
+            this._claims.includeKey = (includeKey || this.Type == KeyType.Secret);
+            string encoded = Encoded(includeSignature);
+            this._claims.includeKey = false;
+            return encoded;
+        }
+
         internal override string Encoded(bool includeSignature = false)
         {
             if (this._encoded == null)
@@ -65,7 +73,14 @@ namespace ShiftEverywhere.DiME
                 StringBuilder builder = new StringBuilder();
                 builder.Append(KeyBox.ITID);
                 builder.Append(Dime._COMPONENT_DELIMITER);
-                builder.Append(Utility.ToBase64(JsonSerializer.Serialize(this._claims)));
+                if (!this._claims.includeKey && this._claims.kty != KeyType.Secret)
+                {
+                    builder.Append(Utility.ToBase64(JsonSerializer.Serialize(new KeyBoxClaims(this._claims.ver, this._claims.kid, this._claims.kty, null, this._claims.pub))));
+                }
+                else
+                {
+                    builder.Append(Utility.ToBase64(JsonSerializer.Serialize(this._claims)));
+                }
                 this._encoded = builder.ToString();
             }
             return this._encoded;
@@ -91,7 +106,7 @@ namespace ShiftEverywhere.DiME
         private KeyBoxClaims _claims;
         private string _encoded;
 
-        private struct KeyBoxClaims
+        private class KeyBoxClaims
         {
             public int ver { get; set; }
             public Guid kid { get; set; }
@@ -101,6 +116,9 @@ namespace ShiftEverywhere.DiME
             [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
             public string pub { get; set; }
 
+            [JsonIgnore]
+            public bool includeKey;
+
             [JsonConstructor]
             public KeyBoxClaims(int ver, Guid kid, KeyType kty, string key, string pub)
             {
@@ -109,6 +127,12 @@ namespace ShiftEverywhere.DiME
                 this.kty = kty;
                 this.key = key;
                 this.pub = pub;
+                this.includeKey = false;
+            }
+
+            public bool ShouldSerializeKey()
+            {
+                return this.includeKey;
             }
         }
         

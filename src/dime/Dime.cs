@@ -19,13 +19,10 @@ namespace ShiftEverywhere.DiME
 
         public const string HEADER = "DiME";
         public const long VALID_FOR_1_YEAR = 365 * 24 * 60 * 60; 
-
         ///<summary>A shared trusted identity that acts as the root identity in the trust chain.</summary>
         public static Identity TrustedIdentity { get { lock(Dime._lock) { return Dime._trustedIdentity; } } }
-
         public ProfileVersion Profile { get { return this._profile; } protected set { Crypto.SupportedProfile(value); this._profile = value; } }
         public abstract Guid Id { get; }
-
         public bool HasVerifyToken { get { return (this._verifiedToken != null); } }
 
         ///<summary>Set the shared trusted identity, which forms the basis of the trust chain. All identities will be verified
@@ -74,7 +71,7 @@ namespace ShiftEverywhere.DiME
             return item;
         }
 
-        public string Export()
+        public virtual string Export()
         {
             StringBuilder builder = new StringBuilder();
             builder.Append(Dime.HEADER);
