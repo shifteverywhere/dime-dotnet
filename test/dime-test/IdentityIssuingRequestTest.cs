@@ -70,13 +70,13 @@ namespace ShiftEverywhere.DiMETest
         [TestMethod]
         public void FromStringTest2()
         {
-            string exported = "aWly.eyJpc3MiOm51bGwsInVpZCI6ImM1ZTUxNDA0LTkyODAtNDE5My04ZDYxLWEyY2RkOTFkZWZlNiIsImlhdCI6MTYyNjIwNzk3OSwicHViIjoiQ1lIdDhIVm1OSHF0ZXRTc054ZmNBQzc3VFZybkQ5b3FFTUZmbmFIRWViMmQxV0VtUml6V3JiIiwiY2FwIjpbImdlbmVyaWMiXX0.3O0XB9O4LFcOjKVntr+NpxDA7cqKWrviWTCmStEqPdc9Pui2MML1kgdYd9bU+62ulS/9OGVgwQ7S9JmRUCyfBQ";
+            string exported = "aWly.eyJ1aWQiOiIxYTEyNDU0Yi1hNjIzLTRmNjEtYWRlMi03ZWViZDQ1MzJhYzkiLCJpYXQiOjE2MjYyMTMxMDgsInB1YiI6IkNZSHQ2YXJ4clNOemR4b1Y3cVFkQ2U4VHFCY2dIV0xkU2V6NXRLTEhaREpjazY1azhSUDdBcSIsImNhcCI6WyJnZW5lcmljIl19.Adl3udTSoJhqpNw7K5OVmBuad8sl6zZBJguxJ15WdKuFf5BhfXB1grrzPPiQZOcvcbt90beHKmeNZ0xjh7JksAM";
             IdentityIssuingRequest iir = IdentityIssuingRequest.FromString(exported);
             Assert.IsNotNull(iir);
-            Assert.AreEqual(new Guid("c5e51404-9280-4193-8d61-a2cdd91defe6"), iir.UID);
-            Assert.AreEqual(1626207979, iir.IssuedAt);
+            Assert.AreEqual(new Guid("1a12454b-a623-4f61-ade2-7eebd4532ac9"), iir.UID);
+            Assert.AreEqual(1626213108, iir.IssuedAt);
             Assert.IsTrue(iir.WantsCapability(Capability.Generic));
-            Assert.AreEqual("CYHt8HVmNHqtetSsNxfcAC77TVrnD9oqEMFfnaHEeb2d1WEmRizWrb", iir.PublicKey);
+            Assert.AreEqual("CYHt6arxrSNzdxoV7qQdCe8TqBcgHWLdSez5tKLHZDJck65k8RP7Aq", iir.PublicKey);
             iir.Verify();
         }
 

@@ -33,7 +33,7 @@ namespace ShiftEverywhere.DiME
         /// <summary>A unique UUID (GUID) of the issuer of the identity. Same as the "iss" field. If same value as subjectId, then this is a self-issued identity.</summary>
         public Guid IssuerId { get { return this._claims.iss; } }
         /// <summary>The public key associated with the identity. Same as the "iky" field.</summary>
-        public string IdentityKey { get { return this._claims.iky; } }
+        public string PublicKey { get { return this._claims.pub; } }
         /// <summary>The trust chain of signed public keys.</summary>
         public Identity TrustChain { get; internal set; }
 
@@ -52,7 +52,7 @@ namespace ShiftEverywhere.DiME
             {
                 this.TrustChain.VerifyTrust();
             } 
-            string publicKey = this.TrustChain != null ? this.TrustChain.IdentityKey : Dime.TrustedIdentity.IdentityKey;
+            string publicKey = this.TrustChain != null ? this.TrustChain.PublicKey : Dime.TrustedIdentity.PublicKey;
             try {
                 Crypto.VerifySignature(this._encoded, this._signature, KeyBox.FromBase58Key(publicKey));
             } catch (IntegrityException) 
@@ -156,19 +156,19 @@ namespace ShiftEverywhere.DiME
             public Guid iss { get; set; }
             public long iat { get; set; }
             public long exp { get; set; }
-            public string iky { get; set; }
+            public string pub { get; set; }
             [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
             public string[] cap { get; set; }
 
             [JsonConstructor]
-            public IdentityClaims(Guid uid, Guid sub, Guid iss, long iat, long exp, string iky, string[] cap = null)
+            public IdentityClaims(Guid uid, Guid sub, Guid iss, long iat, long exp, string pub, string[] cap = null)
             {
                 this.uid = uid;
                 this.sub = sub;
                 this.iss = iss;
                 this.iat = iat;
                 this.exp = exp;
-                this.iky = iky;
+                this.pub = pub;
                 this.cap = cap;
             }
         }

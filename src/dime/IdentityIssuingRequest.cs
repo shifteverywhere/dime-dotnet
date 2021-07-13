@@ -53,7 +53,7 @@ namespace ShiftEverywhere.DiME
             {
                 cap = new string[1] { Capability.Generic.ToString().ToLower() };
             }
-            iir._claims = new IirClaims(null, Guid.NewGuid(), now, keybox.PublicKey, cap);
+            iir._claims = new IirClaims(Guid.NewGuid(), now, keybox.PublicKey, cap);
             iir._signature = Crypto.GenerateSignature(iir.Encode(), keybox);
             return iir;
         }
@@ -159,7 +159,6 @@ namespace ShiftEverywhere.DiME
 
         private struct IirClaims
         {
-            public Guid? iss { get; set; }
             public Guid uid { get; set; }
             public long iat { get; set; }
             public string pub { get; set; }
@@ -167,9 +166,8 @@ namespace ShiftEverywhere.DiME
             public string[] cap { get; set; }
 
             [JsonConstructor]
-            public IirClaims(Guid? iss, Guid uid, long iat, string pub, string[] cap = null)
+            public IirClaims(Guid uid, long iat, string pub, string[] cap = null)
             {
-                this.iss = iss;
                 this.uid = uid;
                 this.iat = iat;
                 this.pub = pub;

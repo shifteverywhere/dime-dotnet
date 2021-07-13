@@ -112,14 +112,14 @@ namespace ShiftEverywhere.DiMETest
         public void FromStringTest1()
         {   
             Dime.SetTrustedIdentity(Commons.TrustedIdentity);
-            string encoded = "bXNn.eyJ1aWQiOiI3MGMzOTQ5OC1mMWIwLTQ4ODgtOWY0Ny0yNzVmZTFhOWIwMTQiLCJhdWQiOiJhZjM4NGQwMC05YmM1LTQwMTctODc3YS01Mzc5ZjY1M2U1ZTUiLCJpc3MiOiI3MDUwMjgzMy01MjE1LTRiZTMtYjc1ZS0zZTNmMDdkMjU2MjQiLCJpYXQiOjE2MjYyMDg1MjUsImV4cCI6MTYyNjIwODUzNX0.UmFjZWNhciBpcyByYWNlY2FyIGJhY2t3YXJkcy4.VTfqm8NPjBilgYd07pv7nb1ehCh81vRrKS8QIhK4ZcRrkilJ7WLrRAZljUpW1ALGPr5qgLx1Nalpvs3FVBfeCw";
+            string encoded = "bXNn.eyJ1aWQiOiI3YWEwNzY2OC1iZjIwLTRlMjAtYjViYy0yNmM3YzQ2MjMwNmQiLCJhdWQiOiJmMTRmNzNhZi02N2Y1LTRiYjgtODMxMi1lNDg4OGU4ZjllYzciLCJpc3MiOiIwMDIxZTIyMC1kYTRhLTQwMjMtYWYxZC02ZWZiMDVmY2ZlZWYiLCJpYXQiOjE2MjYyMTQ0NjIsImV4cCI6MTYyNjIxNDQ3Mn0.UmFjZWNhciBpcyByYWNlY2FyIGJhY2t3YXJkcy4.AT5PqfwPK8uJY9ftguzW91OGC+QIoebZ3excDntB73a2n2EIkLY4SOiySiHrTb9nVVXn1mQjj/MbvmKpsf+1aw0";
             Message message = Message.FromString(encoded);
-            Assert.AreEqual(new Guid("70c39498-f1b0-4888-9f47-275fe1a9b014"), message.UID);
-            Assert.AreEqual(new Guid("af384d00-9bc5-4017-877a-5379f653e5e5"), message.AudienceId);
-            Assert.AreEqual(new Guid("70502833-5215-4be3-b75e-3e3f07d25624"), message.IssuerId);
+            Assert.AreEqual(new Guid("7aa07668-bf20-4e20-b5bc-26c7c462306d"), message.UID);
+            Assert.AreEqual(new Guid("f14f73af-67f5-4bb8-8312-e4888e8f9ec7"), message.AudienceId);
+            Assert.AreEqual(new Guid("0021e220-da4a-4023-af1d-6efb05fcfeef"), message.IssuerId);
             Assert.AreEqual("Racecar is racecar backwards.", System.Text.Encoding.UTF8.GetString(message.GetPayload()));
-            Assert.AreEqual(1626208525, message.IssuedAt);
-            Assert.AreEqual(1626208535, message.ExpiresAt);
+            Assert.AreEqual(1626214462, message.IssuedAt);
+            Assert.AreEqual(1626214472, message.ExpiresAt);
             Assert.AreEqual(message.IssuerId, Commons.SenderIdentity.SubjectId);
         } 
 
