@@ -63,6 +63,13 @@ namespace ShiftEverywhere.DiME
 			return Utility.SubArray(array, start, array.Length - start);
 		}
 
+        public static byte[] Prefix(byte prefix, byte[] array)
+        {
+            byte[] bytes = new byte[array.Length + 1];
+            array.CopyTo(bytes, 1);
+            bytes[0] = prefix;
+            return bytes;
+        }
 
     }
 

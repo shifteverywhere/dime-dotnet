@@ -28,8 +28,8 @@ namespace ShiftEverywhere.DiME
             if (keybox.RawKey == null) { throw new ArgumentNullException(nameof(keybox), "Unable to sign, key in keybox must not be null."); }
             if (keybox.Type != KeyType.Identity) { throw new ArgumentException($"Unable to sign, wrong key type provided, got: {keybox.Type}, expected: KeyType.Identity."); }
             Key key = Key.Import(SignatureAlgorithm.Ed25519, keybox.RawKey, KeyBlobFormat.RawPrivateKey);
-            byte[] signature = SignatureAlgorithm.Ed25519.Sign(key, Encoding.UTF8.GetBytes(data));
-            return System.Convert.ToBase64String(signature).Trim('=');
+            byte[] rawSignature = SignatureAlgorithm.Ed25519.Sign(key, Encoding.UTF8.GetBytes(data));
+            return System.Convert.ToBase64String(Utility.Prefix((byte)keybox.Profile, rawSignature)).Trim('=');
         }
 
         public static void VerifySignature(string data, string signature, KeyBox keybox)
@@ -40,8 +40,10 @@ namespace ShiftEverywhere.DiME
             if (keybox == null) { throw new ArgumentNullException(nameof(keybox), "Unable to verify signature, keybox must not be null."); }
             if (keybox.RawPublicKey == null) { throw new ArgumentNullException(nameof(keybox), "Unable to sign, public key in keybox must not be null."); }
             if (keybox.Type != KeyType.Identity) { throw new ArgumentException($"Unable to sign, wrong key type provided, got: {keybox.Type}, expected: KeyType.Identity."); }
+            byte[] rawSignature = Utility.FromBase64(signature);
+            if ((ProfileVersion)rawSignature[0] != keybox.Profile) { throw new KeyMissmatchException("Signature profile does not match key profile version."); }
             PublicKey verifyKey = PublicKey.Import(SignatureAlgorithm.Ed25519, keybox.RawPublicKey, KeyBlobFormat.RawPublicKey);
-            if (!SignatureAlgorithm.Ed25519.Verify(verifyKey, Encoding.UTF8.GetBytes(data), Utility.FromBase64(signature)))
+            if (!SignatureAlgorithm.Ed25519.Verify(verifyKey, Encoding.UTF8.GetBytes(data), Utility.SubArray(rawSignature, 1)))
             {
                 throw new IntegrityException();
             }
