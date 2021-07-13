@@ -104,14 +104,7 @@ namespace ShiftEverywhere.DiME
                 StringBuilder builder = new StringBuilder();
                 builder.Append(KeyBox.IID);
                 builder.Append(Dime._COMPONENT_DELIMITER);
-                if (!this._claims.includeKey && this.Type != KeyType.Secret)
-                {
-                    builder.Append(Utility.ToBase64(JsonSerializer.Serialize(new _KeyBoxClaims(Guid.NewGuid(), this._claims.kid, this._claims.iat, null, this._claims.pub))));
-                }
-                else
-                {
-                    builder.Append(Utility.ToBase64(JsonSerializer.Serialize(this._claims)));
-                }
+                builder.Append(Utility.ToBase64(JsonSerializer.Serialize(this._claims)));
                 this._encoded = builder.ToString();
             }
             return this._encoded;
@@ -126,7 +119,7 @@ namespace ShiftEverywhere.DiME
         private const int _CLAIMS_INDEX = 1;
         private _KeyBoxClaims _claims;
 
-        private class _KeyBoxClaims
+        private struct _KeyBoxClaims
         {
             [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
             public Guid? iss { get; set; }
@@ -138,9 +131,6 @@ namespace ShiftEverywhere.DiME
             [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
             public string pub { get; set; }
 
-            [JsonIgnore]
-            public bool includeKey;
-
             [JsonConstructor]
             public _KeyBoxClaims(Guid? iss, Guid kid, long? iat, string key, string pub)
             {
@@ -149,13 +139,8 @@ namespace ShiftEverywhere.DiME
                 this.iat = iat;
                 this.key = key;
                 this.pub = pub;
-                this.includeKey = true;
             }
 
-            public bool ShouldSerializeKey()
-            {
-                return this.includeKey;
-            }
         }
         
         private string EncodeKey(byte[] key, byte type, byte variant, byte profile)

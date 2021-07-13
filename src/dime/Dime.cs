@@ -10,6 +10,8 @@ using System;
 using System.Text;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace ShiftEverywhere.DiME
 {
@@ -21,11 +23,14 @@ namespace ShiftEverywhere.DiME
         ///<summary>A shared trusted identity that acts as the root identity in the trust chain.</summary>
         public static Identity TrustedIdentity { get { lock(Dime._lock) { return Dime._trustedIdentity; } } }
 
-        public Guid? IssuerId { get; private set; }
+        public Guid? IssuerId { get { return (this._claims.HasValue) ? this._claims.Value.iss : null; } }
+        public long? IssuedAt { get { return (this._claims.HasValue) ? this._claims.Value.iat : null; } }
+        public string State { get { return (this._claims.HasValue) ? this._claims.Value.sta : null; } }
         
         public IList<DimeItem> Items { get { return (this._items != null) ? this._items.AsReadOnly() : null; } }
 
         public bool IsSealed { get { return (this._signature != null); } }
+        public bool IsAnnonymous { get { return !this._claims.HasValue; } }
 
         ///<summary>Set the shared trusted identity, which forms the basis of the trust chain. All identities will be verified
         /// from a trust perspecitve using this identity. For the trust chain to hold, then all identities must be either issued
@@ -39,9 +44,12 @@ namespace ShiftEverywhere.DiME
             }
         }
 
-        public Dime(Guid? IssuerId = null)
+        public Dime() { }
+
+        public Dime(Guid issuerId, string state = null)
         {
-            this.IssuerId = IssuerId;
+            long now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+            this._claims = new _DimeClaims(issuerId, now, state);
         }
 
         public static Dime Import(string exported)
@@ -50,16 +58,18 @@ namespace ShiftEverywhere.DiME
             string[] sections = exported.Split(Dime._SECTION_DELIMITER);
             // 0: HEADER
             string[] components = sections[0].Split(Dime._COMPONENT_DELIMITER);
-            Guid? issuerId = null;
+            Dime dime;
             if (components.Length == 2)
             {
-                byte[] issuerBytes = Utility.FromBase64(components[1]);
-                issuerId = new Guid(System.Text.Encoding.UTF8.GetString(issuerBytes, 0, issuerBytes.Length));
+                _DimeClaims claims = JsonSerializer.Deserialize<_DimeClaims>(Utility.FromBase64(components[1]));
+                dime = new Dime(claims);
             }
-            else if (components.Length != 1) { throw new FormatException($"Not a valid Dime object, unexpected number of components in header, got: '{components.Length}', expexted: '1' or '2'"); }
-            Dime dime = new Dime(issuerId);
+            else if (components.Length == 1) 
+                dime = new Dime();
+            else 
+                throw new FormatException($"Not a valid Dime object, unexpected number of components in header, got: '{components.Length}', expexted: '1' or '2'");
             // 1 to LAST or LAST - 1 
-            int endIndex = (issuerId == null) ? sections.Length : sections.Length - 1; // end index dependent on unsealed, annonymous Dime or not
+            int endIndex = (dime.IsAnnonymous) ? sections.Length : sections.Length - 1; // end index dependent on unsealed, annonymous Dime or not
             List<DimeItem> items = new List<DimeItem>(endIndex - 1);
             for (int index = 1; index < endIndex; index++)
             {
@@ -68,10 +78,8 @@ namespace ShiftEverywhere.DiME
             }
             dime._items = items;
             dime._encoded = exported.Substring(0, exported.LastIndexOf(Dime._SECTION_DELIMITER));
-            if (issuerId != null)
-            {
+            if (!dime.IsAnnonymous)
                 dime._signature = sections.Last(); 
-            }
             return dime;
         }
 
@@ -79,9 +87,7 @@ namespace ShiftEverywhere.DiME
         {
             if (this._signature != null) { throw new IntegrityException("Unable to modify Dime after sealing."); }
             if (this._items == null)
-            {
                 this._items = new List<DimeItem>();
-            }
             this._items.Add(item);
             return this;
         }
@@ -95,7 +101,7 @@ namespace ShiftEverywhere.DiME
 
         public Dime Seal(KeyBox keybox)
         {
-            if (!this.IssuerId.HasValue) { throw new FormatException("Cannot seal an annonymous Dime."); }
+            if (this.IsAnnonymous) { throw new FormatException("Cannot seal an annonymous Dime."); }
             if (this._signature != null) { throw new FormatException("Dime already sealed."); }
             if (this._items == null || this._items.Count == 0) { throw new FormatException("At least one item must be attached before sealing Dime."); }
             this._signature = Crypto.GenerateSignature(Encode(), keybox);
@@ -104,7 +110,7 @@ namespace ShiftEverywhere.DiME
 
         public Dime Verify(KeyBox keybox)
         {
-            if (!this.IssuerId.HasValue) { throw new FormatException("Annonymous Dime, unable to verify."); }
+            if (this.IsAnnonymous) { throw new FormatException("Annonymous Dime, unable to verify."); }
             if (this._signature == null) { throw new IntegrityException("Dime is not sealed."); }
             Crypto.VerifySignature(Encode(), this._signature, keybox);
             return this;
@@ -112,15 +118,13 @@ namespace ShiftEverywhere.DiME
 
         public string Export()
         {
-            if (this.IssuerId.HasValue)
+            if (!this.IsAnnonymous)
             {
                 if (this._signature == null) { throw new FormatException("Dime must be sealed before exporting."); }
                 return $"{Encode()}{Dime._SECTION_DELIMITER}{this._signature}";
             }
             else
-            {
                 return Encode();
-            }
         }
 
         public string Thumbprint()
@@ -139,6 +143,29 @@ namespace ShiftEverywhere.DiME
         private List<DimeItem> _items;
         private string _encoded;
         private string _signature;
+        private _DimeClaims? _claims;
+
+        private struct _DimeClaims
+        {
+            public Guid iss { get; set; }
+            public long iat { get; set; }
+            [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+            public string sta { get; set; }
+
+            [JsonConstructor]
+            public _DimeClaims(Guid iss, long iat, string sta)
+            {
+                this.iss = iss;
+                this.iat = iat;
+                this.sta = sta;
+            }
+
+        }
+
+        private Dime(_DimeClaims claims)
+        {
+            this._claims = claims;
+        }
 
         private string Encode()
         {
@@ -146,10 +173,10 @@ namespace ShiftEverywhere.DiME
             {
                 StringBuilder builder = new StringBuilder();
                 builder.Append(Dime.HEADER);
-                if (this.IssuerId.HasValue)
+                if (!this.IsAnnonymous)
                 {
                     builder.Append(Dime._COMPONENT_DELIMITER);
-                    builder.Append(Utility.ToBase64(this.IssuerId.ToString()));
+                    builder.Append(Utility.ToBase64(JsonSerializer.Serialize(this._claims)));
                 }
                 foreach(DimeItem item in this._items)
                 {
