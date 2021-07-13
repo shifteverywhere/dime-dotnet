@@ -17,13 +17,13 @@ namespace ShiftEverywhere.DiME
 {
     ///<summary>Represents a digital identity of an entity. Can be self-signed or signed by a trusted identity (and thus
     /// be part of a trust chain.</summary>
-    public class Identity: Dime
+    public class Identity: DimeItem
     {
         #region -- PUBLIC --
 
-        public const string ITID = "aW8uZGltZWZvcm1hdC5pZA"; // base64 of io.dimeformat.id
-
-        public override Guid Id { get { return this._claims.uid; } }
+        public const string IID = "aW8uZGltZWZvcm1hdC5pZA"; // base64 of io.dimeformat.id
+        public override string ItemIdentifier { get { return Identity.IID; } }
+        public override Guid UID { get { return this._claims.uid; } }
         /// <summary>A unique UUID (GUID) of the identity. Same as the "sub" field.</summary>
         public Guid SubjectId { get { return this._claims.sub; } }        
         /// <summary>The date when the identity was issued, i.e. approved by the issuer. Same as the "iat" field.</summary>
@@ -41,7 +41,7 @@ namespace ShiftEverywhere.DiME
 
         public Identity() { }
 
-        public void Verify()
+        public void VerifyTrust()
         {
             if (Dime.TrustedIdentity == null) { throw new UntrustedIdentityException("No trusted identity set."); }
             long now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
@@ -50,11 +50,11 @@ namespace ShiftEverywhere.DiME
             if (this.ExpiresAt < now) { throw new DateExpirationException("Identity has expired."); }
             if (this.TrustChain != null)
             {
-                this.TrustChain.Verify();
+                this.TrustChain.VerifyTrust();
             } 
             string publicKey = this.TrustChain != null ? this.TrustChain.IdentityKey : Dime.TrustedIdentity.IdentityKey;
             try {
-                Crypto.VerifySignature(this.Profile, this._encoded, this._signature, publicKey);
+                Crypto.VerifySignature(this._encoded, this._signature, KeyBox.FromBase58Key(publicKey));
             } catch (IntegrityException) 
             {
                 throw new UntrustedIdentityException();
@@ -69,51 +69,59 @@ namespace ShiftEverywhere.DiME
             return this._capabilities.Any(cap => cap == capability);
         }
 
+        public new static Identity FromString(string encoded)
+        {
+            Identity identity = new Identity();
+            identity.Decode(encoded);
+            return identity;
+        }
+
         #endregion
 
         #region -- INTERNAL --
+
         internal Identity(Guid subjectId, string identityKey, long issuedAt, long expiresAt, Guid issuerId, List<Capability> capabilities, ProfileVersion profile = Crypto.DEFUALT_PROFILE) 
         {
             if (!Crypto.SupportedProfile(profile)) { throw new ArgumentException("Unsupported cryptography profile."); }
             this._capabilities = capabilities;
             string[] cap = capabilities.ConvertAll(c => c.ToString().ToLower()).ToArray();
-            this._claims = new IdentityClaims((int)profile, Guid.NewGuid(), subjectId, issuerId, issuedAt, expiresAt, identityKey, cap);
-            this.Profile = profile;
+            this._claims = new IdentityClaims(Guid.NewGuid(), subjectId, issuerId, issuedAt, expiresAt, identityKey, cap);
         }
 
-        internal override void Populate(Identity issuer, string encoded) 
+        protected override void Decode(string encoded) 
         {
             string[] components = encoded.Split(new char[] { Dime._COMPONENT_DELIMITER });
             if (components.Length != Identity._NBR_EXPECTED_COMPONENTS_MIN &&
                 components.Length != Identity._NBR_EXPECTED_COMPONENTS_MAX) { throw new DataFormatException($"Unexpected number of components for identity issuing request, expected {Identity._NBR_EXPECTED_COMPONENTS_MIN} OR {Identity._NBR_EXPECTED_COMPONENTS_MAX}, got {components.Length}."); }
-            if (components[Identity._IDENTIFIER_INDEX] != Identity.ITID) { throw new DataFormatException($"Unexpected object identifier, expected: \"{Identity.ITID}\", got \"{components[Identity._IDENTIFIER_INDEX]}\"."); }
+            if (components[Identity._IDENTIFIER_INDEX] != Identity.IID) { throw new DataFormatException($"Unexpected object identifier, expected: \"{Identity.IID}\", got \"{components[Identity._IDENTIFIER_INDEX]}\"."); }
             byte[] json = Utility.FromBase64(components[Identity._CLAIMS_INDEX]);
             this._claims = JsonSerializer.Deserialize<IdentityClaims>(json);
-            this.Profile = (ProfileVersion)this._claims.ver;
             this._capabilities = new List<string>(this._claims.cap).ConvertAll(str => { Capability cap; Enum.TryParse<Capability>(str, true, out cap); return cap; });
             if (components.Length == Identity._NBR_EXPECTED_COMPONENTS_MAX) // There is also a trust chain identity 
             {
                 byte[] issIdentity = Utility.FromBase64(components[Identity._CHAIN_INDEX]);
-                this.TrustChain = Dime.Import<Identity>(System.Text.Encoding.UTF8.GetString(issIdentity, 0, issIdentity.Length));
+                this.TrustChain = Identity.FromString(System.Text.Encoding.UTF8.GetString(issIdentity, 0, issIdentity.Length));
             }
+            this._encoded = encoded.Substring(0, encoded.LastIndexOf(Dime._COMPONENT_DELIMITER));
+            this._signature = components[components.Length - 1];
         }
 
-        internal override string Encoded(bool includeSignature = false)
+        protected override string Encode()
         {
             if (this._encoded == null)
             {
                 StringBuilder builder = new StringBuilder();
-                builder.Append(Identity.ITID);
+                builder.Append(Identity.IID);
                 builder.Append(Dime._COMPONENT_DELIMITER);
                 builder.Append(Utility.ToBase64(JsonSerializer.Serialize(this._claims)));
                 if (this.TrustChain != null)
                 {
                     builder.Append(Dime._COMPONENT_DELIMITER);
-                    builder.Append(Utility.ToBase64(this.TrustChain.Encoded(true)));
+                    builder.Append(Utility.ToBase64($"{this.TrustChain.Encode()}{Dime._COMPONENT_DELIMITER}{this.TrustChain._signature}"));
                 }
                 this._encoded = builder.ToString();
             }
-            return (includeSignature) ? $"{this._encoded}{Dime._COMPONENT_DELIMITER}{this._signature}" : this._encoded;
+            return this._encoded;
         }
 
         internal void Seal(string privateKey)
@@ -121,19 +129,13 @@ namespace ShiftEverywhere.DiME
             if (this._signature == null)
             {
                 if (privateKey == null) { throw new ArgumentNullException(nameof(privateKey), "Private key for signing cannot be null."); }
-                this._signature = Crypto.GenerateSignature(this.Profile, this.Encoded(), privateKey);
+                this._signature = Crypto.GenerateSignature(this.Encode(), KeyBox.FromBase58Key(privateKey));
             }
         }
 
         #endregion
 
         # region -- PROTECTED --
-        
-        protected override void FixateEncoded(string encoded)
-        {
-            this._encoded = encoded.Substring(0, encoded.LastIndexOf(Dime._COMPONENT_DELIMITER));
-            this._signature = encoded.Substring(encoded.LastIndexOf(Dime._COMPONENT_DELIMITER) + 1);
-        }
 
         #endregion
 
@@ -147,12 +149,8 @@ namespace ShiftEverywhere.DiME
         private IdentityClaims _claims;
         private List<Capability> _capabilities { get; set; }
 
-        private string _encoded;
-        private string _signature;
-
         private struct IdentityClaims
         {
-            public int ver { get; set; }
             public Guid uid { get; set; }
             public Guid sub { get; set; }
             public Guid iss { get; set; }
@@ -163,9 +161,8 @@ namespace ShiftEverywhere.DiME
             public string[] cap { get; set; }
 
             [JsonConstructor]
-            public IdentityClaims(int ver, Guid uid, Guid sub, Guid iss, long iat, long exp, string iky, string[] cap = null)
+            public IdentityClaims(Guid uid, Guid sub, Guid iss, long iat, long exp, string iky, string[] cap = null)
             {
-                this.ver = ver;
                 this.uid = uid;
                 this.sub = sub;
                 this.iss = iss;

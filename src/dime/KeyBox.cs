@@ -13,15 +13,19 @@ using System.Text.Json.Serialization;
 
 namespace ShiftEverywhere.DiME
 {
-    public class KeyBox: Dime
+    public class KeyBox: DimeItem
     {
         #region -- PUBLIC --
 
-        public const string ITID = "aW8uZGltZWZvcm1hdC5reWI"; // base64 of io.dimeformat.kyb
+        public const string IID = "aW8uZGltZWZvcm1hdC5reWI"; // base64 of io.dimeformat.kyb
+        public override string ItemIdentifier { get { return KeyBox.IID; } }
+        public ProfileVersion Profile { get; private set; }
+         public Guid? IssuerId { get { return this._claims.iss; } }
         /// <summary></summary>
-        public override Guid Id { get { return this._claims.kid; } }
+        public override Guid UID { get { return this._claims.kid; } }
+         public long? IssuedAt { get { return this._claims.iat; } }
         /// <summary></summary>
-        public KeyType Type { get { return this._claims.kty; } }
+        public KeyType Type { get; private set; }
         /// <summary></summary>
         public string Key { get { return this._claims.key; } }
         /// <summary></summary>
@@ -35,47 +39,74 @@ namespace ShiftEverywhere.DiME
             return Crypto.GenerateKeyPair(profile, type);
         }
 
+        public static KeyBox FromBase58Key(string encodedKey)
+        {
+            KeyBox keybox = new KeyBox();
+            keybox.DecodeKey(encodedKey);
+            return keybox;
+        }
+
+        public KeyBox PublicOnly()
+        {
+            return new KeyBox(this.UID, this.Type, null, this.RawPublicKey, this.Profile);
+        }
+
+        public new static KeyBox FromString(string encoded)
+        {
+            KeyBox keybox = new KeyBox();
+            keybox.Decode(encoded);
+            return keybox;
+        }
+
         #endregion
 
         #region -- INTERNAL --
 
-        internal KeyBox(Guid id, KeyType type, string key, string publicKey, ProfileVersion profile)
+        internal byte[] RawKey { get; private set; }
+        internal byte[] RawPublicKey { get; private set; }
+
+        internal KeyBox(Guid id, KeyType type, byte[] key, byte[] publickey, ProfileVersion profile = Crypto.DEFUALT_PROFILE)
         {
             if (!Crypto.SupportedProfile(profile)) { throw new UnsupportedProfileException(); }
-            if (key == null || key.Length == 0) { throw new ArgumentNullException(nameof(key), "Key must not be empty or null."); }
-            if ((type == KeyType.Identity || type == KeyType.Exchange) && (publicKey == null || publicKey.Length == 0)) { throw new ArgumentNullException(nameof(publicKey), "A public key must be provided for asymmetric keys."); }
-            this._claims = new KeyBoxClaims((int)profile, id, type, key, publicKey);
+            long iat = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+            this._claims = new _KeyBoxClaims(
+                null, 
+                id, 
+                iat, 
+                EncodeKey(key, (byte)type, (byte)KeyVariant.Private, (byte)profile), 
+                EncodeKey(publickey, (byte)type, (byte)KeyVariant.Public, (byte)profile));
+            this.Type = type;
             this.Profile = profile;
+            this.RawKey = key;
+            this.RawPublicKey = publickey;
         }
 
-        internal override void Populate(Identity issuer, string encoded)
+        #endregion
+
+        # region -- PROTECTED --
+
+        protected override void Decode(string encoded)
         {
             string[] components = encoded.Split(new char[] { Dime._COMPONENT_DELIMITER });
             if (components.Length != KeyBox._NBR_EXPECTED_COMPONENTS) { throw new DataFormatException($"Unexpected number of components for identity issuing request, expected {KeyBox._NBR_EXPECTED_COMPONENTS}, got {components.Length}."); }
-            if (components[KeyBox._IDENTIFIER_INDEX] != KeyBox.ITID) { throw new DataFormatException($"Unexpected object identifier, expected: \"{KeyBox.ITID}\", got \"{components[KeyBox._IDENTIFIER_INDEX]}\"."); }
+            if (components[KeyBox._IDENTIFIER_INDEX] != KeyBox.IID) { throw new DataFormatException($"Unexpected object identifier, expected: \"{KeyBox.IID}\", got \"{components[KeyBox._IDENTIFIER_INDEX]}\"."); }
             byte[] json = Utility.FromBase64(components[KeyBox._CLAIMS_INDEX]);
-            this._claims = JsonSerializer.Deserialize<KeyBoxClaims>(json);
-            this.Profile = (ProfileVersion)this._claims.ver;
+            this._claims = JsonSerializer.Deserialize<_KeyBoxClaims>(json);
+            DecodeKey(this._claims.key);
+            DecodeKey(this._claims.pub);
+            this._encoded = encoded;
         }
 
-        internal string Encoded(bool includeKey, bool includeSignature)
-        {
-            this._claims.includeKey = (includeKey || this.Type == KeyType.Secret);
-            string encoded = Encoded(includeSignature);
-            this._claims.includeKey = false;
-            return encoded;
-        }
-
-        internal override string Encoded(bool includeSignature = false)
+        protected override string Encode()
         {
             if (this._encoded == null)
             {
                 StringBuilder builder = new StringBuilder();
-                builder.Append(KeyBox.ITID);
+                builder.Append(KeyBox.IID);
                 builder.Append(Dime._COMPONENT_DELIMITER);
-                if (!this._claims.includeKey && this._claims.kty != KeyType.Secret)
+                if (!this._claims.includeKey && this.Type != KeyType.Secret)
                 {
-                    builder.Append(Utility.ToBase64(JsonSerializer.Serialize(new KeyBoxClaims(this._claims.ver, this._claims.kid, this._claims.kty, null, this._claims.pub))));
+                    builder.Append(Utility.ToBase64(JsonSerializer.Serialize(new _KeyBoxClaims(Guid.NewGuid(), this._claims.kid, this._claims.iat, null, this._claims.pub))));
                 }
                 else
                 {
@@ -88,29 +119,20 @@ namespace ShiftEverywhere.DiME
 
         #endregion
 
-        # region -- PROTECTED --
-       
-        protected override void FixateEncoded(string encoded)
-        {
-            this._encoded = encoded;
-        }
-
-        #endregion
-
         #region -- PRIVATE --
 
         private const int _NBR_EXPECTED_COMPONENTS = 2;
         private const int _IDENTIFIER_INDEX = 0;
         private const int _CLAIMS_INDEX = 1;
+        private _KeyBoxClaims _claims;
 
-        private KeyBoxClaims _claims;
-        private string _encoded;
-
-        private class KeyBoxClaims
+        private class _KeyBoxClaims
         {
-            public int ver { get; set; }
+            [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+            public Guid? iss { get; set; }
             public Guid kid { get; set; }
-            public KeyType kty { get; set; }
+            [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+            public long? iat { get; set; }
             [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
             public string key { get; set; }
             [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
@@ -120,14 +142,14 @@ namespace ShiftEverywhere.DiME
             public bool includeKey;
 
             [JsonConstructor]
-            public KeyBoxClaims(int ver, Guid kid, KeyType kty, string key, string pub)
+            public _KeyBoxClaims(Guid? iss, Guid kid, long? iat, string key, string pub)
             {
-                this.ver = ver;
+                this.iss = iss;
                 this.kid = kid;
-                this.kty = kty;
+                this.iat = iat;
                 this.key = key;
                 this.pub = pub;
-                this.includeKey = false;
+                this.includeKey = true;
             }
 
             public bool ShouldSerializeKey()
@@ -136,6 +158,37 @@ namespace ShiftEverywhere.DiME
             }
         }
         
+        private string EncodeKey(byte[] key, byte type, byte variant, byte profile)
+        {
+            if (key == null) return null;
+            byte combinedType = (byte)((uint)type | (uint)variant);
+            byte[] prefix = { 0x04, profile, combinedType, 0x00 };
+            return Base58.Encode(Utility.Combine(prefix, key));
+        }
+
+        private void DecodeKey(string encodedKey)
+        {
+            if (encodedKey != null)
+            {
+                byte[] bytes = Base58.Decode(encodedKey);
+                ProfileVersion profile = (ProfileVersion)bytes[1];
+                if (this.Profile != ProfileVersion.Undefined && profile != this.Profile) { throw new DataFormatException("Cryptographic profile version mismatch."); }
+                this.Profile = profile;
+                KeyType type = (KeyType)((byte)((uint)bytes[2] & 0xFE));
+                if (this.Type != KeyType.Undefined && type != this.Type) { throw new DataFormatException("Key type mismatch."); }
+                this.Type = type;
+                KeyVariant variant = (KeyVariant)((byte)((uint)bytes[2] & 0x01));
+                switch (variant)
+                {
+                    case KeyVariant.Public:
+                        this.RawPublicKey = Utility.SubArray(bytes, 4);
+                        break;
+                    case KeyVariant.Private:
+                        this.RawKey = Utility.SubArray(bytes, 4);
+                        break;
+                }
+            }
+        }
 
         #endregion
     }

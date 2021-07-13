@@ -8,22 +8,24 @@
 //
 using System;
 using System.Text;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace ShiftEverywhere.DiME
 {
-    public interface IAttached { }
-
-    public abstract class Dime
+    public class Dime
     {
-        #region -- PUBLIC --
 
-        public const string HEADER = "DiME";
+        public const string HEADER = "Di";
         public const long VALID_FOR_1_YEAR = 365 * 24 * 60 * 60; 
         ///<summary>A shared trusted identity that acts as the root identity in the trust chain.</summary>
         public static Identity TrustedIdentity { get { lock(Dime._lock) { return Dime._trustedIdentity; } } }
-        public ProfileVersion Profile { get { return this._profile; } protected set { Crypto.SupportedProfile(value); this._profile = value; } }
-        public abstract Guid Id { get; }
-        public bool HasVerifyToken { get { return (this._verifiedToken != null); } }
+
+        public Guid? IssuerId { get; private set; }
+        
+        public IList<DimeItem> Items { get { return (this._items != null) ? this._items.AsReadOnly() : null; } }
+
+        public bool IsSealed { get { return (this._signature != null); } }
 
         ///<summary>Set the shared trusted identity, which forms the basis of the trust chain. All identities will be verified
         /// from a trust perspecitve using this identity. For the trust chain to hold, then all identities must be either issued
@@ -37,126 +39,131 @@ namespace ShiftEverywhere.DiME
             }
         }
 
-        ///<summary>Creates an object from an encoded DiME item string.</summary>
-        ///<param name="encoded">The encoded DiME item string to decode.</param>
-        ///<returns>An initialized DiME item object.</returns>
-        public static T Import<T>(string encoded) where T: Dime, new()
+        public Dime(Guid? IssuerId = null)
         {
-            string encodedDime = (encoded.StartsWith(Dime.HEADER)) ? encoded.Substring(encoded.IndexOf(Dime._SECTION_DELIMITER) + 1) : encoded;
-            string[] encodedSections = encodedDime.Split(Dime._SECTION_DELIMITER);
-            string fixatedEncoded = encodedDime;
-            T item = new T();
-            if ((item as IAttached) != null)
+            this.IssuerId = IssuerId;
+        }
+
+        public static Dime Import(string exported)
+        {
+            if (!exported.StartsWith(Dime.HEADER)) { throw new FormatException("Not a Dime object, invalid header."); }
+            string[] sections = exported.Split(Dime._SECTION_DELIMITER);
+            // 0: HEADER
+            string[] components = sections[0].Split(Dime._COMPONENT_DELIMITER);
+            Guid? issuerId = null;
+            if (components.Length == 2)
             {
-                if (encodedSections.Length < Dime._MIN_SECTIONS_IN_ATTACHED || encodedSections.Length > Dime._MAX_SECTIONS_IN_ATTACHED) { throw new DataFormatException("Invalid DiME format."); }
-                Identity issuer = Dime.Import<Identity>(encodedSections[Dime._ATTACHED_IDENTITY_INDEX]);
-                item.Populate(issuer, encodedSections[Dime._ATTACHED_ITEM_INDEX]);
-                if (encodedSections.Length == Dime._MAX_SECTIONS_IN_ATTACHED) 
-                { 
-                    item._verifiedToken = encodedSections[Dime._ATTACHED_VERIFYTOKEN_INDEX];
-                    fixatedEncoded = encodedDime.Substring(0, encodedDime.LastIndexOf(Dime._SECTION_DELIMITER));
-                }
+                byte[] issuerBytes = Utility.FromBase64(components[1]);
+                issuerId = new Guid(System.Text.Encoding.UTF8.GetString(issuerBytes, 0, issuerBytes.Length));
+            }
+            else if (components.Length != 1) { throw new FormatException($"Not a valid Dime object, unexpected number of components in header, got: '{components.Length}', expexted: '1' or '2'"); }
+            Dime dime = new Dime(issuerId);
+            // 1 to LAST or LAST - 1 
+            int endIndex = (issuerId == null) ? sections.Length : sections.Length - 1; // end index dependent on unsealed, annonymous Dime or not
+            List<DimeItem> items = new List<DimeItem>(endIndex - 1);
+            for (int index = 1; index < endIndex; index++)
+            {
+                string iid = sections[index].Substring(0, sections[index].IndexOf(Dime._COMPONENT_DELIMITER));
+                items.Add(DimeItem.FromString(sections[index]));
+            }
+            dime._items = items;
+            dime._encoded = exported.Substring(0, exported.LastIndexOf(Dime._SECTION_DELIMITER));
+            if (issuerId != null)
+            {
+                dime._signature = sections.Last(); 
+            }
+            return dime;
+        }
+
+        public Dime AddItem(DimeItem item)
+        {
+            if (this._signature != null) { throw new IntegrityException("Unable to modify Dime after sealing."); }
+            if (this._items == null)
+            {
+                this._items = new List<DimeItem>();
+            }
+            this._items.Add(item);
+            return this;
+        }
+
+        public Dime SetItems(List<DimeItem> items)
+        {
+            if (this._signature != null) { throw new IntegrityException("Unable to modify Dime after sealing."); }
+            this._items = items.ToList();
+            return this;
+        }
+
+        public Dime Seal(KeyBox keybox)
+        {
+            if (!this.IssuerId.HasValue) { throw new FormatException("Cannot seal an annonymous Dime."); }
+            if (this._signature != null) { throw new FormatException("Dime already sealed."); }
+            if (this._items == null || this._items.Count == 0) { throw new FormatException("At least one item must be attached before sealing Dime."); }
+            this._signature = Crypto.GenerateSignature(Encode(), keybox);
+            return this;
+        }
+
+        public Dime Verify(KeyBox keybox)
+        {
+            if (!this.IssuerId.HasValue) { throw new FormatException("Annonymous Dime, unable to verify."); }
+            if (this._signature == null) { throw new IntegrityException("Dime is not sealed."); }
+            Crypto.VerifySignature(Encode(), this._signature, keybox);
+            return this;
+        }
+
+        public string Export()
+        {
+            if (this.IssuerId.HasValue)
+            {
+                if (this._signature == null) { throw new FormatException("Dime must be sealed before exporting."); }
+                return $"{Encode()}{Dime._SECTION_DELIMITER}{this._signature}";
             }
             else
             {
-                if (encodedSections.Length > Dime._MAX_SECTIONS_IN_DETACHED) { throw new DataFormatException("Invalid DiME format."); }
-                item.Populate(null, encodedSections[Dime._DETACHED_ITEM_INDEX]);
-                if (encodedSections.Length == Dime._MAX_SECTIONS_IN_DETACHED) 
-                { 
-                    item._verifiedToken = encodedSections[Dime._DETACHED_VERIFYTOKEN_INDEX];
-                    fixatedEncoded = encodedDime.Substring(0, encodedDime.LastIndexOf(Dime._SECTION_DELIMITER));
-                }
+                return Encode();
             }
-            item.FixateEncoded(fixatedEncoded ?? encodedDime);
-            return item;
-        }
-
-        public virtual string Export()
-        {
-            StringBuilder builder = new StringBuilder();
-            builder.Append(Dime.HEADER);
-            builder.Append(Dime._SECTION_DELIMITER);
-            builder.Append(this.Encoded(true));
-            if (this._verifiedToken != null)
-            {
-                builder.Append(Dime._SECTION_DELIMITER);
-                builder.Append(this._verifiedToken);
-            }
-            return builder.ToString();
         }
 
         public string Thumbprint()
         {
-            return Crypto.GenerateHash(this.Profile, this.Encoded());
+            return Crypto.GenerateHash(ProfileVersion.One, this.Encode());
         }
-
-        ///<summary>Attaches a verified token to the DiME object. This should only be done after an object has been verified by a 
-        /// trusted identity (i.e. central routing service).<summary>
-        ///<param name="verifier">The identity that is attaching a verified token.</param>
-        ///<param name="privateKey">The private key to use for the verified token.</param>
-        /// <exception cref="ArgumentNullException">If passed objects are null.</exception> 
-        public void SetVerifiedToken(Identity verifier, string privateKey)
-        {
-            if (verifier == null) { throw new ArgumentNullException(nameof(verifier), "Verifier identity may not be null."); }
-            if (privateKey == null) { throw new ArgumentNullException(nameof(privateKey), "Private key may not be null."); }
-            string token = $"{(int)verifier.Profile}{Dime._COMPONENT_DELIMITER}{verifier.SubjectId}{Dime._COMPONENT_DELIMITER}{this.Thumbprint()}";
-            this._verifiedToken = Utility.ToBase64($"{token}{Dime._COMPONENT_DELIMITER}{Crypto.GenerateSignature(verifier.Profile, token, privateKey)}");
-        }
-
-        public void ValidateVerifiedToken(Identity verifier)
-        {
-            if (this._verifiedToken != null)
-            {
-                if (verifier == null) { throw new ArgumentNullException(nameof(verifier), "Verifier identity may not be null."); }
-                byte[] tokenBytes = Utility.FromBase64(this._verifiedToken);
-                string token = System.Text.Encoding.UTF8.GetString(tokenBytes, 0, tokenBytes.Length);
-                string[] components = token.Split(new char[] { Dime._COMPONENT_DELIMITER });
-                if (int.Parse(components[0]) != (int)verifier.Profile) { throw new IntegrityException("Verifier profile version mismatch."); }
-                if (components[1] != verifier.SubjectId.ToString()) { throw new IntegrityException("Verifier subject id mismatch."); }
-                if (components[2] != this.Thumbprint()) { throw new IntegrityException("Thumbprint mismatch."); }
-                Crypto.VerifySignature(verifier.Profile, token.Substring(0, token.LastIndexOf(Dime._COMPONENT_DELIMITER)), components[3], verifier.IdentityKey);
-            }
-        }
-
-        #endregion
-
-        #region -- INTERNAL --
 
         internal const char _COMPONENT_DELIMITER = '.';
-        internal const char _ARRAY_ITEM_DELIMITER = ';';
+        internal const char _ARRAY_ITEM_DELIMITER = ';'; // TODO: check if it is used... ??
         internal const char _SECTION_DELIMITER = ':';
-
-        internal abstract void Populate(Identity issuer, string encoded);
-
-        internal abstract string Encoded(bool includeSignature = false);
-        
-        #endregion
-
-        #region -- PROTECTED --
-
-        protected abstract void FixateEncoded(string encoded);
-
-        #endregion
 
         #region -- PRIVATE --
 
-        private const int _MIN_SECTIONS_IN_ATTACHED = 2;
-        private const int _MAX_SECTIONS_IN_ATTACHED = 3;
-        private const int _ATTACHED_IDENTITY_INDEX = 0;
-        private const int _ATTACHED_ITEM_INDEX = 1;
-        private const int _ATTACHED_VERIFYTOKEN_INDEX = 2;
-        private const int _MAX_SECTIONS_IN_DETACHED = 2;
-        private const int _DETACHED_ITEM_INDEX = 0;
-        private const int _DETACHED_VERIFYTOKEN_INDEX = 1;
-
         private static readonly object _lock = new object();
         private static Identity _trustedIdentity;
-        private ProfileVersion _profile;
+        private List<DimeItem> _items;
+        private string _encoded;
+        private string _signature;
 
-        private string _verifiedToken;
+        private string Encode()
+        {
+            if (this._encoded == null)
+            {
+                StringBuilder builder = new StringBuilder();
+                builder.Append(Dime.HEADER);
+                if (this.IssuerId.HasValue)
+                {
+                    builder.Append(Dime._COMPONENT_DELIMITER);
+                    builder.Append(Utility.ToBase64(this.IssuerId.ToString()));
+                }
+                foreach(DimeItem item in this._items)
+                {
+                    builder.Append(Dime._SECTION_DELIMITER);
+                    builder.Append(item.ToString());
+                }
+                this._encoded = builder.ToString();
+            }
+            return this._encoded;
+        }
 
         #endregion
 
     }
 
 }
+

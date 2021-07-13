@@ -21,20 +21,26 @@ namespace ShiftEverywhere.DiME
             return profile == Crypto.DEFUALT_PROFILE;
         }
         
-        public static string GenerateSignature(ProfileVersion profile, string data, string privateKey)
+        public static string GenerateSignature(string data, KeyBox keybox)
         {
-                if (!Crypto.SupportedProfile(profile)) { throw new NotSupportedException(); }
-                if (privateKey == null) { throw new ArgumentNullException(nameof(privateKey), "Unable to sign, provided private key is null."); }
-                Key key = Key.Import(SignatureAlgorithm.Ed25519, Utility.FromBase64(privateKey), KeyBlobFormat.PkixPrivateKey);
-                byte[] signature = SignatureAlgorithm.Ed25519.Sign(key, Encoding.UTF8.GetBytes(data));
-                return System.Convert.ToBase64String(signature).Trim('=');
+            if (!Crypto.SupportedProfile(keybox.Profile)) { throw new NotSupportedException(); }
+            if (keybox == null) { throw new ArgumentNullException(nameof(keybox), "Unable to sign, keybox must not be null."); }
+            if (keybox.RawKey == null) { throw new ArgumentNullException(nameof(keybox), "Unable to sign, key in keybox must not be null."); }
+            if (keybox.Type != KeyType.Identity) { throw new ArgumentException($"Unable to sign, wrong key type provided, got: {keybox.Type}, expected: KeyType.Identity."); }
+            Key key = Key.Import(SignatureAlgorithm.Ed25519, keybox.RawKey, KeyBlobFormat.RawPrivateKey);
+            byte[] signature = SignatureAlgorithm.Ed25519.Sign(key, Encoding.UTF8.GetBytes(data));
+            return System.Convert.ToBase64String(signature).Trim('=');
         }
 
-        public static void VerifySignature(ProfileVersion profile, string data, string signature, string publicIdentityKey)
+        public static void VerifySignature(string data, string signature, KeyBox keybox)
         {
-            if (!Crypto.SupportedProfile(profile)) { throw new UnsupportedProfileException(); }
-            if (publicIdentityKey == null) { throw new ArgumentNullException(nameof(publicIdentityKey), "Unable to verify signature, provided public key is null."); }
-            PublicKey verifyKey = PublicKey.Import(SignatureAlgorithm.Ed25519, Utility.FromBase64(publicIdentityKey), KeyBlobFormat.PkixPublicKey);
+            if (!Crypto.SupportedProfile(keybox.Profile)) { throw new UnsupportedProfileException(); }
+            if (data == null) { throw new ArgumentNullException(nameof(data), "Data must not be null."); }
+            if (signature == null) { throw new ArgumentNullException(nameof(signature), "Signature must not be null."); }
+            if (keybox == null) { throw new ArgumentNullException(nameof(keybox), "Unable to verify signature, keybox must not be null."); }
+            if (keybox.RawPublicKey == null) { throw new ArgumentNullException(nameof(keybox), "Unable to sign, public key in keybox must not be null."); }
+            if (keybox.Type != KeyType.Identity) { throw new ArgumentException($"Unable to sign, wrong key type provided, got: {keybox.Type}, expected: KeyType.Identity."); }
+            PublicKey verifyKey = PublicKey.Import(SignatureAlgorithm.Ed25519, keybox.RawPublicKey, KeyBlobFormat.RawPublicKey);
             if (!SignatureAlgorithm.Ed25519.Verify(verifyKey, Encoding.UTF8.GetBytes(data), Utility.FromBase64(signature)))
             {
                 throw new IntegrityException();
@@ -60,8 +66,8 @@ namespace ShiftEverywhere.DiME
             }
             return new KeyBox(Guid.NewGuid(), 
                                type, 
-                               Crypto.ExportKey(key, KeyBlobFormat.PkixPrivateKey),
-                               Crypto.ExportKey(key, KeyBlobFormat.PkixPublicKey),
+                               Crypto.ExportKey(key, KeyBlobFormat.RawPrivateKey),
+                               Crypto.ExportKey(key, KeyBlobFormat.RawPublicKey),
                                profile);
         }
 
@@ -76,15 +82,23 @@ namespace ShiftEverywhere.DiME
             return Utility.ToHex(HashAlgorithm.Blake2b_256.Hash(data));
         }
 
-        private static string ExportKey(Key key, KeyBlobFormat keyBlobFormat)
+        private static byte[] ExportKey(Key key, KeyBlobFormat keyBlobFormat)
         {
             var blob = new byte[key.GetExportBlobSize(keyBlobFormat)];
             var blobSpan = new Span<byte>(blob);
             int blobSize = 0;
             key.TryExport(keyBlobFormat, blobSpan, out blobSize);
-            string base64 = System.Convert.ToBase64String(blob);
-            return base64.Trim('=');
+            return blob;
         }
+
+        private static byte[] GetKey(string key)
+        {
+            string[] keyComponents = key.Split(new char[] { Dime._SECTION_DELIMITER });
+            ProfileVersion profile; 
+            if (!Enum.TryParse<ProfileVersion>(keyComponents[0], out profile)) { throw new DataFormatException("Unable to determine key profile version, invalid data format."); }
+            if (!SupportedProfile(profile)) { return null; } // TODO: replace crypto impl.
+            return Utility.FromBase64(keyComponents[2]);
+        } 
 
     }
 

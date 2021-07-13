@@ -43,6 +43,26 @@ namespace ShiftEverywhere.DiME
             return System.Convert.FromBase64String(str);
         }
 
+        public static byte[] Combine(byte[] first, byte[] second)   
+        {
+            byte[] bytes = new byte[first.Length + second.Length];
+            Buffer.BlockCopy(first, 0, bytes, 0, first.Length);
+            Buffer.BlockCopy(second, 0, bytes, first.Length, second.Length);
+            return bytes;
+        }
+
+        public static byte[] SubArray(byte[] array, int start, int length)
+		{
+			byte[] bytes = new byte[length];
+			Buffer.BlockCopy(array, start, bytes, 0, length);
+			return bytes;
+		}
+
+		public static byte[] SubArray(byte[] array, int start)
+		{
+			return Utility.SubArray(array, start, array.Length - start);
+		}
+
 
     }
 

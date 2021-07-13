@@ -30,29 +30,35 @@ namespace ShiftEverywhere.DiME
 
     /// <summary>The version of the cryptographic profile used for a DiME object. Currently
     /// only One (1) is supported.</summary>
-    public enum ProfileVersion
+    public enum ProfileVersion : byte
     {
         /// <summary>Undefined profile, used when a profile wasn't set properly, for errors.</summary>
-        Undefined,
+        Undefined = 0x00,
         /// <summary>First generation cryptographic profile. Ed25519 for identity keys, 
         /// X25519 for key exchange (agreement), Blake2b-256 for hashes, and XYZ for encryption.</summary>
-        One,
+        One = 0x01,
         /// <summary>Second generation cryptographic profile. Ed448 for identity keys,
         /// X448 for key exchange (agreement), Blake2b-512 for hashes, and XYZ for encryption.</summary>
-        Two
+        Two = 0x02
     }
 
     /// <summary>Defines diffrent types of cryptographic keys.</summary>
-    public enum KeyType
+    public enum KeyType : byte
     {
-        /// <summary>Undefined type, used when a type wasn't set properly, for errors.</summary>
-        Undefined,
+        Undefined = 0x00,
         /// <summary>Key type for asymmetric key used for signing.</summary>
-        Identity,
+        Identity = 0x10,
         /// <summary>Key type for asymmetric keys used for key exchange (agreement).</summary>
-        Exchange,
+        Exchange = 0x20,
         /// <summary>Key type for secret (symmetric) keys, used for encryption.
-        Secret
+        Secret = 0xE0,
+        Shared = 0xF0
+    }
+
+    public enum KeyVariant: byte
+    {
+        Private = 0x00,
+        Public = 0x01
     }
 
 }
