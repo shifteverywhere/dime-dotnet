@@ -17,7 +17,7 @@ namespace ShiftEverywhere.DiME
     {
         #region -- PUBLIC --
 
-        public const string IID = "aW8uZGltZWZvcm1hdC5reWI"; // base64 of io.dimeformat.kyb
+        public const string IID = "a2V5"; // base64 of 'key'
         public override string ItemIdentifier { get { return KeyBox.IID; } }
         public ProfileVersion Profile { get; private set; }
          public Guid? IssuerId { get { return this._claims.iss; } }

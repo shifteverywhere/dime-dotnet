@@ -45,7 +45,7 @@ namespace ShiftEverywhere.DiMETest
         }
 
         [TestMethod]
-        public void ExportTest1()
+        public void ToStringTest1()
         {  
             Dime.SetTrustedIdentity(Commons.TrustedIdentity);
             Message message = new Message(Commons.ReceiverIdentity.SubjectId, Commons.SenderIdentity.SubjectId, 10);
@@ -59,7 +59,7 @@ namespace ShiftEverywhere.DiMETest
         }  
 
         [TestMethod]
-        public void ExportTest2()
+        public void ToStringTest2()
         {  
             Dime.SetTrustedIdentity(Commons.TrustedIdentity);
             Message message = new Message(Commons.ReceiverIdentity.SubjectId, Commons.SenderIdentity.SubjectId, 10);
@@ -70,7 +70,7 @@ namespace ShiftEverywhere.DiMETest
         }  
 
         [TestMethod]
-        public void ExportTest3()
+        public void ToStringTest3()
         {  
             Dime.SetTrustedIdentity(Commons.TrustedIdentity);
             Message message = new Message(Commons.ReceiverIdentity.SubjectId, Commons.SenderIdentity.SubjectId, 10);
@@ -112,14 +112,14 @@ namespace ShiftEverywhere.DiMETest
         public void FromStringTest1()
         {   
             Dime.SetTrustedIdentity(Commons.TrustedIdentity);
-            string encoded = "aW8uZGltZWZvcm1hdC5tc2c.eyJ1aWQiOiJlYWIzNTZmZS05Njk1LTQ5MmItOTBjMi1lY2JmZGM3NDFkMGMiLCJhdWQiOiJkNDY5NDU5YS1jMjdkLTQ3MzYtOWIwYS1lZDkzMTczZDliZWEiLCJpc3MiOiI1MzY5YTEwNS1jNjkxLTQ0Y2YtOTczZS0xYWU1MjQxNjlkMTgiLCJpYXQiOjE2MjYyMDAyMzYsImV4cCI6MTYyNjIwMDI0Nn0.UmFjZWNhciBpcyByYWNlY2FyIGJhY2t3YXJkcy4.4Smg0WOiT1A8mZOq4CBLqI6rkylon+Myr4p1IK7KJikQSlbEOMTXnH+T8MgbyfI6qOmDpYG0lSIG/3i/hV/hBw";
+            string encoded = "bXNn.eyJ1aWQiOiI3MGMzOTQ5OC1mMWIwLTQ4ODgtOWY0Ny0yNzVmZTFhOWIwMTQiLCJhdWQiOiJhZjM4NGQwMC05YmM1LTQwMTctODc3YS01Mzc5ZjY1M2U1ZTUiLCJpc3MiOiI3MDUwMjgzMy01MjE1LTRiZTMtYjc1ZS0zZTNmMDdkMjU2MjQiLCJpYXQiOjE2MjYyMDg1MjUsImV4cCI6MTYyNjIwODUzNX0.UmFjZWNhciBpcyByYWNlY2FyIGJhY2t3YXJkcy4.VTfqm8NPjBilgYd07pv7nb1ehCh81vRrKS8QIhK4ZcRrkilJ7WLrRAZljUpW1ALGPr5qgLx1Nalpvs3FVBfeCw";
             Message message = Message.FromString(encoded);
-            Assert.AreEqual(new Guid("eab356fe-9695-492b-90c2-ecbfdc741d0c"), message.UID);
-            Assert.AreEqual(new Guid("d469459a-c27d-4736-9b0a-ed93173d9bea"), message.AudienceId);
-            Assert.AreEqual(new Guid("5369a105-c691-44cf-973e-1ae524169d18"), message.IssuerId);
+            Assert.AreEqual(new Guid("70c39498-f1b0-4888-9f47-275fe1a9b014"), message.UID);
+            Assert.AreEqual(new Guid("af384d00-9bc5-4017-877a-5379f653e5e5"), message.AudienceId);
+            Assert.AreEqual(new Guid("70502833-5215-4be3-b75e-3e3f07d25624"), message.IssuerId);
             Assert.AreEqual("Racecar is racecar backwards.", System.Text.Encoding.UTF8.GetString(message.GetPayload()));
-            Assert.AreEqual(1626200236, message.IssuedAt);
-            Assert.AreEqual(1626200246, message.ExpiresAt);
+            Assert.AreEqual(1626208525, message.IssuedAt);
+            Assert.AreEqual(1626208535, message.ExpiresAt);
             Assert.AreEqual(message.IssuerId, Commons.SenderIdentity.SubjectId);
         } 
 

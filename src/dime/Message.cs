@@ -22,7 +22,7 @@ namespace ShiftEverywhere.DiME
     {
         #region -- PUBLIC --
 
-        public const string IID = "aW8uZGltZWZvcm1hdC5tc2c"; // base64 of io.dimeformat.msg
+        public const string IID = "bXNn"; // base64 of 'msg'
         public override string ItemIdentifier { get { return Message.IID; } }
         /// <summary>A unique identity for the message.</summary>
         public override Guid UID { get { return this._claims.uid; } }

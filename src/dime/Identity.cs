@@ -21,7 +21,7 @@ namespace ShiftEverywhere.DiME
     {
         #region -- PUBLIC --
 
-        public const string IID = "aW8uZGltZWZvcm1hdC5pZA"; // base64 of io.dimeformat.id
+        public const string IID = "aWQ"; // base64 of 'id'
         public override string ItemIdentifier { get { return Identity.IID; } }
         public override Guid UID { get { return this._claims.uid; } }
         /// <summary>A unique UUID (GUID) of the identity. Same as the "sub" field.</summary>

@@ -16,7 +16,7 @@ namespace ShiftEverywhere.DiME
     public class Dime
     {
 
-        public const string HEADER = "Di";
+        public const string HEADER = "DiME";
         public const long VALID_FOR_1_YEAR = 365 * 24 * 60 * 60; 
         ///<summary>A shared trusted identity that acts as the root identity in the trust chain.</summary>
         public static Identity TrustedIdentity { get { lock(Dime._lock) { return Dime._trustedIdentity; } } }

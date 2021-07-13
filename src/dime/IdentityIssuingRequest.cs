@@ -18,7 +18,7 @@ namespace ShiftEverywhere.DiME
     public class IdentityIssuingRequest: DimeItem
     {
         #region -- PUBLIC --
-        public const string IID = "aW8uZGltZWZvcm1hdC5paXI"; // base64 of io.dimeformat.iir
+        public const string IID = "aWly"; // base64 of 'iir'
         public override string ItemIdentifier { get { return IdentityIssuingRequest.IID; } }
         /// <summary></summary>
         public override Guid UID { get { return this._claims.uid; } }

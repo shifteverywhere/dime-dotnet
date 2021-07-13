@@ -39,7 +39,7 @@ namespace ShiftEverywhere.DiMETest
         }
 
         [TestMethod]
-        public void EncodedTest1()
+        public void ToStringTest1()
         {
             KeyBox keypair = KeyBox.Generate(KeyType.Identity);
             string encoded = keypair.ToString();
@@ -49,16 +49,16 @@ namespace ShiftEverywhere.DiMETest
         }
 
         [TestMethod]
-        public void DecodedTest1()
+        public void FromStringTest1()
         {
-            string encoded = "aW8uZGltZWZvcm1hdC5reWI.eyJraWQiOiIwZmYxYzMzMS0xYzNiLTQ1NjMtOTllMC04ZmUyMmJkODAyMDciLCJpYXQiOjE2MjU4NjI1MDQsImtleSI6IkNZSGpYOWsyWGREVUpHOGdaeGRnYTdMeExHTGdRZEtSQU50U0p0M1B5N2c4MW01dzM0M29EQiIsInB1YiI6IkNZSHQ3NG95eXZ4dld2dEZKdjNwaFZ3UVR3a042UzZwV2JUQm9Fb0hncWdjQjJrblJaa3ZERiJ9";
+            string encoded = "a2V5.eyJraWQiOiJlZDM3ODJmNi1kY2ZmLTQ0MWQtYmY1MS1mZWRhZTZjMGEzZWMiLCJpYXQiOjE2MjYyMDgzODgsImtleSI6IkNZSGpYeHlEQXdnQ0hlMXFONjhSNUxrVVBNcXhQbUJ5M3Y5U0JMaTRqRlpiMnlSQ0N3bXlNZCIsInB1YiI6IkNZSHQ2dVRhOFp6QUNtNURhZ01OdHptQW1vYVF1VmFyTTF5dVhlVk02TDhyZGVRUFFtcmYxdyJ9";
             KeyBox keybox = KeyBox.FromString(encoded);
             Assert.AreEqual(ProfileVersion.One, keybox.Profile);
             Assert.AreEqual(KeyType.Identity, keybox.Type);
-            Assert.AreEqual(new Guid("0ff1c331-1c3b-4563-99e0-8fe22bd80207"), keybox.UID);
-            Assert.AreEqual(1625862504, keybox.IssuedAt);
-            Assert.AreEqual("CYHjX9k2XdDUJG8gZxdga7LxLGLgQdKRANtSJt3Py7g81m5w343oDB", keybox.Key);
-            Assert.AreEqual("CYHt74oyyvxvWvtFJv3phVwQTwkN6S6pWbTBoEoHgqgcB2knRZkvDF", keybox.PublicKey);
+            Assert.AreEqual(new Guid("ed3782f6-dcff-441d-bf51-fedae6c0a3ec"), keybox.UID);
+            Assert.AreEqual(1626208388, keybox.IssuedAt);
+            Assert.AreEqual("CYHjXxyDAwgCHe1qN68R5LkUPMqxPmBy3v9SBLi4jFZb2yRCCwmyMd", keybox.Key);
+            Assert.AreEqual("CYHt6uTa8ZzACm5DagMNtzmAmoaQuVarM1yuXeVM6L8rdeQPQmrf1w", keybox.PublicKey);
         }
 
         [TestMethod]

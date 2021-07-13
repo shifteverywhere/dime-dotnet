@@ -56,7 +56,7 @@ namespace ShiftEverywhere.DiMETest
         }
 
         [TestMethod]
-        public void ExportTest1()
+        public void ToStringTest1()
         {
             KeyBox keybox = KeyBox.Generate(KeyType.Identity);
             IdentityIssuingRequest iir = IdentityIssuingRequest.Generate(keybox);
@@ -68,15 +68,15 @@ namespace ShiftEverywhere.DiMETest
         }
 
         [TestMethod]
-        public void ImportTest2()
+        public void FromStringTest2()
         {
-            string exported = "aW8uZGltZWZvcm1hdC5paXI.eyJpc3MiOm51bGwsInVpZCI6IjJhODIxM2Q2LThhYzItNDBjNS1iMzczLTA5NTYzZWEzZjZkZCIsImlhdCI6MTYyNTg1OTUwNSwicHViIjoiQ1lIdDc3MlNFUzQ0Zm1weVc5MkJjMWtyZnBiZXFQRG5STDY3Rkh5NjVXRXI5TnRCQ3pQY2l1IiwiY2FwIjpbImdlbmVyaWMiXX0.TDKgNeoBGp0pmjs3jcbjdfyPxA5Po3OfZf6fiNtibPOOHWw1qTAAsiO4uU+pP6x43Js1jZc9zP8hyU/lhaovAA";
+            string exported = "aWly.eyJpc3MiOm51bGwsInVpZCI6ImM1ZTUxNDA0LTkyODAtNDE5My04ZDYxLWEyY2RkOTFkZWZlNiIsImlhdCI6MTYyNjIwNzk3OSwicHViIjoiQ1lIdDhIVm1OSHF0ZXRTc054ZmNBQzc3VFZybkQ5b3FFTUZmbmFIRWViMmQxV0VtUml6V3JiIiwiY2FwIjpbImdlbmVyaWMiXX0.3O0XB9O4LFcOjKVntr+NpxDA7cqKWrviWTCmStEqPdc9Pui2MML1kgdYd9bU+62ulS/9OGVgwQ7S9JmRUCyfBQ";
             IdentityIssuingRequest iir = IdentityIssuingRequest.FromString(exported);
             Assert.IsNotNull(iir);
-            Assert.AreEqual(new Guid("2a8213d6-8ac2-40c5-b373-09563ea3f6dd"), iir.UID);
-            Assert.AreEqual(1625859505, iir.IssuedAt);
+            Assert.AreEqual(new Guid("c5e51404-9280-4193-8d61-a2cdd91defe6"), iir.UID);
+            Assert.AreEqual(1626207979, iir.IssuedAt);
             Assert.IsTrue(iir.WantsCapability(Capability.Generic));
-            Assert.AreEqual("CYHt772SES44fmpyW92Bc1krfpbeqPDnRL67FHy65WEr9NtBCzPciu", iir.PublicKey);
+            Assert.AreEqual("CYHt8HVmNHqtetSsNxfcAC77TVrnD9oqEMFfnaHEeb2d1WEmRizWrb", iir.PublicKey);
             iir.Verify();
         }
 
