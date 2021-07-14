@@ -19,7 +19,7 @@ namespace ShiftEverywhere.DiME
 
         public const string IID = "a2V5"; // base64 of 'key'
         public override string ItemIdentifier { get { return KeyBox.IID; } }
-        public ProfileVersion Profile { get; private set; }
+        public Profile Profile { get; private set; }
          public Guid? IssuerId { get { return this._claims.iss; } }
         /// <summary></summary>
         public override Guid UID { get { return this._claims.kid; } }
@@ -34,7 +34,7 @@ namespace ShiftEverywhere.DiME
         public KeyBox() { }
 
         /// <summary></summary>
-        public static KeyBox Generate(KeyType type, ProfileVersion profile = Crypto.DEFUALT_PROFILE)
+        public static KeyBox Generate(KeyType type, Profile profile = Crypto.DEFUALT_PROFILE)
         {
             return Crypto.GenerateKeyPair(profile, type);
         }
@@ -65,7 +65,7 @@ namespace ShiftEverywhere.DiME
         internal byte[] RawKey { get; private set; }
         internal byte[] RawPublicKey { get; private set; }
 
-        internal KeyBox(Guid id, KeyType type, byte[] key, byte[] publickey, ProfileVersion profile = Crypto.DEFUALT_PROFILE)
+        internal KeyBox(Guid id, KeyType type, byte[] key, byte[] publickey, Profile profile = Crypto.DEFUALT_PROFILE)
         {
             if (!Crypto.SupportedProfile(profile)) { throw new UnsupportedProfileException(); }
             long iat = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
@@ -156,8 +156,8 @@ namespace ShiftEverywhere.DiME
             if (encodedKey != null)
             {
                 byte[] bytes = Base58.Decode(encodedKey);
-                ProfileVersion profile = (ProfileVersion)bytes[1];
-                if (this.Profile != ProfileVersion.Undefined && profile != this.Profile) { throw new DataFormatException("Cryptographic profile version mismatch."); }
+                Profile profile = (Profile)bytes[1];
+                if (this.Profile != Profile.Undefined && profile != this.Profile) { throw new DataFormatException("Cryptographic profile version mismatch."); }
                 this.Profile = profile;
                 KeyType type = (KeyType)((byte)((uint)bytes[2] & 0xFE));
                 if (this.Type != KeyType.Undefined && type != this.Type) { throw new DataFormatException("Key type mismatch."); }

@@ -21,7 +21,7 @@ namespace ShiftEverywhere.DiMETest
         public void IssueTest1()
         {
             Dime.SetTrustedIdentity(null);
-            ProfileVersion profile = ProfileVersion.One;
+            Profile profile = Profile.Uno;
             Guid subjectId = Guid.NewGuid();
             KeyBox keypair = KeyBox.Generate(KeyType.Identity, profile);
             //string key = keypair.ToString();
@@ -45,7 +45,7 @@ namespace ShiftEverywhere.DiMETest
         {
             Dime.SetTrustedIdentity(Commons.TrustedIdentity);
             Guid subjectId = Guid.NewGuid();
-            KeyBox keypair = KeyBox.Generate(KeyType.Identity, ProfileVersion.One);
+            KeyBox keypair = KeyBox.Generate(KeyType.Identity, Profile.Uno);
             string key = keypair.ToString();
             List<Capability> caps = new List<Capability> { Capability.Generic, Capability.Identify };
             //List<Capability> caps = new List<Capability> { Capability.Generic, Capability.Identify, Capability.Issue };
@@ -153,7 +153,7 @@ namespace ShiftEverywhere.DiMETest
         {
             Dime.SetTrustedIdentity(Commons.TrustedIdentity);
             List<Capability> caps = new List<Capability> { Capability.Generic, Capability.Identify };
-            KeyBox keypair = Crypto.GenerateKeyPair(ProfileVersion.One, KeyType.Identity);
+            KeyBox keypair = Crypto.GenerateKeyPair(Profile.Uno, KeyType.Identity);
             Identity identity = IdentityIssuingRequest.Generate(keypair, caps).IssueIdentity(Guid.NewGuid(), Dime.VALID_FOR_1_YEAR, caps, Commons.IntermediateKeybox, Commons.IntermediateIdentity);
             string exported = identity.ToString();
             Assert.IsNotNull(exported);

@@ -14,9 +14,9 @@ namespace ShiftEverywhere.DiME
 {
     public static class Crypto
     {
-        public const ProfileVersion DEFUALT_PROFILE = ProfileVersion.One;
+        public const Profile DEFUALT_PROFILE = Profile.Uno;
         
-        public static bool SupportedProfile(ProfileVersion profile)
+        public static bool SupportedProfile(Profile profile)
         {
             return profile == Crypto.DEFUALT_PROFILE;
         }
@@ -41,7 +41,7 @@ namespace ShiftEverywhere.DiME
             if (keybox.RawPublicKey == null) { throw new ArgumentNullException(nameof(keybox), "Unable to sign, public key in keybox must not be null."); }
             if (keybox.Type != KeyType.Identity) { throw new ArgumentException($"Unable to sign, wrong key type provided, got: {keybox.Type}, expected: KeyType.Identity."); }
             byte[] rawSignature = Utility.FromBase64(signature);
-            if ((ProfileVersion)rawSignature[0] != keybox.Profile) { throw new KeyMissmatchException("Signature profile does not match key profile version."); }
+            if ((Profile)rawSignature[0] != keybox.Profile) { throw new KeyMissmatchException("Signature profile does not match key profile version."); }
             PublicKey verifyKey = PublicKey.Import(SignatureAlgorithm.Ed25519, keybox.RawPublicKey, KeyBlobFormat.RawPublicKey);
             if (!SignatureAlgorithm.Ed25519.Verify(verifyKey, Encoding.UTF8.GetBytes(data), Utility.SubArray(rawSignature, 1)))
             {
@@ -49,7 +49,7 @@ namespace ShiftEverywhere.DiME
             }
         }
 
-        public static KeyBox GenerateKeyPair(ProfileVersion profile, KeyType type)
+        public static KeyBox GenerateKeyPair(Profile profile, KeyType type)
         {
             if (!Crypto.SupportedProfile(profile)) { throw new UnsupportedProfileException(); }
             Key key;
@@ -73,12 +73,12 @@ namespace ShiftEverywhere.DiME
                                profile);
         }
 
-        public static string GenerateHash(ProfileVersion profile, string data)
+        public static string GenerateHash(Profile profile, string data)
         {
             return Crypto.GenerateHash(profile, Encoding.UTF8.GetBytes(data));
         }
 
-        public static string GenerateHash(ProfileVersion profile, byte[] data)
+        public static string GenerateHash(Profile profile, byte[] data)
         {
             if (!Crypto.SupportedProfile(profile)) { throw new UnsupportedProfileException(); }
             return Utility.ToHex(HashAlgorithm.Blake2b_256.Hash(data));
@@ -96,8 +96,8 @@ namespace ShiftEverywhere.DiME
         private static byte[] GetKey(string key)
         {
             string[] keyComponents = key.Split(new char[] { Dime._SECTION_DELIMITER });
-            ProfileVersion profile; 
-            if (!Enum.TryParse<ProfileVersion>(keyComponents[0], out profile)) { throw new DataFormatException("Unable to determine key profile version, invalid data format."); }
+            Profile profile; 
+            if (!Enum.TryParse<Profile>(keyComponents[0], out profile)) { throw new DataFormatException("Unable to determine key profile version, invalid data format."); }
             if (!SupportedProfile(profile)) { return null; } // TODO: replace crypto impl.
             return Utility.FromBase64(keyComponents[2]);
         } 

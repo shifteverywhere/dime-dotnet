@@ -30,7 +30,7 @@ namespace ShiftEverywhere.DiME
         public IList<DimeItem> Items { get { return (this._items != null) ? this._items.AsReadOnly() : null; } }
 
         public bool IsSealed { get { return (this._signature != null); } }
-        public bool IsAnnonymous { get { return !this._claims.HasValue; } }
+        public bool IsAnonymous { get { return !this._claims.HasValue; } }
 
         ///<summary>Set the shared trusted identity, which forms the basis of the trust chain. All identities will be verified
         /// from a trust perspecitve using this identity. For the trust chain to hold, then all identities must be either issued
@@ -69,7 +69,7 @@ namespace ShiftEverywhere.DiME
             else 
                 throw new FormatException($"Not a valid Dime object, unexpected number of components in header, got: '{components.Length}', expexted: '1' or '2'");
             // 1 to LAST or LAST - 1 
-            int endIndex = (dime.IsAnnonymous) ? sections.Length : sections.Length - 1; // end index dependent on unsealed, annonymous Dime or not
+            int endIndex = (dime.IsAnonymous) ? sections.Length : sections.Length - 1; // end index dependent on unsealed, anonymous Dime or not
             List<DimeItem> items = new List<DimeItem>(endIndex - 1);
             for (int index = 1; index < endIndex; index++)
             {
@@ -78,7 +78,7 @@ namespace ShiftEverywhere.DiME
             }
             dime._items = items;
             dime._encoded = exported.Substring(0, exported.LastIndexOf(Dime._SECTION_DELIMITER));
-            if (!dime.IsAnnonymous)
+            if (!dime.IsAnonymous)
                 dime._signature = sections.Last(); 
             return dime;
         }
@@ -101,7 +101,7 @@ namespace ShiftEverywhere.DiME
 
         public Dime Seal(KeyBox keybox)
         {
-            if (this.IsAnnonymous) { throw new FormatException("Cannot seal an annonymous Dime."); }
+            if (this.IsAnonymous) { throw new FormatException("Cannot seal an anonymous Dime."); }
             if (this._signature != null) { throw new FormatException("Dime already sealed."); }
             if (this._items == null || this._items.Count == 0) { throw new FormatException("At least one item must be attached before sealing Dime."); }
             this._signature = Crypto.GenerateSignature(Encode(), keybox);
@@ -110,7 +110,7 @@ namespace ShiftEverywhere.DiME
 
         public Dime Verify(KeyBox keybox)
         {
-            if (this.IsAnnonymous) { throw new FormatException("Annonymous Dime, unable to verify."); }
+            if (this.IsAnonymous) { throw new FormatException("Anonymous Dime, unable to verify."); }
             if (this._signature == null) { throw new IntegrityException("Dime is not sealed."); }
             Crypto.VerifySignature(Encode(), this._signature, keybox);
             return this;
@@ -118,7 +118,7 @@ namespace ShiftEverywhere.DiME
 
         public string Export()
         {
-            if (!this.IsAnnonymous)
+            if (!this.IsAnonymous)
             {
                 if (this._signature == null) { throw new FormatException("Dime must be sealed before exporting."); }
                 return $"{Encode()}{Dime._SECTION_DELIMITER}{this._signature}";
@@ -129,7 +129,7 @@ namespace ShiftEverywhere.DiME
 
         public string Thumbprint()
         {
-            return Crypto.GenerateHash(ProfileVersion.One, this.Encode());
+            return Crypto.GenerateHash(Profile.Uno, this.Encode());
         }
 
         internal const char _COMPONENT_DELIMITER = '.';
@@ -173,7 +173,7 @@ namespace ShiftEverywhere.DiME
             {
                 StringBuilder builder = new StringBuilder();
                 builder.Append(Dime.HEADER);
-                if (!this.IsAnnonymous)
+                if (!this.IsAnonymous)
                 {
                     builder.Append(Dime._COMPONENT_DELIMITER);
                     builder.Append(Utility.ToBase64(JsonSerializer.Serialize(this._claims)));

@@ -35,7 +35,7 @@ namespace ShiftEverywhere.DiME
             this._signature = Crypto.GenerateSignature(Encode(), keybox);
         }
 
-        public string Thumbprint(ProfileVersion profile = ProfileVersion.One)
+        public string Thumbprint(Profile profile = Profile.Uno)
         {
             return Crypto.GenerateHash(profile, this.Encode());
         }
