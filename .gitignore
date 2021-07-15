@@ -412,4 +412,7 @@ Temporary Items
 .history
 .ionide
 
+### SonarQube
+/.sonarqube
+
 # End of https://www.toptal.com/developers/gitignore/api/macos,visualstudiocode,csharp,dotnetcore
