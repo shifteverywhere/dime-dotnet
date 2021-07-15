@@ -40,8 +40,8 @@ namespace ShiftEverywhere.DiME
         public string PublicKey { get { return this._claims.pub; } }
         /// <summary>The trust chain of signed public keys.</summary>
         public Identity TrustChain { get; internal set; }
-
         public ReadOnlyDictionary<string, dynamic> Principles { get; private set; }
+        public IList<string> Ambits { get; private set; }
 
         public bool IsSelfSigned { get { return (this.SubjectId == this.IssuerId && this.HasCapability(Capability.Self)); } }
 
@@ -98,11 +98,13 @@ namespace ShiftEverywhere.DiME
 
         #region -- INTERNAL --
 
-        internal Identity(Guid subjectId, string publicKey, long issuedAt, long expiresAt, Guid issuerId, List<Capability> capabilities, Dictionary<string, dynamic> principles) 
+        internal Identity(Guid subjectId, string publicKey, long issuedAt, long expiresAt, Guid issuerId, List<Capability> capabilities, Dictionary<string, dynamic> principles, string[] ambits) 
         {
             this._capabilities = capabilities;
             string[] cap = capabilities.ConvertAll(c => c.ToString().ToLower()).ToArray();
-            this._claims = new IdentityClaims(Guid.NewGuid(), subjectId, issuerId, issuedAt, expiresAt, publicKey, cap, principles);
+            this._claims = new IdentityClaims(Guid.NewGuid(), subjectId, issuerId, issuedAt, expiresAt, publicKey, cap, principles, ambits);
+            if (ambits != null)
+                this.Ambits = new List<string>(ambits).AsReadOnly();
         }
 
         protected override void Decode(string encoded) 
@@ -114,9 +116,9 @@ namespace ShiftEverywhere.DiME
             byte[] json = Utility.FromBase64(components[Identity._CLAIMS_INDEX]);
             this._claims = JsonSerializer.Deserialize<IdentityClaims>(json);
             if (this._claims.pri != null)
-            {
                 this.Principles = new ReadOnlyDictionary<string, dynamic>(this._claims.pri);
-            }
+            if (this._claims.amb != null)
+                this.Ambits = new List<string>(this._claims.amb);
             this._capabilities = new List<string>(this._claims.cap).ConvertAll(str => { Capability cap; Enum.TryParse<Capability>(str, true, out cap); return cap; });
             if (components.Length == Identity._NBR_EXPECTED_COMPONENTS_MAX) // There is also a trust chain identity 
             {
@@ -184,9 +186,11 @@ namespace ShiftEverywhere.DiME
             public string[] cap { get; set; }
             [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
             public Dictionary<string, dynamic> pri { get; set; }
+            [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+            public string[] amb { get; set; }
 
             [JsonConstructor]
-            public IdentityClaims(Guid uid, Guid sub, Guid iss, long iat, long exp, string pub, string[] cap, Dictionary<string, dynamic> pri)
+            public IdentityClaims(Guid uid, Guid sub, Guid iss, long iat, long exp, string pub, string[] cap, Dictionary<string, dynamic> pri, string[] amb)
             {
                 this.uid = uid;
                 this.sub = sub;
@@ -196,6 +200,7 @@ namespace ShiftEverywhere.DiME
                 this.pub = pub;
                 this.cap = cap;
                 this.pri = pri;
+                this.amb = amb;
             }
         }
         

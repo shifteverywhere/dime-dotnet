@@ -77,7 +77,7 @@ namespace ShiftEverywhere.DiME
         /// <param name="allowedCapabilities">The capabilities allowed for the to be issued identity.</param>
         /// <param name="issuerIdentitys">The identity of the issuer (optional).</param>
         /// <returns>Returns an imutable Identity instance.</returns>
-        public Identity IssueIdentity(Guid subjectId, long validFor, List<Capability> allowedCapabilities, KeyBox issuerKeypair, Identity issuerIdentity) 
+        public Identity IssueIdentity(Guid subjectId, long validFor, List<Capability> allowedCapabilities, KeyBox issuerKeypair, Identity issuerIdentity, string[] ambits = null) 
         {    
             bool isSelfSign = (issuerIdentity == null || this.PublicKey == issuerKeypair.PublicKey);
             this.CompleteCapabilities(allowedCapabilities, isSelfSign);
@@ -85,7 +85,7 @@ namespace ShiftEverywhere.DiME
             {
                 long now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
                 Guid issuerId = issuerIdentity != null ? issuerIdentity.SubjectId : subjectId;
-                Identity identity = new Identity(subjectId, this.PublicKey, now, (now + validFor), issuerId, this._capabilities, this.Principles);
+                Identity identity = new Identity(subjectId, this.PublicKey, now, (now + validFor), issuerId, this._capabilities, this.Principles, ambits);
                 if (Identity.TrustedIdentity != null && issuerIdentity != null && issuerIdentity.SubjectId != Identity.TrustedIdentity.SubjectId)
                 {
                     issuerIdentity.VerifyTrust();
