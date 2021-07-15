@@ -17,7 +17,7 @@ namespace ShiftEverywhere.DiMETest
     public class IdentityTests
     {
 
-     [TestMethod]
+        [TestMethod]
         public void IssueTest1()
         {
             Identity.SetTrustedIdentity(null);

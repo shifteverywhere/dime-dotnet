@@ -26,34 +26,27 @@ namespace ShiftEverywhere.DiME
         public long IssuedAt { get { return this._claims.iat; } }
         /// <summary></summary>
         public string PublicKey { get { return this._claims.pub; } }
+        public Dictionary<string, dynamic> Principles { get { return this._claims.pri; } }
 
         public IdentityIssuingRequest() { }
 
-        public static IdentityIssuingRequest Generate(KeyBox keybox, List<Capability> capabilities = null) 
+        public static IdentityIssuingRequest Generate(KeyBox keybox, List<Capability> capabilities = null, Dictionary<string, dynamic> principles = null) 
         {
             if (!Crypto.SupportedProfile(keybox.Profile)) { throw new ArgumentException("Unsupported profile version.", nameof(keybox)); }
             if (keybox.Type != KeyType.Identity) { throw new ArgumentException("KeyBox of invalid type.", nameof(keybox)); }
             if (keybox.Key == null) { throw new ArgumentNullException(nameof(keybox), "Private key must not be null"); }
             IdentityIssuingRequest iir = new IdentityIssuingRequest();
-            if (capabilities == null || capabilities.Count == 0) { iir._capabilities = new List<Capability>() 
-            { 
-                Capability.Generic }; 
-            }
+            if (capabilities == null || capabilities.Count == 0) 
+                iir._capabilities = new List<Capability>() { Capability.Generic }; 
             else 
-            { 
                 iir._capabilities = capabilities; 
-            }
             long now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
             string[] cap;
             if (capabilities != null && capabilities.Count > 0)
-            {
                 cap = capabilities.ConvertAll(c => c.ToString().ToLower()).ToArray();
-            }
             else
-            {
                 cap = new string[1] { Capability.Generic.ToString().ToLower() };
-            }
-            iir._claims = new IirClaims(Guid.NewGuid(), now, keybox.PublicKey, cap);
+            iir._claims = new IirClaims(Guid.NewGuid(), now, keybox.PublicKey, cap, principles);
             iir._signature = Crypto.GenerateSignature(iir.Encode(), keybox);
             return iir;
         }
@@ -92,7 +85,7 @@ namespace ShiftEverywhere.DiME
             {
                 long now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
                 Guid issuerId = issuerIdentity != null ? issuerIdentity.SubjectId : subjectId;
-                Identity identity = new Identity(subjectId, this.PublicKey, now, (now + validFor), issuerId, this._capabilities, Profile.Uno);
+                Identity identity = new Identity(subjectId, this.PublicKey, now, (now + validFor), issuerId, this._capabilities, this.Principles);
                 if (Identity.TrustedIdentity != null && issuerIdentity != null && issuerIdentity.SubjectId != Identity.TrustedIdentity.SubjectId)
                 {
                     issuerIdentity.VerifyTrust();
@@ -164,14 +157,17 @@ namespace ShiftEverywhere.DiME
             public string pub { get; set; }
             [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
             public string[] cap { get; set; }
+            [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+            public Dictionary<string, dynamic> pri {get; set; }
 
             [JsonConstructor]
-            public IirClaims(Guid uid, long iat, string pub, string[] cap = null)
+            public IirClaims(Guid uid, long iat, string pub, string[] cap, Dictionary<string, dynamic>pri)
             {
                 this.uid = uid;
                 this.iat = iat;
                 this.pub = pub;
                 this.cap = cap;
+                this.pri = pri;
             }
         }
 

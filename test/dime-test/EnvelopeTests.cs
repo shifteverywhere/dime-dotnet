@@ -1,5 +1,5 @@
 //
-//  DimeTest.cs
+//  EnvelopeTests.cs
 //  DiME - Digital Identity Message Envelope
 //  A secure and compact messaging format for assertion and practical use of digital identities
 //
@@ -15,7 +15,7 @@ using ShiftEverywhere.DiME;
 namespace ShiftEverywhere.DiMETest
 {
     [TestClass]
-    public class DimeTests
+    public class EnvelopeTests
     {
 
         [TestMethod]
