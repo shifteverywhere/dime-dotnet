@@ -22,8 +22,8 @@ namespace ShiftEverywhere.DiME
     {
         #region -- PUBLIC --
 
-        public const string IID = "bXNn"; // base64 of 'msg' 
-        public override string ItemIdentifier { get { return Message.IID; } }
+        public const string TAG = "MSG"; 
+        public override string Tag { get { return Message.TAG; } }
         /// <summary>A unique identity for the message.</summary>
         public override Guid UID { get { return this._claims.uid; } }
         /// <summary>The id of the receiver.</summary>
@@ -85,7 +85,7 @@ namespace ShiftEverywhere.DiME
                 string[] components = this._claims.lnk.Split(new char[] { Envelope._COMPONENT_DELIMITER });
                 if (components == null || components.Length != 3) { throw new FormatException("Invalid data found in item link field."); }
                 string msgHash = linkedItem.Thumbprint();
-                if (components[Message._LINK_ITEM_TYPE_INDEX] != linkedItem.ItemIdentifier
+                if (components[Message._LINK_ITEM_TYPE_INDEX] != linkedItem.Tag
                     || components[Message._LINK_UID_INDEX] != linkedItem.UID.ToString() 
                     || components[Message._LINK_THUMBPRINT_INDEX] != msgHash) 
                 { throw new IntegrityException("Failed to verify link Dime item (provided item did not match)."); }
@@ -115,7 +115,7 @@ namespace ShiftEverywhere.DiME
         {
             if (this.IsSealed) { throw new IntegrityException("Unable to link item, message is already sealed."); }
             if (item == null) { throw new ArgumentNullException(nameof(item), "Item to link with must not be null."); }
-            this._claims.lnk = $"{item.ItemIdentifier}{Envelope._COMPONENT_DELIMITER}{item.UID.ToString()}{Envelope._COMPONENT_DELIMITER}{item.Thumbprint()}";
+            this._claims.lnk = $"{item.Tag}{Envelope._COMPONENT_DELIMITER}{item.UID.ToString()}{Envelope._COMPONENT_DELIMITER}{item.Thumbprint()}";
         }
 
         #endregion
@@ -132,7 +132,7 @@ namespace ShiftEverywhere.DiME
             if (components.Length != Message._NBR_EXPECTED_COMPONENTS_NO_SIGNATURE
             || components.Length != Message._NBR_EXPECTED_COMPONENTS_SIGNATURE) 
                 { throw new DataFormatException($"Unexpected number of components for identity issuing request, expected '{Message._NBR_EXPECTED_COMPONENTS_NO_SIGNATURE}' or '{Message._NBR_EXPECTED_COMPONENTS_SIGNATURE}', got '{components.Length}'."); }
-            if (components[Message._IDENTIFIER_INDEX] != Message.IID) { throw new DataFormatException($"Unexpected object identifier, expected: \"{Message.IID}\", got \"{components[Message._IDENTIFIER_INDEX]}\"."); }
+            if (components[Message._TAG_INDEX] != Message.TAG) { throw new DataFormatException($"Unexpected item tag, expected: \"{Message.TAG}\", got \"{components[Message._TAG_INDEX]}\"."); }
             this._claims = JsonSerializer.Deserialize<_MessageClaims>(Utility.FromBase64(components[Message._CLAIMS_INDEX]));
             this._payload = components[Message._PAYLOAD_INDEX];
             if (components.Length == Message._NBR_EXPECTED_COMPONENTS_SIGNATURE)
@@ -146,7 +146,7 @@ namespace ShiftEverywhere.DiME
             if (this._encoded == null)
             {
                 StringBuilder builder = new StringBuilder();
-                builder.Append(Message.IID);
+                builder.Append(Message.TAG);
                 builder.Append(Envelope._COMPONENT_DELIMITER);
                 builder.Append(Utility.ToBase64(JsonSerializer.Serialize(this._claims)));
                 builder.Append(Envelope._COMPONENT_DELIMITER);
@@ -162,7 +162,7 @@ namespace ShiftEverywhere.DiME
 
         private const int _NBR_EXPECTED_COMPONENTS_SIGNATURE = 4;
         private const int _NBR_EXPECTED_COMPONENTS_NO_SIGNATURE = 4;
-        private const int _IDENTIFIER_INDEX = 0;
+        private const int _TAG_INDEX = 0;
         private const int _CLAIMS_INDEX = 1;
         private const int _PAYLOAD_INDEX = 2;
         private const int _LINK_ITEM_TYPE_INDEX = 0;

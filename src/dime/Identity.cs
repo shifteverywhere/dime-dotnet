@@ -25,8 +25,8 @@ namespace ShiftEverywhere.DiME
         public const long VALID_FOR_1_YEAR = 365 * 24 * 60 * 60; 
         ///<summary>A shared trusted identity that acts as the root identity in the trust chain.</summary>
         public static Identity TrustedIdentity { get { lock(Identity._lock) { return Identity._trustedIdentity; } } }
-        public const string IID = "aWQ"; // base64 of 'id'
-        public override string ItemIdentifier { get { return Identity.IID; } }
+        public const string TAG = "ID";
+        public override string Tag { get { return Identity.TAG; } }
         public override Guid UID { get { return this._claims.uid; } }
         /// <summary>A unique UUID (GUID) of the identity. Same as the "sub" field.</summary>
         public Guid SubjectId { get { return this._claims.sub; } }        
@@ -110,7 +110,7 @@ namespace ShiftEverywhere.DiME
             string[] components = encoded.Split(new char[] { Envelope._COMPONENT_DELIMITER });
             if (components.Length != Identity._NBR_EXPECTED_COMPONENTS_MIN &&
                 components.Length != Identity._NBR_EXPECTED_COMPONENTS_MAX) { throw new DataFormatException($"Unexpected number of components for identity issuing request, expected {Identity._NBR_EXPECTED_COMPONENTS_MIN} OR {Identity._NBR_EXPECTED_COMPONENTS_MAX}, got {components.Length}."); }
-            if (components[Identity._IDENTIFIER_INDEX] != Identity.IID) { throw new DataFormatException($"Unexpected object identifier, expected: \"{Identity.IID}\", got \"{components[Identity._IDENTIFIER_INDEX]}\"."); }
+            if (components[Identity._TAG_INDEX] != Identity.TAG) { throw new DataFormatException($"Unexpected item tag, expected: \"{Identity.TAG}\", got \"{components[Identity._TAG_INDEX]}\"."); }
             byte[] json = Utility.FromBase64(components[Identity._CLAIMS_INDEX]);
             this._claims = JsonSerializer.Deserialize<IdentityClaims>(json);
             if (this._claims.pri != null)
@@ -132,7 +132,7 @@ namespace ShiftEverywhere.DiME
             if (this._encoded == null)
             {
                 StringBuilder builder = new StringBuilder();
-                builder.Append(Identity.IID);
+                builder.Append(Identity.TAG);
                 builder.Append(Envelope._COMPONENT_DELIMITER);
                 builder.Append(Utility.ToBase64(JsonSerializer.Serialize(this._claims)));
                 if (this.TrustChain != null)
@@ -164,7 +164,7 @@ namespace ShiftEverywhere.DiME
 
         private const int _NBR_EXPECTED_COMPONENTS_MIN = 3;
         private const int _NBR_EXPECTED_COMPONENTS_MAX = 4;
-        private const int _IDENTIFIER_INDEX = 0;
+        private const int _TAG_INDEX = 0;
         private const int _CLAIMS_INDEX = 1;
         private const int _CHAIN_INDEX = 2;
         private IdentityClaims _claims;

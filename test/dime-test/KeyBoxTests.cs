@@ -39,26 +39,26 @@ namespace ShiftEverywhere.DiMETest
         }
 
         [TestMethod]
-        public void ToStringTest1()
+        public void ExportTest1()
         {
             KeyBox keypair = KeyBox.Generate(KeyType.Identity);
             string encoded = keypair.Export();
             Assert.IsNotNull(encoded);
-            Assert.IsTrue(encoded.StartsWith(Envelope.HEADER));
+            Assert.IsTrue(encoded.StartsWith($"{Envelope.HEADER}:{KeyBox.TAG}"));
             Assert.IsTrue(encoded.Split(".").Length == 2);
         }
 
         [TestMethod]
-        public void FromStringTest1()
+        public void ImportTest1()
         {
-            string encoded = "Di:a2V5.eyJraWQiOiJlZDM3ODJmNi1kY2ZmLTQ0MWQtYmY1MS1mZWRhZTZjMGEzZWMiLCJpYXQiOjE2MjYyMDgzODgsImtleSI6IkNZSGpYeHlEQXdnQ0hlMXFONjhSNUxrVVBNcXhQbUJ5M3Y5U0JMaTRqRlpiMnlSQ0N3bXlNZCIsInB1YiI6IkNZSHQ2dVRhOFp6QUNtNURhZ01OdHptQW1vYVF1VmFyTTF5dVhlVk02TDhyZGVRUFFtcmYxdyJ9";
+            string encoded = "Di:KEY.eyJraWQiOiI3MTc1NzFhMC0wNmY0LTQzZDUtYWUwMi00ZDMzMjQwMDExNDYiLCJpYXQiOjE2MjYzNzg0OTYsImtleSI6IkNZSGpYOWtOZUttdU1tb3Jwb1JhcDVCQUpjTDNOZTZEelZXaU56cjJBVHh4NlF5Y2pvZ3duVyIsInB1YiI6IkNZSHQ3Z1lXanpOeDV1enljZk4xOFlSMVIyTFBFZjU1aEFrdU5BQndLd0F4QU5BYmtaczlkdyJ9";
             KeyBox keybox = Item.Import<KeyBox>(encoded);
             Assert.AreEqual(Profile.Uno, keybox.Profile);
             Assert.AreEqual(KeyType.Identity, keybox.Type);
-            Assert.AreEqual(new Guid("ed3782f6-dcff-441d-bf51-fedae6c0a3ec"), keybox.UID);
-            Assert.AreEqual(1626208388, keybox.IssuedAt);
-            Assert.AreEqual("CYHjXxyDAwgCHe1qN68R5LkUPMqxPmBy3v9SBLi4jFZb2yRCCwmyMd", keybox.Key);
-            Assert.AreEqual("CYHt6uTa8ZzACm5DagMNtzmAmoaQuVarM1yuXeVM6L8rdeQPQmrf1w", keybox.PublicKey);
+            Assert.AreEqual(new Guid("717571a0-06f4-43d5-ae02-4d3324001146"), keybox.UID);
+            Assert.AreEqual(1626378496, keybox.IssuedAt);
+            Assert.AreEqual("CYHjX9kNeKmuMmorpoRap5BAJcL3Ne6DzVWiNzr2ATxx6QycjogwnW", keybox.Key);
+            Assert.AreEqual("CYHt7gYWjzNx5uzycfN18YR1R2LPEf55hAkuNABwKwAxANAbkZs9dw", keybox.PublicKey);
         }
 
         [TestMethod]

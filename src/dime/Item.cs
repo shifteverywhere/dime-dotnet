@@ -15,7 +15,7 @@ namespace ShiftEverywhere.DiME
     {
         #region -- PUBLIC -- 
 
-        public abstract string ItemIdentifier { get; }
+        public abstract string Tag { get; }
 
         public abstract Guid UID { get; }
 
@@ -37,7 +37,7 @@ namespace ShiftEverywhere.DiME
 
         internal static Item FromEncoded(string encoded)
         {
-            Type t = Item.TypeFromIID(encoded.Substring(0, encoded.IndexOf(Envelope._COMPONENT_DELIMITER)));
+            Type t = Item.TypeFromTag(encoded.Substring(0, encoded.IndexOf(Envelope._COMPONENT_DELIMITER)));
             Item item = (Item)Activator.CreateInstance(t);
             item.Decode(encoded);
             return item;
@@ -63,13 +63,13 @@ namespace ShiftEverywhere.DiME
             return Encode();
         }
 
-        public static Type TypeFromIID(string iid)
+        internal static Type TypeFromTag(string iid)
         {
             switch (iid) {
-                case Identity.IID: return typeof(Identity);
-                case IdentityIssuingRequest.IID: return typeof(IdentityIssuingRequest);
-                case Message.IID: return typeof(Message);
-                case KeyBox.IID: return typeof(KeyBox);
+                case Identity.TAG: return typeof(Identity);
+                case IdentityIssuingRequest.TAG: return typeof(IdentityIssuingRequest);
+                case Message.TAG: return typeof(Message);
+                case KeyBox.TAG: return typeof(KeyBox);
                 default: return null;
             }
         }

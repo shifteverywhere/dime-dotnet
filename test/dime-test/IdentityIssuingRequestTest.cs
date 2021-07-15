@@ -63,23 +63,23 @@ namespace ShiftEverywhere.DiMETest
             string exported = iir.Export();
             Assert.IsNotNull(exported);
             Assert.IsTrue(exported.Length > 0);
-            Assert.IsTrue(exported.StartsWith(Envelope.HEADER));
+            Assert.IsTrue(exported.StartsWith($"{Envelope.HEADER}:{IdentityIssuingRequest.TAG}"));
             Assert.IsTrue(exported.Split(new char[] { '.' }).Length == 3);
         }
 
         [TestMethod]
         public void FromStringTest2()
         {
-            string exported = "Di:aWly.eyJ1aWQiOiIxYTEyNDU0Yi1hNjIzLTRmNjEtYWRlMi03ZWViZDQ1MzJhYzkiLCJpYXQiOjE2MjYyMTMxMDgsInB1YiI6IkNZSHQ2YXJ4clNOemR4b1Y3cVFkQ2U4VHFCY2dIV0xkU2V6NXRLTEhaREpjazY1azhSUDdBcSIsImNhcCI6WyJnZW5lcmljIl19.Adl3udTSoJhqpNw7K5OVmBuad8sl6zZBJguxJ15WdKuFf5BhfXB1grrzPPiQZOcvcbt90beHKmeNZ0xjh7JksAM";
+            string exported = "Di:IIR.eyJ1aWQiOiIxYjFiZGNiOC05YWM5LTQwNmEtOWMyYi04NWM2YzdhN2ZkOTciLCJpYXQiOjE2MjYzNzkzNTMsInB1YiI6IkNZSHQ3M2NTWXJlRm9jUDN4VU5FeDJtcVJtWUoySFFCMTdwNlpUVDJZclh6Q1pOeGNyNllzRCIsImNhcCI6WyJnZW5lcmljIl19.AZFU4+oZoXyky6vc6eI0vBfUTMrjIuyLahjrsYdJfUS41jW+7G8oEitVJsZY3aZjwYoPt0dCpPIsD6EGH7F+KAU";
             IdentityIssuingRequest iir = Item.Import<IdentityIssuingRequest>(exported);
             Assert.IsNotNull(iir);
-            Assert.AreEqual(new Guid("1a12454b-a623-4f61-ade2-7eebd4532ac9"), iir.UID);
-            Assert.AreEqual(1626213108, iir.IssuedAt);
+            Assert.AreEqual(new Guid("1b1bdcb8-9ac9-406a-9c2b-85c6c7a7fd97"), iir.UID);
+            Assert.AreEqual(1626379353, iir.IssuedAt);
             Assert.IsTrue(iir.WantsCapability(Capability.Generic));
-            Assert.AreEqual("CYHt6arxrSNzdxoV7qQdCe8TqBcgHWLdSez5tKLHZDJck65k8RP7Aq", iir.PublicKey);
+            Assert.AreEqual("CYHt73cSYreFocP3xUNEx2mqRmYJ2HQB17p6ZTT2YrXzCZNxcr6YsD", iir.PublicKey);
             iir.Verify();
         }
-
+        
     }
 
 }

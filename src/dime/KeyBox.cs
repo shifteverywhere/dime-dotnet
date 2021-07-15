@@ -17,8 +17,8 @@ namespace ShiftEverywhere.DiME
     {
         #region -- PUBLIC --
 
-        public const string IID = "a2V5"; // base64 of 'key'
-        public override string ItemIdentifier { get { return KeyBox.IID; } }
+        public const string TAG = "KEY";
+        public override string Tag { get { return KeyBox.TAG; } }
         public Profile Profile { get; private set; }
          public Guid? IssuerId { get { return this._claims.iss; } }
         /// <summary></summary>
@@ -89,7 +89,7 @@ namespace ShiftEverywhere.DiME
         {
             string[] components = encoded.Split(new char[] { Envelope._COMPONENT_DELIMITER });
             if (components.Length != KeyBox._NBR_EXPECTED_COMPONENTS) { throw new DataFormatException($"Unexpected number of components for identity issuing request, expected {KeyBox._NBR_EXPECTED_COMPONENTS}, got {components.Length}."); }
-            if (components[KeyBox._IDENTIFIER_INDEX] != KeyBox.IID) { throw new DataFormatException($"Unexpected object identifier, expected: \"{KeyBox.IID}\", got \"{components[KeyBox._IDENTIFIER_INDEX]}\"."); }
+            if (components[KeyBox._TAG_INDEX] != KeyBox.TAG) { throw new DataFormatException($"Unexpected item tag, expected: \"{KeyBox.TAG}\", got \"{components[KeyBox._TAG_INDEX]}\"."); }
             byte[] json = Utility.FromBase64(components[KeyBox._CLAIMS_INDEX]);
             this._claims = JsonSerializer.Deserialize<_KeyBoxClaims>(json);
             DecodeKey(this._claims.key);
@@ -102,7 +102,7 @@ namespace ShiftEverywhere.DiME
             if (this._encoded == null)
             {
                 StringBuilder builder = new StringBuilder();
-                builder.Append(KeyBox.IID);
+                builder.Append(KeyBox.TAG);
                 builder.Append(Envelope._COMPONENT_DELIMITER);
                 builder.Append(Utility.ToBase64(JsonSerializer.Serialize(this._claims)));
                 this._encoded = builder.ToString();
@@ -115,7 +115,7 @@ namespace ShiftEverywhere.DiME
         #region -- PRIVATE --
 
         private const int _NBR_EXPECTED_COMPONENTS = 2;
-        private const int _IDENTIFIER_INDEX = 0;
+        private const int _TAG_INDEX = 0;
         private const int _CLAIMS_INDEX = 1;
         private _KeyBoxClaims _claims;
 

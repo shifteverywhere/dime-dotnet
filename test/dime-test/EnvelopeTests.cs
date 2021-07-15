@@ -62,7 +62,7 @@ namespace ShiftEverywhere.DiMETest
         [TestMethod]
         public void IIRImportTest1()
         {
-            string exported = "DiME:aWly.eyJpc3MiOm51bGwsInVpZCI6IjRiNTQwZDA2LWY0MjAtNGJkMi1iMjcxLTEzNzkyYjAwOTEwZCIsImlhdCI6MTYyNjIwNzUwMiwicHViIjoiQ1lIdDdjdTNYcUVna2h5dkxhYVpoZktGUlNHYmRVZXVIRTl2c0tKUjhVU3FHTG1ORks3eXpOIiwiY2FwIjpbImdlbmVyaWMiXX0.JZHrlQ3jQNJzoPzMLAhYPlKu0LWQXNwK7ATYhmyZDMuQxIQs0w5tC59NAMgUWatb7J/cLtGAp9VPQq1rJM0LDw";
+            string exported = "Di:IIR.eyJ1aWQiOiI4MjFjOGIwMC0xZDZhLTQ5YjAtODMyZi0yZTg1MThiMmExMzQiLCJpYXQiOjE2MjYzNzk0MjIsInB1YiI6IkNZSHQ3VkNzMnc3ak5ycGdBbjlYSlRnV2JzMTltdXJYekpVYTJwZkJFZ2hXODlidHRoaFhteiIsImNhcCI6WyJnZW5lcmljIl19.AdC3FJLc3iQQbJLiicU/dwL3dkT39CiUtQdAbPhpX0V16W1l6NljgEEMwpwcHkxxnubfmb3yaBf2CHDMX+t4+Ak";
             Envelope dime = Envelope.Import(exported);
             Assert.IsTrue(dime.IsAnonymous);
             Assert.IsNull(dime.IssuerId);            
@@ -98,11 +98,11 @@ namespace ShiftEverywhere.DiMETest
         [TestMethod]
         public void IdentityImportTest1()
         {
-            string exported = "DiME.eyJpc3MiOiIwMDIxZTIyMC1kYTRhLTQwMjMtYWYxZC02ZWZiMDVmY2ZlZWYiLCJpYXQiOjE2MjYyMTQxMjZ9:aWQ.eyJ1aWQiOiI0ZGU3MDNlYS0zZjM2LTQzMTctYTVhYi05OWRkZTVlMTllYTgiLCJzdWIiOiIwMDIxZTIyMC1kYTRhLTQwMjMtYWYxZC02ZWZiMDVmY2ZlZWYiLCJpc3MiOiIwMzdkOTEzNS1mNmVhLTQ1ZTEtOWFhNi1hNmQ0NzE3NmUwMGQiLCJpYXQiOjE2MjYyMTM4NDUsImV4cCI6MTY1Nzc0OTg0NSwicHViIjoiQ1lIdDd0U1RxNTlGeXB0SlVOS01UOG5QdGVyeFp0bjgzZ3JSU3JkZ3I2TnNUazdxaDNBR1BjIiwiY2FwIjpbImdlbmVyaWMiLCJpZGVudGlmeSJdfQ.YVdRLmV5SjFhV1FpT2lKbU5ERTFaR00wTUMxak1UYzJMVFJqWTJZdE9EaGhOeTFoTW1NeE5USTJOemhsTkRBaUxDSnpkV0lpT2lJd016ZGtPVEV6TlMxbU5tVmhMVFExWlRFdE9XRmhOaTFoTm1RME56RTNObVV3TUdRaUxDSnBjM01pT2lJM05USTVabUkwWlMxalpqTTRMVFJoTnpBdFlqY3dNUzAwT1dVNVltTTVaVGc1TWpFaUxDSnBZWFFpT2pFMk1qWXlNVE0zTnpRc0ltVjRjQ0k2TVRjNE16ZzVNemMzTkN3aWNIVmlJam9pUTFsSWREY3pOazVvZFVSV2VYZEtZemRXVG5KNVRrSk9iak5ZZG01V09UWnpWRXBuYUhGR1ZsaGtZa3RZYVZGcWJYbHdWMWg0SWl3aVkyRndJanBiSW1kbGJtVnlhV01pTENKcFpHVnVkR2xtZVNJc0ltbHpjM1ZsSWwxOS5BY1N2T3hXTHVvekp4c1FqRzFEQzNTSzhGNnFnR2VOQWVwa1lDRnlUaitxQWZ5RzFiaVFJSit4RkVEUEl3cnlndHZOVDFXRnduUVlPQ3dkMEdjdElpUXc.AZrIMEZAvKFz6u699TfpQwpnJnyI594i9MmTPHH9YV6A0W2wFO/fwff9yoIO9t7eSycnTVe2AaVpo7jCG2XtMgE:AZojjnpa0Cv3x9gzBHLQQmZxEMfec9pmhMt2oIQuPfvHWwWfxrOl+jxC+39rGHI2AtazhXNWuVPH2tUQdFgNoQ8";
+            string exported = "Di.eyJpc3MiOiIzNGU3MDgxYi04ODcxLTQ2N2EtYTk2My03ZjBlZWRiNDJjODAiLCJpYXQiOjE2MjYzNzk0NTR9:ID.eyJ1aWQiOiJjNDhlNGI2OC05MWFjLTRjOTMtYmE5Ni0xYzM1YzUwNzYxZDQiLCJzdWIiOiIzNGU3MDgxYi04ODcxLTQ2N2EtYTk2My03ZjBlZWRiNDJjODAiLCJpc3MiOiI2NDc1ODliZi03ZjdlLTRkNGMtODE3NC1lM2ViMzY2ZDVhOTEiLCJpYXQiOjE2MjYzNzg0OTYsImV4cCI6MTY1NzkxNDQ5NiwicHViIjoiQ1lIdDdnWVdqek54NXV6eWNmTjE4WVIxUjJMUEVmNTVoQWt1TkFCd0t3QXhBTkFia1pzOWR3IiwiY2FwIjpbImdlbmVyaWMiLCJpZGVudGlmeSJdfQ.SUQuZXlKMWFXUWlPaUprTWpjMVpESmpNeTAzWkRGbUxUUTBZVEV0T0Rjd1pTMHpPRFEyT1dWaU1EUmhORFVpTENKemRXSWlPaUkyTkRjMU9EbGlaaTAzWmpkbExUUmtOR010T0RFM05DMWxNMlZpTXpZMlpEVmhPVEVpTENKcGMzTWlPaUpqWVROaE1HWTFZeTAyTUdVeExUUmtZemd0WVRSaE9TMDNZVGd3T0Rrek5qTTVaV1lpTENKcFlYUWlPakUyTWpZek56Z3pNRFVzSW1WNGNDSTZNVGM0TkRBMU9ETXdOU3dpY0hWaUlqb2lRMWxJZERadFFXSldNemxwVG5kTVFrRkJWRTV0WTJaM2IwUTBWbTE1VUd0a2NFWldTa3RtU0RGTlJuSnpVRmN6WjNkMk1VcHlJaXdpWTJGd0lqcGJJbWRsYm1WeWFXTWlMQ0pwWkdWdWRHbG1lU0lzSW1semMzVmxJbDE5LkFhdmZLZzFXMTM1cndHamozMVZoNE5DMkM5N044QTE0ZDFWb1R1MGVnWElmK0s5N0lYdWxvYXJhY08zR1FUb044SHB2VjNMeVFPV0I2OHNnUHU1T3ZRcw.AavQrK+J3jQ+sEJKoFbh12aA0vhx4z7n3FijXsF9AOOLFNkmZSelEbdPxJ3A2VFrfHEaT5/GzB5LYcJ0jUbihgQ:AbSqUUeHdC7J9oicX9eoiY5EenzKyLVa6CsVIIlgwhO2qfTVZsERU5KXuHvVZF6Qmj/RGeSfNFS7TESIt5PFaQg";
             Envelope dime = Envelope.Import(exported);
             Assert.IsFalse(dime.IsAnonymous);
-            Assert.AreEqual(new Guid("0021e220-da4a-4023-af1d-6efb05fcfeef"), dime.IssuerId);  
-            Assert.AreEqual(1626214126, dime.IssuedAt);          
+            Assert.AreEqual(new Guid("34e7081b-8871-467a-a963-7f0eedb42c80"), dime.IssuerId);  
+            Assert.AreEqual(1626379454, dime.IssuedAt);          
             Assert.AreEqual(1, dime.Items.Count);
             Assert.AreEqual(typeof(Identity), dime.Items.ElementAt(0).GetType());
             dime.Verify(Commons.SenderKeybox);
@@ -111,7 +111,7 @@ namespace ShiftEverywhere.DiMETest
         [TestMethod]
         public void IdentityImportTest2()
         {
-            string exported = "DiME:aWQ.eyJ1aWQiOiI0ZGU3MDNlYS0zZjM2LTQzMTctYTVhYi05OWRkZTVlMTllYTgiLCJzdWIiOiIwMDIxZTIyMC1kYTRhLTQwMjMtYWYxZC02ZWZiMDVmY2ZlZWYiLCJpc3MiOiIwMzdkOTEzNS1mNmVhLTQ1ZTEtOWFhNi1hNmQ0NzE3NmUwMGQiLCJpYXQiOjE2MjYyMTM4NDUsImV4cCI6MTY1Nzc0OTg0NSwicHViIjoiQ1lIdDd0U1RxNTlGeXB0SlVOS01UOG5QdGVyeFp0bjgzZ3JSU3JkZ3I2TnNUazdxaDNBR1BjIiwiY2FwIjpbImdlbmVyaWMiLCJpZGVudGlmeSJdfQ.YVdRLmV5SjFhV1FpT2lKbU5ERTFaR00wTUMxak1UYzJMVFJqWTJZdE9EaGhOeTFoTW1NeE5USTJOemhsTkRBaUxDSnpkV0lpT2lJd016ZGtPVEV6TlMxbU5tVmhMVFExWlRFdE9XRmhOaTFoTm1RME56RTNObVV3TUdRaUxDSnBjM01pT2lJM05USTVabUkwWlMxalpqTTRMVFJoTnpBdFlqY3dNUzAwT1dVNVltTTVaVGc1TWpFaUxDSnBZWFFpT2pFMk1qWXlNVE0zTnpRc0ltVjRjQ0k2TVRjNE16ZzVNemMzTkN3aWNIVmlJam9pUTFsSWREY3pOazVvZFVSV2VYZEtZemRXVG5KNVRrSk9iak5ZZG01V09UWnpWRXBuYUhGR1ZsaGtZa3RZYVZGcWJYbHdWMWg0SWl3aVkyRndJanBiSW1kbGJtVnlhV01pTENKcFpHVnVkR2xtZVNJc0ltbHpjM1ZsSWwxOS5BY1N2T3hXTHVvekp4c1FqRzFEQzNTSzhGNnFnR2VOQWVwa1lDRnlUaitxQWZ5RzFiaVFJSit4RkVEUEl3cnlndHZOVDFXRnduUVlPQ3dkMEdjdElpUXc.AZrIMEZAvKFz6u699TfpQwpnJnyI594i9MmTPHH9YV6A0W2wFO/fwff9yoIO9t7eSycnTVe2AaVpo7jCG2XtMgE";
+            string exported = "Di:ID.eyJ1aWQiOiJjNDhlNGI2OC05MWFjLTRjOTMtYmE5Ni0xYzM1YzUwNzYxZDQiLCJzdWIiOiIzNGU3MDgxYi04ODcxLTQ2N2EtYTk2My03ZjBlZWRiNDJjODAiLCJpc3MiOiI2NDc1ODliZi03ZjdlLTRkNGMtODE3NC1lM2ViMzY2ZDVhOTEiLCJpYXQiOjE2MjYzNzg0OTYsImV4cCI6MTY1NzkxNDQ5NiwicHViIjoiQ1lIdDdnWVdqek54NXV6eWNmTjE4WVIxUjJMUEVmNTVoQWt1TkFCd0t3QXhBTkFia1pzOWR3IiwiY2FwIjpbImdlbmVyaWMiLCJpZGVudGlmeSJdfQ.SUQuZXlKMWFXUWlPaUprTWpjMVpESmpNeTAzWkRGbUxUUTBZVEV0T0Rjd1pTMHpPRFEyT1dWaU1EUmhORFVpTENKemRXSWlPaUkyTkRjMU9EbGlaaTAzWmpkbExUUmtOR010T0RFM05DMWxNMlZpTXpZMlpEVmhPVEVpTENKcGMzTWlPaUpqWVROaE1HWTFZeTAyTUdVeExUUmtZemd0WVRSaE9TMDNZVGd3T0Rrek5qTTVaV1lpTENKcFlYUWlPakUyTWpZek56Z3pNRFVzSW1WNGNDSTZNVGM0TkRBMU9ETXdOU3dpY0hWaUlqb2lRMWxJZERadFFXSldNemxwVG5kTVFrRkJWRTV0WTJaM2IwUTBWbTE1VUd0a2NFWldTa3RtU0RGTlJuSnpVRmN6WjNkMk1VcHlJaXdpWTJGd0lqcGJJbWRsYm1WeWFXTWlMQ0pwWkdWdWRHbG1lU0lzSW1semMzVmxJbDE5LkFhdmZLZzFXMTM1cndHamozMVZoNE5DMkM5N044QTE0ZDFWb1R1MGVnWElmK0s5N0lYdWxvYXJhY08zR1FUb044SHB2VjNMeVFPV0I2OHNnUHU1T3ZRcw.AavQrK+J3jQ+sEJKoFbh12aA0vhx4z7n3FijXsF9AOOLFNkmZSelEbdPxJ3A2VFrfHEaT5/GzB5LYcJ0jUbihgQ";
             Envelope dime = Envelope.Import(exported);
             Assert.IsTrue(dime.IsAnonymous);
             Assert.IsNull(dime.IssuerId);            
@@ -139,11 +139,11 @@ namespace ShiftEverywhere.DiMETest
         [TestMethod]
         public void KeyBoxImportTest1()
         {
-            string exported = "DiME.eyJpc3MiOiIwMDIxZTIyMC1kYTRhLTQwMjMtYWYxZC02ZWZiMDVmY2ZlZWYiLCJpYXQiOjE2MjYyMTQwMzl9:a2V5.eyJraWQiOiIyZDQ2YzYzMC1mNTQ4LTRmNzUtODYwZC01ZTE3NzNkODU0OWQiLCJpYXQiOjE2MjYyMTM4NDUsImtleSI6IkNZSGpYazU1aUNWek00MWdDUjlOcmhLcXhkalNQcDJHMUUxU0xjOGNBbk5EY0I0UnZQWDlzWCIsInB1YiI6IkNZSHQ3dFNUcTU5RnlwdEpVTktNVDhuUHRlcnhadG44M2dyUlNyZGdyNk5zVGs3cWgzQUdQYyJ9:AXEDtpVRWAfg+te2EfI3RxGOq1xIwl5o1nmz7ICkKmbq+CYuxf90h9NzB511qtiSlV+ve8bve+RNMB1z5X6ezwE";
+            string exported = "Di.eyJpc3MiOiIzNGU3MDgxYi04ODcxLTQ2N2EtYTk2My03ZjBlZWRiNDJjODAiLCJpYXQiOjE2MjYzNzk1MjZ9:KEY.eyJraWQiOiI3MTc1NzFhMC0wNmY0LTQzZDUtYWUwMi00ZDMzMjQwMDExNDYiLCJpYXQiOjE2MjYzNzg0OTYsImtleSI6IkNZSGpYOWtOZUttdU1tb3Jwb1JhcDVCQUpjTDNOZTZEelZXaU56cjJBVHh4NlF5Y2pvZ3duVyIsInB1YiI6IkNZSHQ3Z1lXanpOeDV1enljZk4xOFlSMVIyTFBFZjU1aEFrdU5BQndLd0F4QU5BYmtaczlkdyJ9:AWAFPW7PYSKTueG4DM5rpw3RnpXn4jDB9QIlrlAiW1PczdkAKEdKaUNOzjaqsVTGGtl2bhekHd4Xp7k84GWVUws";
             Envelope dime = Envelope.Import(exported);
             Assert.IsFalse(dime.IsAnonymous);
-            Assert.AreEqual(new Guid("0021e220-da4a-4023-af1d-6efb05fcfeef"), dime.IssuerId);  
-            Assert.AreEqual(1626214039, dime.IssuedAt);              
+            Assert.AreEqual(new Guid("34e7081b-8871-467a-a963-7f0eedb42c80"), dime.IssuerId);  
+            Assert.AreEqual(1626379526, dime.IssuedAt);              
             Assert.AreEqual(1, dime.Items.Count);
             Assert.AreEqual(typeof(KeyBox), dime.Items.ElementAt(0).GetType());
             dime.Verify(Commons.SenderKeybox);
@@ -168,11 +168,11 @@ namespace ShiftEverywhere.DiMETest
         [TestMethod]
         public void MessageImportTest1()
         {
-            string exported = "DiME.eyJpc3MiOiIwMDIxZTIyMC1kYTRhLTQwMjMtYWYxZC02ZWZiMDVmY2ZlZWYiLCJpYXQiOjE2MjYyMTM5NjV9:bXNn.eyJ1aWQiOiJmODI4ZTA1Ni0yNTc1LTRkZDktOGMzZC04YWMxMjFkOTM2YTAiLCJhdWQiOiJmMTRmNzNhZi02N2Y1LTRiYjgtODMxMi1lNDg4OGU4ZjllYzciLCJpc3MiOiIwMDIxZTIyMC1kYTRhLTQwMjMtYWYxZC02ZWZiMDVmY2ZlZWYiLCJpYXQiOjE2MjYyMTM5NjUsImV4cCI6MTYyNjIxNDA2NX0.UmFjZWNhciBpcyByYWNlY2FyIGJhY2t3YXJkcy4.Abx4KooAQ7WUK0xLWYouofsldmLKAuBc9ACQxO4IZmZkgH06QlfTDv6wTx5Wlow+0UApilj4+ZJYnJT+B+s+6Ak:ARJC4fif3Yvz58KrmxXrZ50RaNUQKnvzTSmLV2RSxByoFoZjujFKRS1gCgoejoSV253BtictghCZzBVQqQtlfgo";
+            string exported = "Di.eyJpc3MiOiIzNGU3MDgxYi04ODcxLTQ2N2EtYTk2My03ZjBlZWRiNDJjODAiLCJpYXQiOjE2MjYzNzk1NzF9:MSG.eyJ1aWQiOiJmZmZiNzQzMi0xNDIzLTQ0ZjgtYTVlMi1iMjQ3YWVlODlkM2UiLCJhdWQiOiIwZTMyZGY2Zi0xNjg3LTQwNTktODIyOS0yM2E2NzlhODExYzkiLCJpc3MiOiIzNGU3MDgxYi04ODcxLTQ2N2EtYTk2My03ZjBlZWRiNDJjODAiLCJpYXQiOjE2MjYzNzk1NzEsImV4cCI6MTYyNjM3OTY3MX0.UmFjZWNhciBpcyByYWNlY2FyIGJhY2t3YXJkcy4.AQaEBh1mi8tSw0AltZqgINy9RWGCjbiInN1OiWqtu++iuMV+ETIzq8sfs/iILyY69Z8rD1BmluzYyj9/DFnmyAI:AcmHztff2RGQT33tYz4Cvx0oOamTsrnRJZfCNqo0okt1tyNcJGVhEM1nXp16Y7QgRvw88CYDi0DTKA29SbEvrgE";
             Envelope dime = Envelope.Import(exported);
             Assert.IsFalse(dime.IsAnonymous);
-            Assert.AreEqual(new Guid("0021e220-da4a-4023-af1d-6efb05fcfeef"), dime.IssuerId);  
-            Assert.AreEqual(1626213965, dime.IssuedAt);              
+            Assert.AreEqual(new Guid("34e7081b-8871-467a-a963-7f0eedb42c80"), dime.IssuerId);  
+            Assert.AreEqual(1626379571, dime.IssuedAt);              
             Assert.AreEqual(1, dime.Items.Count);
             Assert.AreEqual(typeof(Message), dime.Items.ElementAt(0).GetType());
             dime.Verify(Commons.SenderKeybox);

@@ -18,8 +18,8 @@ namespace ShiftEverywhere.DiME
     public class IdentityIssuingRequest: Item
     {
         #region -- PUBLIC --
-        public const string IID = "aWly"; // base64 of 'iir'
-        public override string ItemIdentifier { get { return IdentityIssuingRequest.IID; } }
+        public const string TAG = "IIR";
+        public override string Tag { get { return IdentityIssuingRequest.TAG; } }
         /// <summary></summary>
         public override Guid UID { get { return this._claims.uid; } }
         /// <summary></summary>
@@ -113,7 +113,7 @@ namespace ShiftEverywhere.DiME
         {
             string[] components = encoded.Split(new char[] { Envelope._COMPONENT_DELIMITER });
             if (components.Length != IdentityIssuingRequest._NBR_COMPONENTS_WITHOUT_SIGNATURE && components.Length != IdentityIssuingRequest._NBR_COMPONENTS_WITH_SIGNATURE) { throw new DataFormatException($"Unexpected number of components for identity issuing request, expected {IdentityIssuingRequest._NBR_COMPONENTS_WITHOUT_SIGNATURE} or  {IdentityIssuingRequest._NBR_COMPONENTS_WITH_SIGNATURE}, got {components.Length}."); }
-            if (components[IdentityIssuingRequest._IDENTIFIER_INDEX] != IdentityIssuingRequest.IID) { throw new DataFormatException($"Unexpected object identifier, expected: \"{IdentityIssuingRequest.IID}\", got \"{components[IdentityIssuingRequest._IDENTIFIER_INDEX]}\"."); }
+            if (components[IdentityIssuingRequest._TAG_INDEX] != IdentityIssuingRequest.TAG) { throw new DataFormatException($"Unexpected item tag, expected: \"{IdentityIssuingRequest.TAG}\", got \"{components[IdentityIssuingRequest._TAG_INDEX]}\"."); }
             byte[] json = Utility.FromBase64(components[IdentityIssuingRequest._CLAIMS_INDEX]);
             this._claims = JsonSerializer.Deserialize<IirClaims>(json);
             this._capabilities = new List<string>(this._claims.cap).ConvertAll(str => { Capability cap; Enum.TryParse<Capability>(str, true, out cap); return cap; });
@@ -129,7 +129,7 @@ namespace ShiftEverywhere.DiME
             if (this._encoded == null)
             {
                 StringBuilder builder = new StringBuilder();
-                builder.Append(IdentityIssuingRequest.IID);
+                builder.Append(IdentityIssuingRequest.TAG);
                 builder.Append(Envelope._COMPONENT_DELIMITER);
                 builder.Append(Utility.ToBase64(JsonSerializer.Serialize(this._claims)));
                 this._encoded = builder.ToString();
@@ -143,7 +143,7 @@ namespace ShiftEverywhere.DiME
         
         private const int _NBR_COMPONENTS_WITHOUT_SIGNATURE = 2;
         private const int _NBR_COMPONENTS_WITH_SIGNATURE = 3;
-        private const int _IDENTIFIER_INDEX = 0;
+        private const int _TAG_INDEX = 0;
         private const int _CLAIMS_INDEX = 1;
         private const int _SIGNATURE_INDEX = 2;
 
