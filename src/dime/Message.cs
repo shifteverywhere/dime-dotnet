@@ -46,15 +46,14 @@ namespace ShiftEverywhere.DiME
             this._claims = new _MessageClaims(Guid.NewGuid(), audienceId, issuerId, iat, exp, null, null, null);
         }
 
-        public override void Seal(KeyBox keybox)
+        public override void Sign(KeyBox keybox)
         {
-            if (this._payload == null) { throw new FormatException("Unable to seal message, no payload added."); }
-            base.Seal(keybox);
+            if (this._payload == null) { throw new FormatException("Unable to sign message, no payload added."); }
+            base.Sign(keybox);
         }
 
         internal override string ToEncoded()
         {
-            //if (!this.IsSealed) { throw new FormatException("Unable to encode message, must be sealed first."); }
             if (this._payload == null) { throw new FormatException("Unable to encode message, no payload added."); }
             return base.ToEncoded();
         }
@@ -74,6 +73,11 @@ namespace ShiftEverywhere.DiME
             if (this.IssuedAt > this.ExpiresAt) { throw new DateExpirationException("Expiration before issuing date."); }
             if (this.ExpiresAt < now) { throw new DateExpirationException("Passed expiration date."); }
             base.Verify(keybox);
+        }
+
+        public void Verify(string publicKey, Item linkedItem)
+        {
+            Verify(new KeyBox(publicKey), linkedItem);
         }
 
         public void Verify(KeyBox keybox, Item linkedItem)
@@ -108,12 +112,12 @@ namespace ShiftEverywhere.DiME
         }
 
         /// <summary>This will link another Dime item to this message. Used most often when responding to another message.
-        /// The Dime item is then cryptographically linked to the response message, once the message is sealed.</summary>
+        /// The Dime item is then cryptographically linked to the response message, once the message is signed.</summary>
         /// <param name="item">The message object to link to.</param>
         /// <exception cref="ArgumentNullException">If the passed message object is null.</exception> 
         public void LinkItem(Item item)
         {
-            if (this.IsSealed) { throw new IntegrityException("Unable to link item, message is already sealed."); }
+            if (this.IsSigned) { throw new IntegrityException("Unable to link item, message is already signed."); }
             if (item == null) { throw new ArgumentNullException(nameof(item), "Item to link with must not be null."); }
             this._claims.lnk = $"{item.Tag}{Envelope._COMPONENT_DELIMITER}{item.UID.ToString()}{Envelope._COMPONENT_DELIMITER}{item.Thumbprint()}";
         }

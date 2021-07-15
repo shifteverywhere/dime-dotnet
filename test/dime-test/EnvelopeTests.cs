@@ -23,7 +23,7 @@ namespace ShiftEverywhere.DiMETest
         {
             Envelope dime = new Envelope();
             try {
-                dime.Seal(Commons.SenderKeybox);
+                dime.Sign(Commons.SenderKeybox);
             } catch (FormatException) { return; } // All is well
             Assert.IsTrue(false, "Should not happen.");
         }
@@ -33,7 +33,7 @@ namespace ShiftEverywhere.DiMETest
         {
             Envelope dime = new Envelope(Commons.SenderIdentity.SubjectId);
             try {
-                dime.Seal(Commons.SenderKeybox);
+                dime.Sign(Commons.SenderKeybox);
             } catch (FormatException) { return; } // All is well
             Assert.IsTrue(false, "Should not happen.");
         }
@@ -43,7 +43,7 @@ namespace ShiftEverywhere.DiMETest
         {
             Envelope dime = new Envelope(Commons.SenderIdentity.SubjectId);
             dime.AddItem(Commons.SenderKeybox);
-            dime.Seal(Commons.SenderKeybox);
+            dime.Sign(Commons.SenderKeybox);
         }
 
         [TestMethod]
@@ -75,7 +75,7 @@ namespace ShiftEverywhere.DiMETest
         {
             Envelope dime = new Envelope(Commons.SenderIdentity.SubjectId);
             dime.AddItem(Commons.SenderIdentity);
-            dime.Seal(Commons.SenderKeybox);
+            dime.Sign(Commons.SenderKeybox);
             string exported = dime.Export();
             Assert.IsNotNull(exported);
             Assert.IsTrue(exported.Length > 0);
@@ -128,7 +128,7 @@ namespace ShiftEverywhere.DiMETest
         {
             Envelope dime = new Envelope(Commons.SenderIdentity.SubjectId);
             dime.AddItem(Commons.SenderKeybox);
-            dime.Seal(Commons.SenderKeybox);
+            dime.Sign(Commons.SenderKeybox);
             string exported = dime.Export();
             Assert.IsNotNull(exported);
             Assert.IsTrue(exported.Length > 0);
@@ -155,9 +155,9 @@ namespace ShiftEverywhere.DiMETest
             Envelope dime = new Envelope(Commons.SenderIdentity.SubjectId);
             Message message = new Message(Commons.ReceiverIdentity.SubjectId, Commons.SenderIdentity.SubjectId, 100);
             message.SetPayload(Encoding.UTF8.GetBytes("Racecar is racecar backwards."));
-            message.Seal(Commons.SenderKeybox);
+            message.Sign(Commons.SenderKeybox);
             dime.AddItem(message);
-            dime.Seal(Commons.SenderKeybox);
+            dime.Sign(Commons.SenderKeybox);
             string exported = dime.Export();
             Assert.IsNotNull(exported);
             Assert.IsTrue(exported.Length > 0);
@@ -184,7 +184,7 @@ namespace ShiftEverywhere.DiMETest
             Envelope dime1 = new Envelope(Commons.SenderIdentity.SubjectId);
             dime1.AddItem(Commons.SenderIdentity);
             dime1.AddItem(Commons.SenderKeybox.PublicOnly());
-            dime1.Seal(Commons.SenderKeybox);
+            dime1.Sign(Commons.SenderKeybox);
             string exported = dime1.Export();
 
             Envelope dime2 = Envelope.Import(exported);

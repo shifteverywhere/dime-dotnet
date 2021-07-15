@@ -81,6 +81,11 @@ namespace ShiftEverywhere.DiME
             this.RawPublicKey = publickey;
         }
 
+        internal KeyBox(string base58key)
+        {
+            DecodeKey(base58key);
+        }
+
         #endregion
 
         # region -- PROTECTED --

@@ -27,7 +27,7 @@ namespace ShiftEverywhere.DiMETest
             //string key = keypair.Export();
             List<Capability> caps = new List<Capability> { Capability.Generic, Capability.Issue };
             Identity identity = IdentityIssuingRequest.Generate(keypair, caps).IssueIdentity(subjectId, 100, caps,  keypair,  null);
-            //Identity identity = IdentityIssuingRequest.Generate(keypair, caps).IssueIdentity(subjectId, Identity.VALID_FOR_1_YEAR * 10, caps,  keypair,  null);
+            //Identity identity = IdentityIssuingRequest.Generate(keypair, caps).IssueIdentity(subjectId, IdentityIssuingRequest.VALID_FOR_1_YEAR * 10, caps,  keypair,  null);
             //string id = identity.Export();
             Assert.IsTrue(subjectId == identity.SubjectId);
             Assert.IsTrue(subjectId == identity.IssuerId);
@@ -50,8 +50,8 @@ namespace ShiftEverywhere.DiMETest
             List<Capability> caps = new List<Capability> { Capability.Generic, Capability.Identify };
             //List<Capability> caps = new List<Capability> { Capability.Generic, Capability.Identify, Capability.Issue };
             IdentityIssuingRequest iir = IdentityIssuingRequest.Generate(keypair, caps);
-            Identity identity = IdentityIssuingRequest.Generate(keypair, caps).IssueIdentity(subjectId, Identity.VALID_FOR_1_YEAR, caps, Commons.IntermediateKeybox, Commons.IntermediateIdentity);
-            //Identity identity = IdentityIssuingRequest.Generate(keypair, caps).IssueIdentity(subjectId, Identity.VALID_FOR_1_YEAR * 5, caps, Commons.TrustedKeybox, Commons.TrustedIdentity);
+            Identity identity = IdentityIssuingRequest.Generate(keypair, caps).IssueIdentity(subjectId, IdentityIssuingRequest.VALID_FOR_1_YEAR, caps, Commons.IntermediateKeybox, Commons.IntermediateIdentity);
+            //Identity identity = IdentityIssuingRequest.Generate(keypair, caps).IssueIdentity(subjectId, IdentityIssuingRequest.VALID_FOR_1_YEAR * 5, caps, Commons.TrustedKeybox, Commons.TrustedIdentity);
             //string id = identity.Export();
             Assert.IsTrue(subjectId == identity.SubjectId);
             Assert.IsTrue(identity.HasCapability(caps[0]));
@@ -154,7 +154,7 @@ namespace ShiftEverywhere.DiMETest
             Identity.SetTrustedIdentity(Commons.TrustedIdentity);
             List<Capability> caps = new List<Capability> { Capability.Generic, Capability.Identify };
             KeyBox keypair = Crypto.GenerateKeyPair(Profile.Uno, KeyType.Identity);
-            Identity identity = IdentityIssuingRequest.Generate(keypair, caps).IssueIdentity(Guid.NewGuid(), Identity.VALID_FOR_1_YEAR, caps, Commons.IntermediateKeybox, Commons.IntermediateIdentity);
+            Identity identity = IdentityIssuingRequest.Generate(keypair, caps).IssueIdentity(Guid.NewGuid(), IdentityIssuingRequest.VALID_FOR_1_YEAR, caps, Commons.IntermediateKeybox, Commons.IntermediateIdentity);
             string exported = identity.Export();
             Assert.IsNotNull(exported);
             Assert.IsTrue(exported.Length > 0);

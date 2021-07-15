@@ -18,6 +18,8 @@ namespace ShiftEverywhere.DiME
     public class IdentityIssuingRequest: Item
     {
         #region -- PUBLIC --
+
+        public const long VALID_FOR_1_YEAR = 365 * 24 * 60 * 60; 
         public const string TAG = "IIR";
         public override string Tag { get { return IdentityIssuingRequest.TAG; } }
         /// <summary></summary>
@@ -92,7 +94,7 @@ namespace ShiftEverywhere.DiME
                     // The chain will only be set if this is not the trusted identity (and as long as one is set)
                     identity.TrustChain = issuerIdentity;
                 }
-                identity.Seal(issuerKeypair.Key);
+                identity.Sign(issuerKeypair);
                 return identity;
             }
             throw new IdentityCapabilityException("Issuing identity missing 'issue' capability.");

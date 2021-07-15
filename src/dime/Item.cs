@@ -19,7 +19,7 @@ namespace ShiftEverywhere.DiME
 
         public abstract Guid UID { get; }
 
-        public bool IsSealed { get { return (this._signature != null); } }
+        public bool IsSigned { get { return (this._signature != null); } }
 
         public static T Import<T>(string exported) where T: Item, new()
         {
@@ -43,10 +43,10 @@ namespace ShiftEverywhere.DiME
             return item;
         }
         
-        public virtual void Seal(KeyBox keybox)
+        public virtual void Sign(KeyBox keybox)
         {
-            if (this.IsSealed) { throw new IntegrityException("Dime item already sealed."); }
-            if (keybox == null || keybox.Key == null) { throw new ArgumentNullException(nameof(keybox), "Key for sealing cannot be null."); }
+            if (this.IsSigned) { throw new IntegrityException("Item already signed."); }
+            if (keybox == null || keybox.Key == null) { throw new ArgumentNullException(nameof(keybox), "Key for signing cannot be null."); }
             this._signature = Crypto.GenerateSignature(Encode(), keybox);
         }
 
@@ -56,7 +56,7 @@ namespace ShiftEverywhere.DiME
         }
 
         internal virtual string ToEncoded() {
-            if (this.IsSealed)
+            if (this.IsSigned)
             {
                 return $"{Encode()}{Envelope._COMPONENT_DELIMITER}{this._signature}";
             }
@@ -74,9 +74,14 @@ namespace ShiftEverywhere.DiME
             }
         }
 
+        public void Verify(string publicKey)
+        {
+            Verify(new KeyBox(publicKey));
+        }
+
         public virtual void Verify(KeyBox keybox)
         {
-            if (!this.IsSealed) { throw new IntegrityException("Dime item not sealed."); }
+            if (!this.IsSigned) { throw new IntegrityException("Dime item not signed."); }
             Crypto.VerifySignature(Encode(), this._signature, keybox);
         }
 

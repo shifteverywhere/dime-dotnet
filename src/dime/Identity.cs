@@ -22,7 +22,6 @@ namespace ShiftEverywhere.DiME
     {
         #region -- PUBLIC --
 
-        public const long VALID_FOR_1_YEAR = 365 * 24 * 60 * 60; 
         ///<summary>A shared trusted identity that acts as the root identity in the trust chain.</summary>
         public static Identity TrustedIdentity { get { lock(Identity._lock) { return Identity._trustedIdentity; } } }
         public const string TAG = "ID";
@@ -145,15 +144,6 @@ namespace ShiftEverywhere.DiME
                 this._encoded = builder.ToString();
             }
             return this._encoded;
-        }
-
-        internal void Seal(string privateKey)
-        {
-            if (this._signature == null)
-            {
-                if (privateKey == null) { throw new ArgumentNullException(nameof(privateKey), "Private key for signing cannot be null."); }
-                this._signature = Crypto.GenerateSignature(this.Encode(), KeyBox.FromBase58Key(privateKey));
-            }
         }
 
         #endregion

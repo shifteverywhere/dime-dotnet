@@ -86,7 +86,7 @@ namespace ShiftEverywhere.DiMETest
             KeyBox keybox = KeyBox.Generate(KeyType.Identity, Profile.Uno);
             Message message = new Message(Commons.ReceiverIdentity.SubjectId, Commons.SenderIdentity.SubjectId, 100);
             message.SetPayload(Encoding.UTF8.GetBytes("Racecar is racecar backwards."));
-            message.Seal(Commons.SenderKeybox);
+            message.Sign(Commons.SenderKeybox);
             KeyBox pubOnly = Commons.SenderKeybox.PublicOnly();
             message.Verify(pubOnly);            
         }

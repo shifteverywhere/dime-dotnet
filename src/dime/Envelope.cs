@@ -24,7 +24,7 @@ namespace ShiftEverywhere.DiME
         
         public IList<Item> Items { get { return (this._items != null) ? this._items.AsReadOnly() : null; } }
 
-        public bool IsSealed { get { return (this._signature != null); } }
+        public bool IsSigned { get { return (this._signature != null); } }
         public bool IsAnonymous { get { return !this._claims.HasValue; } }
 
         public Envelope() { }
@@ -52,7 +52,7 @@ namespace ShiftEverywhere.DiME
             else 
                 throw new FormatException($"Not a valid Dime object, unexpected number of components in header, got: '{components.Length}', expexted: '1' or '2'");
             // 1 to LAST or LAST - 1 
-            int endIndex = (dime.IsAnonymous) ? sections.Length : sections.Length - 1; // end index dependent on unsealed, anonymous Dime or not
+            int endIndex = (dime.IsAnonymous) ? sections.Length : sections.Length - 1; // end index dependent on anonymous Dime or not
             List<Item> items = new List<Item>(endIndex - 1);
             for (int index = 1; index < endIndex; index++)
             {
@@ -68,7 +68,7 @@ namespace ShiftEverywhere.DiME
 
         public Envelope AddItem(Item item)
         {
-            if (this._signature != null) { throw new IntegrityException("Unable to modify Dime after sealing."); }
+            if (this._signature != null) { throw new IntegrityException("Unable to modify Dime after signing."); }
             if (this._items == null)
                 this._items = new List<Item>();
             this._items.Add(item);
@@ -77,24 +77,29 @@ namespace ShiftEverywhere.DiME
 
         public Envelope SetItems(List<Item> items)
         {
-            if (this._signature != null) { throw new IntegrityException("Unable to modify Dime after sealing."); }
+            if (this._signature != null) { throw new IntegrityException("Unable to modify Dime after signing."); }
             this._items = items.ToList();
             return this;
         }
 
-        public Envelope Seal(KeyBox keybox)
+        public Envelope Sign(KeyBox keybox)
         {
-            if (this.IsAnonymous) { throw new FormatException("Cannot seal an anonymous Dime."); }
-            if (this._signature != null) { throw new FormatException("Dime already sealed."); }
-            if (this._items == null || this._items.Count == 0) { throw new FormatException("At least one item must be attached before sealing Dime."); }
+            if (this.IsAnonymous) { throw new FormatException("Cannot sign an anonymous Dime."); }
+            if (this._signature != null) { throw new FormatException("Dime already signed."); }
+            if (this._items == null || this._items.Count == 0) { throw new FormatException("At least one item must be attached before signing Dime."); }
             this._signature = Crypto.GenerateSignature(Encode(), keybox);
             return this;
         }
 
+        public void Verify(string publicKey)
+        {
+            Verify(new KeyBox(publicKey));
+        }
+        
         public Envelope Verify(KeyBox keybox)
         {
             if (this.IsAnonymous) { throw new FormatException("Anonymous Dime, unable to verify."); }
-            if (this._signature == null) { throw new IntegrityException("Dime is not sealed."); }
+            if (this._signature == null) { throw new IntegrityException("Dime is not singed."); }
             Crypto.VerifySignature(Encode(), this._signature, keybox);
             return this;
         }
@@ -103,7 +108,7 @@ namespace ShiftEverywhere.DiME
         {
             if (!this.IsAnonymous)
             {
-                if (this._signature == null) { throw new FormatException("Dime must be sealed before exporting."); }
+                if (this._signature == null) { throw new FormatException("Dime must be signed before exporting."); }
                 return $"{Encode()}{Envelope._SECTION_DELIMITER}{this._signature}";
             }
             else
