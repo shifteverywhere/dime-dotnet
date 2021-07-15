@@ -95,7 +95,7 @@ namespace ShiftEverywhere.DiME
 
         private static byte[] GetKey(string key)
         {
-            string[] keyComponents = key.Split(new char[] { Dime._SECTION_DELIMITER });
+            string[] keyComponents = key.Split(new char[] { Envelope._SECTION_DELIMITER });
             Profile profile; 
             if (!Enum.TryParse<Profile>(keyComponents[0], out profile)) { throw new DataFormatException("Unable to determine key profile version, invalid data format."); }
             if (!SupportedProfile(profile)) { return null; } // TODO: replace crypto impl.

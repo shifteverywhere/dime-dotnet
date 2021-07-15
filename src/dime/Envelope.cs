@@ -1,5 +1,5 @@
 //
-//  Dime.cs
+//  Envelope.cs
 //  DiME - Digital Identity Message Envelope
 //  Compact messaging format for assertion and practical use of digital identities
 //
@@ -15,91 +15,74 @@ using System.Text.Json.Serialization;
 
 namespace ShiftEverywhere.DiME
 {
-    public class Dime
+    public class Envelope
     {
-
-        public const string HEADER = "DiME";
-        public const long VALID_FOR_1_YEAR = 365 * 24 * 60 * 60; 
-        ///<summary>A shared trusted identity that acts as the root identity in the trust chain.</summary>
-        public static Identity TrustedIdentity { get { lock(Dime._lock) { return Dime._trustedIdentity; } } }
-
+        public const string HEADER = "Di";
         public Guid? IssuerId { get { return (this._claims.HasValue) ? this._claims.Value.iss : null; } }
         public long? IssuedAt { get { return (this._claims.HasValue) ? this._claims.Value.iat : null; } }
         public string State { get { return (this._claims.HasValue) ? this._claims.Value.sta : null; } }
         
-        public IList<DimeItem> Items { get { return (this._items != null) ? this._items.AsReadOnly() : null; } }
+        public IList<Item> Items { get { return (this._items != null) ? this._items.AsReadOnly() : null; } }
 
         public bool IsSealed { get { return (this._signature != null); } }
         public bool IsAnonymous { get { return !this._claims.HasValue; } }
 
-        ///<summary>Set the shared trusted identity, which forms the basis of the trust chain. All identities will be verified
-        /// from a trust perspecitve using this identity. For the trust chain to hold, then all identities must be either issued
-        /// by this identity or other identities (with the 'issue' capability) that has been issued by this identity.
-        ///<param name="identity">The identity to set as the trusted identity.</param>
-        public static void SetTrustedIdentity(Identity identity)
-        {
-            lock(Dime._lock)
-            {
-                Dime._trustedIdentity = identity;
-            }
-        }
+        public Envelope() { }
 
-        public Dime() { }
-
-        public Dime(Guid issuerId, string state = null)
+        public Envelope(Guid issuerId, string state = null)
         {
             long now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
             this._claims = new _DimeClaims(issuerId, now, state);
         }
 
-        public static Dime Import(string exported)
+        public static Envelope Import(string exported)
         {
-            if (!exported.StartsWith(Dime.HEADER)) { throw new FormatException("Not a Dime object, invalid header."); }
-            string[] sections = exported.Split(Dime._SECTION_DELIMITER);
+            if (!exported.StartsWith(Envelope.HEADER)) { throw new FormatException("Not a Dime object, invalid header."); }
+            string[] sections = exported.Split(Envelope._SECTION_DELIMITER);
             // 0: HEADER
-            string[] components = sections[0].Split(Dime._COMPONENT_DELIMITER);
-            Dime dime;
+            string[] components = sections[0].Split(Envelope._COMPONENT_DELIMITER);
+            Envelope dime;
             if (components.Length == 2)
             {
                 _DimeClaims claims = JsonSerializer.Deserialize<_DimeClaims>(Utility.FromBase64(components[1]));
-                dime = new Dime(claims);
+                dime = new Envelope(claims);
             }
             else if (components.Length == 1) 
-                dime = new Dime();
+                dime = new Envelope();
             else 
                 throw new FormatException($"Not a valid Dime object, unexpected number of components in header, got: '{components.Length}', expexted: '1' or '2'");
             // 1 to LAST or LAST - 1 
             int endIndex = (dime.IsAnonymous) ? sections.Length : sections.Length - 1; // end index dependent on unsealed, anonymous Dime or not
-            List<DimeItem> items = new List<DimeItem>(endIndex - 1);
+            List<Item> items = new List<Item>(endIndex - 1);
             for (int index = 1; index < endIndex; index++)
             {
-                string iid = sections[index].Substring(0, sections[index].IndexOf(Dime._COMPONENT_DELIMITER));
-                items.Add(DimeItem.FromString(sections[index]));
+                string iid = sections[index].Substring(0, sections[index].IndexOf(Envelope._COMPONENT_DELIMITER));
+                items.Add(Item.FromEncoded(sections[index]));
             }
             dime._items = items;
-            dime._encoded = exported.Substring(0, exported.LastIndexOf(Dime._SECTION_DELIMITER));
+            dime._encoded = exported.Substring(0, exported.LastIndexOf(Envelope._SECTION_DELIMITER));
             if (!dime.IsAnonymous)
                 dime._signature = sections.Last(); 
             return dime;
         }
 
-        public Dime AddItem(DimeItem item)
+        public Envelope AddItem(Item item)
         {
             if (this._signature != null) { throw new IntegrityException("Unable to modify Dime after sealing."); }
             if (this._items == null)
-                this._items = new List<DimeItem>();
+                this._items = new List<Item>();
             this._items.Add(item);
             return this;
         }
 
-        public Dime SetItems(List<DimeItem> items)
+        public Envelope SetItems(List<Item> items)
         {
             if (this._signature != null) { throw new IntegrityException("Unable to modify Dime after sealing."); }
             this._items = items.ToList();
             return this;
         }
 
-        public Dime Seal(KeyBox keybox)
+        public Envelope Seal(KeyBox keybox)
         {
             if (this.IsAnonymous) { throw new FormatException("Cannot seal an anonymous Dime."); }
             if (this._signature != null) { throw new FormatException("Dime already sealed."); }
@@ -108,7 +91,7 @@ namespace ShiftEverywhere.DiME
             return this;
         }
 
-        public Dime Verify(KeyBox keybox)
+        public Envelope Verify(KeyBox keybox)
         {
             if (this.IsAnonymous) { throw new FormatException("Anonymous Dime, unable to verify."); }
             if (this._signature == null) { throw new IntegrityException("Dime is not sealed."); }
@@ -121,7 +104,7 @@ namespace ShiftEverywhere.DiME
             if (!this.IsAnonymous)
             {
                 if (this._signature == null) { throw new FormatException("Dime must be sealed before exporting."); }
-                return $"{Encode()}{Dime._SECTION_DELIMITER}{this._signature}";
+                return $"{Encode()}{Envelope._SECTION_DELIMITER}{this._signature}";
             }
             else
                 return Encode();
@@ -138,9 +121,7 @@ namespace ShiftEverywhere.DiME
 
         #region -- PRIVATE --
 
-        private static readonly object _lock = new object();
-        private static Identity _trustedIdentity;
-        private List<DimeItem> _items;
+         private List<Item> _items;
         private string _encoded;
         private string _signature;
         private _DimeClaims? _claims;
@@ -162,7 +143,7 @@ namespace ShiftEverywhere.DiME
 
         }
 
-        private Dime(_DimeClaims claims)
+        private Envelope(_DimeClaims claims)
         {
             this._claims = claims;
         }
@@ -172,16 +153,16 @@ namespace ShiftEverywhere.DiME
             if (this._encoded == null)
             {
                 StringBuilder builder = new StringBuilder();
-                builder.Append(Dime.HEADER);
+                builder.Append(Envelope.HEADER);
                 if (!this.IsAnonymous)
                 {
-                    builder.Append(Dime._COMPONENT_DELIMITER);
+                    builder.Append(Envelope._COMPONENT_DELIMITER);
                     builder.Append(Utility.ToBase64(JsonSerializer.Serialize(this._claims)));
                 }
-                foreach(DimeItem item in this._items)
+                foreach(Item item in this._items)
                 {
-                    builder.Append(Dime._SECTION_DELIMITER);
-                    builder.Append(item.ToString());
+                    builder.Append(Envelope._SECTION_DELIMITER);
+                    builder.Append(item.ToEncoded());
                 }
                 this._encoded = builder.ToString();
             }

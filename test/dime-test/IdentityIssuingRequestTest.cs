@@ -60,18 +60,18 @@ namespace ShiftEverywhere.DiMETest
         {
             KeyBox keybox = KeyBox.Generate(KeyType.Identity);
             IdentityIssuingRequest iir = IdentityIssuingRequest.Generate(keybox);
-            string exported = iir.ToString();
+            string exported = iir.Export();
             Assert.IsNotNull(exported);
             Assert.IsTrue(exported.Length > 0);
-            Assert.IsTrue(exported.StartsWith(IdentityIssuingRequest.IID));
+            Assert.IsTrue(exported.StartsWith(Envelope.HEADER));
             Assert.IsTrue(exported.Split(new char[] { '.' }).Length == 3);
         }
 
         [TestMethod]
         public void FromStringTest2()
         {
-            string exported = "aWly.eyJ1aWQiOiIxYTEyNDU0Yi1hNjIzLTRmNjEtYWRlMi03ZWViZDQ1MzJhYzkiLCJpYXQiOjE2MjYyMTMxMDgsInB1YiI6IkNZSHQ2YXJ4clNOemR4b1Y3cVFkQ2U4VHFCY2dIV0xkU2V6NXRLTEhaREpjazY1azhSUDdBcSIsImNhcCI6WyJnZW5lcmljIl19.Adl3udTSoJhqpNw7K5OVmBuad8sl6zZBJguxJ15WdKuFf5BhfXB1grrzPPiQZOcvcbt90beHKmeNZ0xjh7JksAM";
-            IdentityIssuingRequest iir = IdentityIssuingRequest.FromString(exported);
+            string exported = "Di:aWly.eyJ1aWQiOiIxYTEyNDU0Yi1hNjIzLTRmNjEtYWRlMi03ZWViZDQ1MzJhYzkiLCJpYXQiOjE2MjYyMTMxMDgsInB1YiI6IkNZSHQ2YXJ4clNOemR4b1Y3cVFkQ2U4VHFCY2dIV0xkU2V6NXRLTEhaREpjazY1azhSUDdBcSIsImNhcCI6WyJnZW5lcmljIl19.Adl3udTSoJhqpNw7K5OVmBuad8sl6zZBJguxJ15WdKuFf5BhfXB1grrzPPiQZOcvcbt90beHKmeNZ0xjh7JksAM";
+            IdentityIssuingRequest iir = Item.Import<IdentityIssuingRequest>(exported);
             Assert.IsNotNull(iir);
             Assert.AreEqual(new Guid("1a12454b-a623-4f61-ade2-7eebd4532ac9"), iir.UID);
             Assert.AreEqual(1626213108, iir.IssuedAt);

@@ -17,10 +17,13 @@ namespace ShiftEverywhere.DiME
 {
     ///<summary>Represents a digital identity of an entity. Can be self-signed or signed by a trusted identity (and thus
     /// be part of a trust chain.</summary>
-    public class Identity: DimeItem
+    public class Identity: Item
     {
         #region -- PUBLIC --
 
+        public const long VALID_FOR_1_YEAR = 365 * 24 * 60 * 60; 
+        ///<summary>A shared trusted identity that acts as the root identity in the trust chain.</summary>
+        public static Identity TrustedIdentity { get { lock(Identity._lock) { return Identity._trustedIdentity; } } }
         public const string IID = "aWQ"; // base64 of 'id'
         public override string ItemIdentifier { get { return Identity.IID; } }
         public override Guid UID { get { return this._claims.uid; } }
@@ -39,11 +42,23 @@ namespace ShiftEverywhere.DiME
 
         public bool IsSelfSigned { get { return (this.SubjectId == this.IssuerId && this.HasCapability(Capability.Self)); } }
 
+        ///<summary>Set the shared trusted identity, which forms the basis of the trust chain. All identities will be verified
+        /// from a trust perspecitve using this identity. For the trust chain to hold, then all identities must be either issued
+        /// by this identity or other identities (with the 'issue' capability) that has been issued by this identity.
+        ///<param name="identity">The identity to set as the trusted identity.</param>
+        public static void SetTrustedIdentity(Identity identity)
+        {
+            lock(Identity._lock)
+            {
+                Identity._trustedIdentity = identity;
+            }
+        }
+
         public Identity() { }
 
         public void VerifyTrust()
         {
-            if (Dime.TrustedIdentity == null) { throw new UntrustedIdentityException("No trusted identity set."); }
+            if (Identity.TrustedIdentity == null) { throw new UntrustedIdentityException("No trusted identity set."); }
             long now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
             if (this.IssuedAt > now) { throw new DateExpirationException("Identity is not yet valid, issued at date in the future."); }
             if (this.IssuedAt > this.ExpiresAt) { throw new DateExpirationException("Invalid expiration date, expires at before issued at."); }
@@ -52,7 +67,7 @@ namespace ShiftEverywhere.DiME
             {
                 this.TrustChain.VerifyTrust();
             } 
-            string publicKey = this.TrustChain != null ? this.TrustChain.PublicKey : Dime.TrustedIdentity.PublicKey;
+            string publicKey = this.TrustChain != null ? this.TrustChain.PublicKey : Identity.TrustedIdentity.PublicKey;
             try {
                 Crypto.VerifySignature(this._encoded, this._signature, KeyBox.FromBase58Key(publicKey));
             } catch (IntegrityException) 
@@ -69,7 +84,7 @@ namespace ShiftEverywhere.DiME
             return this._capabilities.Any(cap => cap == capability);
         }
 
-        public new static Identity FromString(string encoded)
+        internal new static Identity FromEncoded(string encoded)
         {
             Identity identity = new Identity();
             identity.Decode(encoded);
@@ -90,7 +105,7 @@ namespace ShiftEverywhere.DiME
 
         protected override void Decode(string encoded) 
         {
-            string[] components = encoded.Split(new char[] { Dime._COMPONENT_DELIMITER });
+            string[] components = encoded.Split(new char[] { Envelope._COMPONENT_DELIMITER });
             if (components.Length != Identity._NBR_EXPECTED_COMPONENTS_MIN &&
                 components.Length != Identity._NBR_EXPECTED_COMPONENTS_MAX) { throw new DataFormatException($"Unexpected number of components for identity issuing request, expected {Identity._NBR_EXPECTED_COMPONENTS_MIN} OR {Identity._NBR_EXPECTED_COMPONENTS_MAX}, got {components.Length}."); }
             if (components[Identity._IDENTIFIER_INDEX] != Identity.IID) { throw new DataFormatException($"Unexpected object identifier, expected: \"{Identity.IID}\", got \"{components[Identity._IDENTIFIER_INDEX]}\"."); }
@@ -100,9 +115,9 @@ namespace ShiftEverywhere.DiME
             if (components.Length == Identity._NBR_EXPECTED_COMPONENTS_MAX) // There is also a trust chain identity 
             {
                 byte[] issIdentity = Utility.FromBase64(components[Identity._CHAIN_INDEX]);
-                this.TrustChain = Identity.FromString(System.Text.Encoding.UTF8.GetString(issIdentity, 0, issIdentity.Length));
+                this.TrustChain = Identity.FromEncoded(System.Text.Encoding.UTF8.GetString(issIdentity, 0, issIdentity.Length));
             }
-            this._encoded = encoded.Substring(0, encoded.LastIndexOf(Dime._COMPONENT_DELIMITER));
+            this._encoded = encoded.Substring(0, encoded.LastIndexOf(Envelope._COMPONENT_DELIMITER));
             this._signature = components[components.Length - 1];
         }
 
@@ -112,12 +127,12 @@ namespace ShiftEverywhere.DiME
             {
                 StringBuilder builder = new StringBuilder();
                 builder.Append(Identity.IID);
-                builder.Append(Dime._COMPONENT_DELIMITER);
+                builder.Append(Envelope._COMPONENT_DELIMITER);
                 builder.Append(Utility.ToBase64(JsonSerializer.Serialize(this._claims)));
                 if (this.TrustChain != null)
                 {
-                    builder.Append(Dime._COMPONENT_DELIMITER);
-                    builder.Append(Utility.ToBase64($"{this.TrustChain.Encode()}{Dime._COMPONENT_DELIMITER}{this.TrustChain._signature}"));
+                    builder.Append(Envelope._COMPONENT_DELIMITER);
+                    builder.Append(Utility.ToBase64($"{this.TrustChain.Encode()}{Envelope._COMPONENT_DELIMITER}{this.TrustChain._signature}"));
                 }
                 this._encoded = builder.ToString();
             }
@@ -148,6 +163,8 @@ namespace ShiftEverywhere.DiME
         private const int _CHAIN_INDEX = 2;
         private IdentityClaims _claims;
         private List<Capability> _capabilities { get; set; }
+        private static readonly object _lock = new object();
+        private static Identity _trustedIdentity;
 
         private struct IdentityClaims
         {

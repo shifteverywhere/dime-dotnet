@@ -42,17 +42,17 @@ namespace ShiftEverywhere.DiMETest
         public void ToStringTest1()
         {
             KeyBox keypair = KeyBox.Generate(KeyType.Identity);
-            string encoded = keypair.ToString();
+            string encoded = keypair.Export();
             Assert.IsNotNull(encoded);
-            Assert.IsTrue(encoded.StartsWith(KeyBox.IID));
+            Assert.IsTrue(encoded.StartsWith(Envelope.HEADER));
             Assert.IsTrue(encoded.Split(".").Length == 2);
         }
 
         [TestMethod]
         public void FromStringTest1()
         {
-            string encoded = "a2V5.eyJraWQiOiJlZDM3ODJmNi1kY2ZmLTQ0MWQtYmY1MS1mZWRhZTZjMGEzZWMiLCJpYXQiOjE2MjYyMDgzODgsImtleSI6IkNZSGpYeHlEQXdnQ0hlMXFONjhSNUxrVVBNcXhQbUJ5M3Y5U0JMaTRqRlpiMnlSQ0N3bXlNZCIsInB1YiI6IkNZSHQ2dVRhOFp6QUNtNURhZ01OdHptQW1vYVF1VmFyTTF5dVhlVk02TDhyZGVRUFFtcmYxdyJ9";
-            KeyBox keybox = KeyBox.FromString(encoded);
+            string encoded = "Di:a2V5.eyJraWQiOiJlZDM3ODJmNi1kY2ZmLTQ0MWQtYmY1MS1mZWRhZTZjMGEzZWMiLCJpYXQiOjE2MjYyMDgzODgsImtleSI6IkNZSGpYeHlEQXdnQ0hlMXFONjhSNUxrVVBNcXhQbUJ5M3Y5U0JMaTRqRlpiMnlSQ0N3bXlNZCIsInB1YiI6IkNZSHQ2dVRhOFp6QUNtNURhZ01OdHptQW1vYVF1VmFyTTF5dVhlVk02TDhyZGVRUFFtcmYxdyJ9";
+            KeyBox keybox = Item.Import<KeyBox>(encoded);
             Assert.AreEqual(Profile.Uno, keybox.Profile);
             Assert.AreEqual(KeyType.Identity, keybox.Type);
             Assert.AreEqual(new Guid("ed3782f6-dcff-441d-bf51-fedae6c0a3ec"), keybox.UID);

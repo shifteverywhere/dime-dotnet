@@ -15,7 +15,7 @@ using System.Collections.Generic;
 
 namespace ShiftEverywhere.DiME
 {
-    public class IdentityIssuingRequest: DimeItem
+    public class IdentityIssuingRequest: Item
     {
         #region -- PUBLIC --
         public const string IID = "aWly"; // base64 of 'iir'
@@ -93,7 +93,7 @@ namespace ShiftEverywhere.DiME
                 long now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
                 Guid issuerId = issuerIdentity != null ? issuerIdentity.SubjectId : subjectId;
                 Identity identity = new Identity(subjectId, this.PublicKey, now, (now + validFor), issuerId, this._capabilities, Profile.Uno);
-                if (Dime.TrustedIdentity != null && issuerIdentity != null && issuerIdentity.SubjectId != Dime.TrustedIdentity.SubjectId)
+                if (Identity.TrustedIdentity != null && issuerIdentity != null && issuerIdentity.SubjectId != Identity.TrustedIdentity.SubjectId)
                 {
                     issuerIdentity.VerifyTrust();
                     // The chain will only be set if this is not the trusted identity (and as long as one is set)
@@ -105,7 +105,7 @@ namespace ShiftEverywhere.DiME
             throw new IdentityCapabilityException("Issuing identity missing 'issue' capability.");
         }
 
-        public new static IdentityIssuingRequest FromString(string encoded)
+        internal new static IdentityIssuingRequest FromEncoded(string encoded)
         {
             IdentityIssuingRequest iir = new IdentityIssuingRequest();
             iir.Decode(encoded);
@@ -118,7 +118,7 @@ namespace ShiftEverywhere.DiME
 
         protected override void Decode(string encoded) 
         {
-            string[] components = encoded.Split(new char[] { Dime._COMPONENT_DELIMITER });
+            string[] components = encoded.Split(new char[] { Envelope._COMPONENT_DELIMITER });
             if (components.Length != IdentityIssuingRequest._NBR_COMPONENTS_WITHOUT_SIGNATURE && components.Length != IdentityIssuingRequest._NBR_COMPONENTS_WITH_SIGNATURE) { throw new DataFormatException($"Unexpected number of components for identity issuing request, expected {IdentityIssuingRequest._NBR_COMPONENTS_WITHOUT_SIGNATURE} or  {IdentityIssuingRequest._NBR_COMPONENTS_WITH_SIGNATURE}, got {components.Length}."); }
             if (components[IdentityIssuingRequest._IDENTIFIER_INDEX] != IdentityIssuingRequest.IID) { throw new DataFormatException($"Unexpected object identifier, expected: \"{IdentityIssuingRequest.IID}\", got \"{components[IdentityIssuingRequest._IDENTIFIER_INDEX]}\"."); }
             byte[] json = Utility.FromBase64(components[IdentityIssuingRequest._CLAIMS_INDEX]);
@@ -126,7 +126,7 @@ namespace ShiftEverywhere.DiME
             this._capabilities = new List<string>(this._claims.cap).ConvertAll(str => { Capability cap; Enum.TryParse<Capability>(str, true, out cap); return cap; });
             if (components.Length == _NBR_COMPONENTS_WITH_SIGNATURE)
             {
-                this._encoded = encoded.Substring(0, encoded.LastIndexOf(Dime._COMPONENT_DELIMITER));
+                this._encoded = encoded.Substring(0, encoded.LastIndexOf(Envelope._COMPONENT_DELIMITER));
                 this._signature = components[IdentityIssuingRequest._SIGNATURE_INDEX];
             }
         }
@@ -137,7 +137,7 @@ namespace ShiftEverywhere.DiME
             {
                 StringBuilder builder = new StringBuilder();
                 builder.Append(IdentityIssuingRequest.IID);
-                builder.Append(Dime._COMPONENT_DELIMITER);
+                builder.Append(Envelope._COMPONENT_DELIMITER);
                 builder.Append(Utility.ToBase64(JsonSerializer.Serialize(this._claims)));
                 this._encoded = builder.ToString();
             }

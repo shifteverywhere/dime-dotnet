@@ -1,5 +1,5 @@
 //
-//  DimeItem.cs
+//  Item.cs
 //  DiME - Digital Identity Message Envelope
 //  Compact messaging format for assertion and practical use of digital identities
 //
@@ -7,10 +7,11 @@
 //  Copyright © 2021 Shift Everywhere AB. All rights reserved.
 //
 using System;
+using System.Linq;
 
 namespace ShiftEverywhere.DiME
 {
-    public abstract class DimeItem 
+    public abstract class Item 
     {
         #region -- PUBLIC -- 
 
@@ -20,14 +21,28 @@ namespace ShiftEverywhere.DiME
 
         public bool IsSealed { get { return (this._signature != null); } }
 
-        public static DimeItem FromString(string encoded)
+        public static T Import<T>(string exported) where T: Item, new()
         {
-            Type t = DimeItem.TypeFromIID(encoded.Substring(0, encoded.IndexOf(Dime._COMPONENT_DELIMITER)));
-            DimeItem item = (DimeItem)Activator.CreateInstance(t);
+            Envelope envelope = Envelope.Import(exported);
+            if (envelope.Items.Count > 1) { throw new FormatException("Multiple items found, import as 'Envelope' instead."); }
+            return (T)envelope.Items.First();
+        }
+
+        public string Export()
+        {
+            Envelope envelope = new Envelope();
+            envelope.AddItem(this);
+            return envelope.Export();
+        }
+
+        internal static Item FromEncoded(string encoded)
+        {
+            Type t = Item.TypeFromIID(encoded.Substring(0, encoded.IndexOf(Envelope._COMPONENT_DELIMITER)));
+            Item item = (Item)Activator.CreateInstance(t);
             item.Decode(encoded);
             return item;
         }
-
+        
         public virtual void Seal(KeyBox keybox)
         {
             if (this.IsSealed) { throw new IntegrityException("Dime item already sealed."); }
@@ -40,10 +55,10 @@ namespace ShiftEverywhere.DiME
             return Crypto.GenerateHash(profile, this.Encode());
         }
 
-        public override string ToString() {
+        internal virtual string ToEncoded() {
             if (this.IsSealed)
             {
-                return $"{Encode()}{Dime._COMPONENT_DELIMITER}{this._signature}";
+                return $"{Encode()}{Envelope._COMPONENT_DELIMITER}{this._signature}";
             }
             return Encode();
         }

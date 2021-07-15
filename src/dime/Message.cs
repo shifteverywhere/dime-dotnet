@@ -18,11 +18,11 @@ namespace ShiftEverywhere.DiME
     /// optionally encrypted (using end-to-end encryption). Responses to messages may be linked with the orginal message, thus
     /// creating a strong cryptographical link. The entity that created the message signs it before exporting and thus sealing
     /// it's content. </summary>
-    public class Message: DimeItem
+    public class Message: Item
     {
         #region -- PUBLIC --
 
-        public const string IID = "bXNn"; // base64 of 'msg'
+        public const string IID = "bXNn"; // base64 of 'msg' 
         public override string ItemIdentifier { get { return Message.IID; } }
         /// <summary>A unique identity for the message.</summary>
         public override Guid UID { get { return this._claims.uid; } }
@@ -52,14 +52,14 @@ namespace ShiftEverywhere.DiME
             base.Seal(keybox);
         }
 
-        public override string ToString()
+        internal override string ToEncoded()
         {
             //if (!this.IsSealed) { throw new FormatException("Unable to encode message, must be sealed first."); }
             if (this._payload == null) { throw new FormatException("Unable to encode message, no payload added."); }
-            return base.ToString();
+            return base.ToEncoded();
         }
 
-        public new static Message FromString(string encoded)
+        internal new static Message FromEncoded(string encoded)
         {
             Message message = new Message();
             message.Decode(encoded);
@@ -76,13 +76,13 @@ namespace ShiftEverywhere.DiME
             base.Verify(keybox);
         }
 
-        public void Verify(KeyBox keybox, DimeItem linkedItem)
+        public void Verify(KeyBox keybox, Item linkedItem)
         {
             Verify(keybox);
             if (linkedItem != null)
             {
                 if (this._claims.lnk == null || this._claims.lnk.Length == 0) { throw new FormatException("No link to Dime item found, unable to verify."); }
-                string[] components = this._claims.lnk.Split(new char[] { Dime._COMPONENT_DELIMITER });
+                string[] components = this._claims.lnk.Split(new char[] { Envelope._COMPONENT_DELIMITER });
                 if (components == null || components.Length != 3) { throw new FormatException("Invalid data found in item link field."); }
                 string msgHash = linkedItem.Thumbprint();
                 if (components[Message._LINK_ITEM_TYPE_INDEX] != linkedItem.ItemIdentifier
@@ -111,11 +111,11 @@ namespace ShiftEverywhere.DiME
         /// The Dime item is then cryptographically linked to the response message, once the message is sealed.</summary>
         /// <param name="item">The message object to link to.</param>
         /// <exception cref="ArgumentNullException">If the passed message object is null.</exception> 
-        public void LinkItem(DimeItem item)
+        public void LinkItem(Item item)
         {
             if (this.IsSealed) { throw new IntegrityException("Unable to link item, message is already sealed."); }
             if (item == null) { throw new ArgumentNullException(nameof(item), "Item to link with must not be null."); }
-            this._claims.lnk = $"{item.ItemIdentifier}{Dime._COMPONENT_DELIMITER}{item.UID.ToString()}{Dime._COMPONENT_DELIMITER}{item.Thumbprint()}";
+            this._claims.lnk = $"{item.ItemIdentifier}{Envelope._COMPONENT_DELIMITER}{item.UID.ToString()}{Envelope._COMPONENT_DELIMITER}{item.Thumbprint()}";
         }
 
         #endregion
@@ -128,7 +128,7 @@ namespace ShiftEverywhere.DiME
 
         protected override void Decode(string encoded)
         {
-            string[] components = encoded.Split(new char[] { Dime._COMPONENT_DELIMITER });
+            string[] components = encoded.Split(new char[] { Envelope._COMPONENT_DELIMITER });
             if (components.Length != Message._NBR_EXPECTED_COMPONENTS_NO_SIGNATURE
             || components.Length != Message._NBR_EXPECTED_COMPONENTS_SIGNATURE) 
                 { throw new DataFormatException($"Unexpected number of components for identity issuing request, expected '{Message._NBR_EXPECTED_COMPONENTS_NO_SIGNATURE}' or '{Message._NBR_EXPECTED_COMPONENTS_SIGNATURE}', got '{components.Length}'."); }
@@ -147,9 +147,9 @@ namespace ShiftEverywhere.DiME
             {
                 StringBuilder builder = new StringBuilder();
                 builder.Append(Message.IID);
-                builder.Append(Dime._COMPONENT_DELIMITER);
+                builder.Append(Envelope._COMPONENT_DELIMITER);
                 builder.Append(Utility.ToBase64(JsonSerializer.Serialize(this._claims)));
-                builder.Append(Dime._COMPONENT_DELIMITER);
+                builder.Append(Envelope._COMPONENT_DELIMITER);
                 builder.Append(this._payload);
                 this._encoded = builder.ToString();
             }

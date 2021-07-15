@@ -13,7 +13,7 @@ using System.Text.Json.Serialization;
 
 namespace ShiftEverywhere.DiME
 {
-    public class KeyBox: DimeItem
+    public class KeyBox: Item
     {
         #region -- PUBLIC --
 
@@ -51,7 +51,7 @@ namespace ShiftEverywhere.DiME
             return new KeyBox(this.UID, this.Type, null, this.RawPublicKey, this.Profile);
         }
 
-        public new static KeyBox FromString(string encoded)
+        internal new static KeyBox FromEncoded(string encoded)
         {
             KeyBox keybox = new KeyBox();
             keybox.Decode(encoded);
@@ -87,7 +87,7 @@ namespace ShiftEverywhere.DiME
 
         protected override void Decode(string encoded)
         {
-            string[] components = encoded.Split(new char[] { Dime._COMPONENT_DELIMITER });
+            string[] components = encoded.Split(new char[] { Envelope._COMPONENT_DELIMITER });
             if (components.Length != KeyBox._NBR_EXPECTED_COMPONENTS) { throw new DataFormatException($"Unexpected number of components for identity issuing request, expected {KeyBox._NBR_EXPECTED_COMPONENTS}, got {components.Length}."); }
             if (components[KeyBox._IDENTIFIER_INDEX] != KeyBox.IID) { throw new DataFormatException($"Unexpected object identifier, expected: \"{KeyBox.IID}\", got \"{components[KeyBox._IDENTIFIER_INDEX]}\"."); }
             byte[] json = Utility.FromBase64(components[KeyBox._CLAIMS_INDEX]);
@@ -103,7 +103,7 @@ namespace ShiftEverywhere.DiME
             {
                 StringBuilder builder = new StringBuilder();
                 builder.Append(KeyBox.IID);
-                builder.Append(Dime._COMPONENT_DELIMITER);
+                builder.Append(Envelope._COMPONENT_DELIMITER);
                 builder.Append(Utility.ToBase64(JsonSerializer.Serialize(this._claims)));
                 this._encoded = builder.ToString();
             }
