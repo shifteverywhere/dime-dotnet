@@ -194,7 +194,7 @@ namespace ShiftEverywhere.DiMETest
             Identity identity = (Identity)dime2.Items.ElementAt(0);
             Assert.AreEqual(Commons.SenderIdentity.SubjectId, identity.SubjectId);
             KeyBox keybox = (KeyBox)dime2.Items.ElementAt(1);
-            Assert.AreEqual(Commons.SenderKeybox.UID, keybox.UID);
+            Assert.AreEqual(Commons.SenderKeybox.UniqueId, keybox.UniqueId);
             Assert.IsNull(keybox.Key);
         }
 

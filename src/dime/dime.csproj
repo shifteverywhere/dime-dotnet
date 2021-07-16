@@ -16,7 +16,7 @@ Released under the MIT licence, see LICENSE for more information.</Description>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="NSec.Cryptography" Version="20.2.0" />
+    <PackageReference Include="NSec.Cryptography" Version="20.11.0-preview1" />
   </ItemGroup>
 
 </Project>

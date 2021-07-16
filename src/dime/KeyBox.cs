@@ -22,7 +22,7 @@ namespace ShiftEverywhere.DiME
         public Profile Profile { get; private set; }
          public Guid? IssuerId { get { return this._claims.iss; } }
         /// <summary></summary>
-        public override Guid UID { get { return this._claims.kid; } }
+        public override Guid UniqueId { get { return this._claims.kid; } }
          public long? IssuedAt { get { return this._claims.iat; } }
         /// <summary></summary>
         public KeyType Type { get; private set; }
@@ -48,7 +48,7 @@ namespace ShiftEverywhere.DiME
 
         public KeyBox PublicOnly()
         {
-            return new KeyBox(this.UID, this.Type, null, this.RawPublicKey, this.Profile);
+            return new KeyBox(this.UniqueId, this.Type, null, this.RawPublicKey, this.Profile);
         }
 
         internal new static KeyBox FromEncoded(string encoded)

@@ -73,7 +73,7 @@ namespace ShiftEverywhere.DiMETest
             string exported = "Di:IIR.eyJ1aWQiOiIxYjFiZGNiOC05YWM5LTQwNmEtOWMyYi04NWM2YzdhN2ZkOTciLCJpYXQiOjE2MjYzNzkzNTMsInB1YiI6IkNZSHQ3M2NTWXJlRm9jUDN4VU5FeDJtcVJtWUoySFFCMTdwNlpUVDJZclh6Q1pOeGNyNllzRCIsImNhcCI6WyJnZW5lcmljIl19.AZFU4+oZoXyky6vc6eI0vBfUTMrjIuyLahjrsYdJfUS41jW+7G8oEitVJsZY3aZjwYoPt0dCpPIsD6EGH7F+KAU";
             IdentityIssuingRequest iir = Item.Import<IdentityIssuingRequest>(exported);
             Assert.IsNotNull(iir);
-            Assert.AreEqual(new Guid("1b1bdcb8-9ac9-406a-9c2b-85c6c7a7fd97"), iir.UID);
+            Assert.AreEqual(new Guid("1b1bdcb8-9ac9-406a-9c2b-85c6c7a7fd97"), iir.UniqueId);
             Assert.AreEqual(1626379353, iir.IssuedAt);
             Assert.IsTrue(iir.WantsCapability(Capability.Generic));
             Assert.AreEqual("CYHt73cSYreFocP3xUNEx2mqRmYJ2HQB17p6ZTT2YrXzCZNxcr6YsD", iir.PublicKey);

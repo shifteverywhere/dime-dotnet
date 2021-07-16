@@ -23,7 +23,7 @@ namespace ShiftEverywhere.DiME
         public const string TAG = "IIR";
         public override string Tag { get { return IdentityIssuingRequest.TAG; } }
         /// <summary></summary>
-        public override Guid UID { get { return this._claims.uid; } }
+        public override Guid UniqueId { get { return this._claims.uid; } }
         /// <summary></summary>
         public long IssuedAt { get { return this._claims.iat; } }
         /// <summary></summary>

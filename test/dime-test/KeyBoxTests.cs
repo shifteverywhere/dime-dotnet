@@ -22,7 +22,7 @@ namespace ShiftEverywhere.DiMETest
             KeyBox keypair = KeyBox.Generate(KeyType.Identity);
             Assert.IsTrue(keypair.Profile == Profile.Uno);
             Assert.IsTrue(keypair.Type == KeyType.Identity);
-            Assert.IsNotNull(keypair.UID);
+            Assert.IsNotNull(keypair.UniqueId);
             Assert.IsNotNull(keypair.PublicKey);
             Assert.IsNotNull(keypair.Key);
         }
@@ -33,7 +33,7 @@ namespace ShiftEverywhere.DiMETest
             KeyBox keybox = KeyBox.Generate(KeyType.Exchange);
             Assert.IsTrue(keybox.Profile == Profile.Uno);
             Assert.IsTrue(keybox.Type == KeyType.Exchange);
-            Assert.IsNotNull(keybox.UID);
+            Assert.IsNotNull(keybox.UniqueId);
             Assert.IsNotNull(keybox.PublicKey);
             Assert.IsNotNull(keybox.Key);
         }
@@ -55,7 +55,7 @@ namespace ShiftEverywhere.DiMETest
             KeyBox keybox = Item.Import<KeyBox>(encoded);
             Assert.AreEqual(Profile.Uno, keybox.Profile);
             Assert.AreEqual(KeyType.Identity, keybox.Type);
-            Assert.AreEqual(new Guid("717571a0-06f4-43d5-ae02-4d3324001146"), keybox.UID);
+            Assert.AreEqual(new Guid("717571a0-06f4-43d5-ae02-4d3324001146"), keybox.UniqueId);
             Assert.AreEqual(1626378496, keybox.IssuedAt);
             Assert.AreEqual("CYHjX9kNeKmuMmorpoRap5BAJcL3Ne6DzVWiNzr2ATxx6QycjogwnW", keybox.Key);
             Assert.AreEqual("CYHt7gYWjzNx5uzycfN18YR1R2LPEf55hAkuNABwKwAxANAbkZs9dw", keybox.PublicKey);
@@ -77,7 +77,7 @@ namespace ShiftEverywhere.DiMETest
             Assert.IsNotNull(keybox.Key);
             KeyBox pubOnly = keybox.PublicOnly();
             Assert.IsNull(pubOnly.Key);
-            Assert.AreEqual(keybox.UID, pubOnly.UID);
+            Assert.AreEqual(keybox.UniqueId, pubOnly.UniqueId);
         }
 
         [TestMethod]

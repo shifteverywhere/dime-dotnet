@@ -17,7 +17,7 @@ namespace ShiftEverywhere.DiME
 
         public abstract string Tag { get; }
 
-        public abstract Guid UID { get; }
+        public abstract Guid UniqueId { get; }
 
         public bool IsSigned { get { return (this._signature != null); } }
 
@@ -52,7 +52,7 @@ namespace ShiftEverywhere.DiME
 
         public string Thumbprint(Profile profile = Profile.Uno)
         {
-            return Crypto.GenerateHash(profile, this.Encode());
+            return Utility.ToHex(Crypto.GenerateHash(profile, this.Encode()));
         }
 
         public virtual string ToEncoded() {

@@ -49,12 +49,12 @@ namespace ShiftEverywhere.DiME
     }
 
     [Serializable]
-    public class KeyMissmatchException : Exception
+    public class KeyMismatchException : Exception
     {
-        public KeyMissmatchException() : base() { }
-        public KeyMissmatchException(string message) : base(message) { }
-        public KeyMissmatchException(string message, Exception innerException) : base(message, innerException) { }
-        protected KeyMissmatchException(SerializationInfo info, StreamingContext context) : base(info, context) { }
+        public KeyMismatchException() : base() { }
+        public KeyMismatchException(string message) : base(message) { }
+        public KeyMismatchException(string message, Exception innerException) : base(message, innerException) { }
+        protected KeyMismatchException(SerializationInfo info, StreamingContext context) : base(info, context) { }
     }
 
     [Serializable]

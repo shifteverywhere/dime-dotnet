@@ -26,7 +26,7 @@ namespace ShiftEverywhere.DiME
         public static Identity TrustedIdentity { get { lock(Identity._lock) { return Identity._trustedIdentity; } } }
         public const string TAG = "ID";
         public override string Tag { get { return Identity.TAG; } }
-        public override Guid UID { get { return this._claims.uid; } }
+        public override Guid UniqueId { get { return this._claims.uid; } }
         /// <summary>A unique UUID (GUID) of the identity. Same as the "sub" field.</summary>
         public Guid SubjectId { get { return this._claims.sub; } }        
         /// <summary>The date when the identity was issued, i.e. approved by the issuer. Same as the "iat" field.</summary>

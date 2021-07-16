@@ -20,12 +20,11 @@ namespace ShiftEverywhere.DiME
     /// it's content. </summary>
     public class Message: Item
     {
-        #region -- PUBLIC --
-
+        #region -- PUBLIC DATA MEMBERS --
         public const string TAG = "MSG"; 
         public override string Tag { get { return Message.TAG; } }
         /// <summary>A unique identity for the message.</summary>
-        public override Guid UID { get { return this._claims.uid; } }
+        public override Guid UniqueId { get { return this._claims.uid; } }
         /// <summary>The id of the receiver.</summary>
         public Guid AudienceId { get { return this._claims.aud; } }
         /// <summary>The id of the issuer (subject id of the issuer).</summary>
@@ -34,8 +33,27 @@ namespace ShiftEverywhere.DiME
         public long IssuedAt { get { return this._claims.iat; } }
         /// <summary>The timestamp of when the message is expired and is no longer valid.</summary>
         public long ExpiresAt { get { return this._claims.exp ?? -1; } }
-        /// <summary>A link to another message. Used when responding to anther message.</summary>
-        public string LinkedTo { get { return this._claims.lnk; } }
+        /// <summary>Will be set to the unique identifier of a KeyBox used to derive a shared encryption
+        /// key for the attached payload. This will be a KeyBox with type 'Exchange' that has previously
+        /// been shared, in its public form, by the audience (receiver) of this message.
+        public Guid? KeyId { get { return this._claims.kid; }}
+        /// <summary>If another Dime item has been linked to this message, then this will be set the the 
+        /// unique identifier, UUID, of that linked item. Will be null, if no item is linked.</summary>
+        public Guid? LinkedId 
+        { 
+            get 
+            { 
+                if (this._claims.lnk != null)
+                {
+                    string uid = this._claims.lnk.Split(new char[] { Envelope._COMPONENT_DELIMITER })[_LINK_UID_INDEX];
+                    return new Guid(uid);
+                }
+                return null; 
+            } 
+        }
+
+        #endregion
+        #region -- PUBLIC CONSTRUCTORS --
 
         public Message() { }
 
@@ -45,6 +63,9 @@ namespace ShiftEverywhere.DiME
             long? exp = (validFor.HasValue && validFor.Value > 0) ? iat + validFor.Value : null; 
             this._claims = new MessageClaims(Guid.NewGuid(), audienceId, issuerId, iat, exp, null, null, null);
         }
+
+        #endregion
+        #region -- PUBLIC INTERFACE --
 
         public override void Sign(KeyBox keybox)
         {
@@ -90,7 +111,7 @@ namespace ShiftEverywhere.DiME
                 if (components == null || components.Length != 3) { throw new FormatException("Invalid data found in item link field."); }
                 string msgHash = linkedItem.Thumbprint();
                 if (components[Message._LINK_ITEM_TYPE_INDEX] != linkedItem.Tag
-                    || components[Message._LINK_UID_INDEX] != linkedItem.UID.ToString() 
+                    || components[Message._LINK_UID_INDEX] != linkedItem.UniqueId.ToString() 
                     || components[Message._LINK_THUMBPRINT_INDEX] != msgHash) 
                 { throw new IntegrityException("Failed to verify link Dime item (provided item did not match)."); }
             }
@@ -99,16 +120,40 @@ namespace ShiftEverywhere.DiME
         /// <summary>Will set a message payload. This may be any valid byte-array, at export this will be
         /// encoded as a Base64 string. If a payload is already set, then the old will be overwritten.</summary>
         /// <param name="payload">The payload to set.</param>
-        public void SetPayload(byte[] payload)
+        public void SetPayload(byte[] payload, KeyBox audienceKeybox = null)
         {
-            this._payload = Utility.ToBase64(payload);
+            if (this.IsSigned) { throw new InvalidOperationException("Unable to set payload, message already signed."); }
+            if (audienceKeybox != null)
+            {
+                if (audienceKeybox.Type != KeyType.Exchange) { throw new ArgumentException("Unable to encrypt, invalid key type.", nameof(audienceKeybox)); }
+                if (audienceKeybox.PublicKey == null) { throw new ArgumentNullException(nameof(audienceKeybox), "Unable to encrypt, public key must not be null."); }
+                this._claims.kid = audienceKeybox.UniqueId;
+                KeyBox ephemeralKeyBox = KeyBox.Generate(KeyType.Exchange, audienceKeybox.Profile);
+                this._claims.pub = ephemeralKeyBox.PublicKey;
+                byte[] info = Crypto.GenerateHash(audienceKeybox.Profile, Utility.Combine(this.IssuerId.ToByteArray(), this.AudienceId.ToByteArray()));
+                var key = Crypto.GenerateSharedSecret(ephemeralKeyBox, audienceKeybox, audienceKeybox.UniqueId.ToByteArray(), info);
+                this._payload = Utility.ToBase64(Crypto.Encrypt(payload, key));
+            }
+            else 
+                this._payload = Utility.ToBase64(payload);
         }
 
         /// <summary>Returns the payload inside the message.</summary>
         /// <returns>A byte-array.</returns>
-        public byte[] GetPayload()
+        public byte[] GetPayload(KeyBox audienceKeybox = null)
         {
-            return Utility.FromBase64(this._payload);
+            if (this.KeyId.HasValue && audienceKeybox == null) { throw new ArgumentNullException(nameof(audienceKeybox), "Payload is encrypted, provide a valid keybox for decryption."); }
+            if (this.KeyId.HasValue && audienceKeybox != null)
+            {
+                if (audienceKeybox.Type != KeyType.Exchange) { throw new ArgumentException("Unable to decrypt, invalid key type.", nameof(audienceKeybox)); }
+                if (audienceKeybox.Key == null) { throw new ArgumentNullException(nameof(audienceKeybox), "Unable to decrypt, key must not be null."); }
+                if (audienceKeybox.UniqueId != this.KeyId) { throw new KeyMismatchException("Unable to decrypt, mismatching unique id of key provided."); }
+                byte[] info = Crypto.GenerateHash(audienceKeybox.Profile, Utility.Combine(this.IssuerId.ToByteArray(), this.AudienceId.ToByteArray()));
+                var key = Crypto.GenerateSharedSecret(audienceKeybox, new KeyBox(this._claims.pub), audienceKeybox.UniqueId.ToByteArray(), info);
+                return Crypto.Decrypt(Utility.FromBase64(this._payload), key);
+            }
+            else
+                return Utility.FromBase64(this._payload);
         }
 
         /// <summary>This will link another Dime item to this message. Used most often when responding to another message.
@@ -119,7 +164,7 @@ namespace ShiftEverywhere.DiME
         {
             if (this.IsSigned) { throw new InvalidOperationException("Unable to link item, message is already signed."); }
             if (item == null) { throw new ArgumentNullException(nameof(item), "Item to link with must not be null."); }
-            this._claims.lnk = $"{item.Tag}{Envelope._COMPONENT_DELIMITER}{item.UID.ToString()}{Envelope._COMPONENT_DELIMITER}{item.Thumbprint()}";
+            this._claims.lnk = $"{item.Tag}{Envelope._COMPONENT_DELIMITER}{item.UniqueId.ToString()}{Envelope._COMPONENT_DELIMITER}{item.Thumbprint()}";
         }
 
         #endregion
@@ -186,12 +231,12 @@ namespace ShiftEverywhere.DiME
             [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
             public Guid? kid { get; set; }
             [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-            public string xky { get; set; }
+            public string pub { get; set; }
             [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
             public string lnk { get; set; }
 
             [JsonConstructor]
-            public MessageClaims(Guid uid, Guid aud, Guid iss, long iat, long? exp, Guid? kid, string xky, string lnk)
+            public MessageClaims(Guid uid, Guid aud, Guid iss, long iat, long? exp, Guid? kid, string pub, string lnk)
             {
                 this.uid = uid;
                 this.aud = aud;
@@ -199,7 +244,7 @@ namespace ShiftEverywhere.DiME
                 this.iat = iat;
                 this.exp = exp;
                 this.kid = kid;
-                this.xky = xky;
+                this.pub = pub;
                 this.lnk = lnk;
             }
         }

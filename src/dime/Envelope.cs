@@ -111,7 +111,7 @@ namespace ShiftEverywhere.DiME
 
         public string Thumbprint()
         {
-            return Crypto.GenerateHash(Profile.Uno, this.Encode());
+            return Utility.ToHex(Crypto.GenerateHash(Profile.Uno, this.Encode()));
         }
 
         internal const char _COMPONENT_DELIMITER = '.';
