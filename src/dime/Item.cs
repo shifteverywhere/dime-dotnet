@@ -35,7 +35,7 @@ namespace ShiftEverywhere.DiME
             return envelope.Export();
         }
 
-        internal static Item FromEncoded(string encoded)
+        public static Item FromEncoded(string encoded)
         {
             Type t = Item.TypeFromTag(encoded.Substring(0, encoded.IndexOf(Envelope._COMPONENT_DELIMITER)));
             Item item = (Item)Activator.CreateInstance(t);
@@ -45,8 +45,8 @@ namespace ShiftEverywhere.DiME
         
         public virtual void Sign(KeyBox keybox)
         {
-            if (this.IsSigned) { throw new IntegrityException("Item already signed."); }
-            if (keybox == null || keybox.Key == null) { throw new ArgumentNullException(nameof(keybox), "Key for signing cannot be null."); }
+            if (this.IsSigned) { throw new InvalidOperationException("Unable to sign item, it is already signed."); }
+            if (keybox == null || keybox.Key == null) { throw new ArgumentNullException(nameof(keybox), "Unable to sign item, key for signing must not be null."); }
             this._signature = Crypto.GenerateSignature(Encode(), keybox);
         }
 
@@ -55,7 +55,7 @@ namespace ShiftEverywhere.DiME
             return Crypto.GenerateHash(profile, this.Encode());
         }
 
-        internal virtual string ToEncoded() {
+        public virtual string ToEncoded() {
             if (this.IsSigned)
             {
                 return $"{Encode()}{Envelope._COMPONENT_DELIMITER}{this._signature}";
@@ -81,7 +81,7 @@ namespace ShiftEverywhere.DiME
 
         public virtual void Verify(KeyBox keybox)
         {
-            if (!this.IsSigned) { throw new IntegrityException("Dime item not signed."); }
+            if (!this.IsSigned) { throw new InvalidOperationException("Unable to verify, item is not signed."); }
             Crypto.VerifySignature(Encode(), this._signature, keybox);
         }
 

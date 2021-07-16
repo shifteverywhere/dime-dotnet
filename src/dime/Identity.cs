@@ -60,7 +60,7 @@ namespace ShiftEverywhere.DiME
 
         public void VerifyTrust()
         {
-            if (Identity.TrustedIdentity == null) { throw new UntrustedIdentityException("No trusted identity set."); }
+            if (Identity.TrustedIdentity == null) { throw new InvalidOperationException("Unable to verify trust, no trusted identity set."); }
             long now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
             if (this.IssuedAt > now) { throw new DateExpirationException("Identity is not yet valid, issued at date in the future."); }
             if (this.IssuedAt > this.ExpiresAt) { throw new DateExpirationException("Invalid expiration date, expires at before issued at."); }
@@ -74,7 +74,7 @@ namespace ShiftEverywhere.DiME
                 Crypto.VerifySignature(this._encoded, this._signature, KeyBox.FromBase58Key(publicKey));
             } catch (IntegrityException) 
             {
-                throw new UntrustedIdentityException();
+                throw new UntrustedIdentityException("Identity cannot be trusted.");
             }
         }
 
@@ -110,8 +110,8 @@ namespace ShiftEverywhere.DiME
         {
             string[] components = encoded.Split(new char[] { Envelope._COMPONENT_DELIMITER });
             if (components.Length != Identity._NBR_EXPECTED_COMPONENTS_MIN &&
-                components.Length != Identity._NBR_EXPECTED_COMPONENTS_MAX) { throw new DataFormatException($"Unexpected number of components for identity issuing request, expected {Identity._NBR_EXPECTED_COMPONENTS_MIN} OR {Identity._NBR_EXPECTED_COMPONENTS_MAX}, got {components.Length}."); }
-            if (components[Identity._TAG_INDEX] != Identity.TAG) { throw new DataFormatException($"Unexpected item tag, expected: \"{Identity.TAG}\", got \"{components[Identity._TAG_INDEX]}\"."); }
+                components.Length != Identity._NBR_EXPECTED_COMPONENTS_MAX) { throw new FormatException($"Unexpected number of components for identity issuing request, expected {Identity._NBR_EXPECTED_COMPONENTS_MIN} OR {Identity._NBR_EXPECTED_COMPONENTS_MAX}, got {components.Length}."); }
+            if (components[Identity._TAG_INDEX] != Identity.TAG) { throw new FormatException($"Unexpected item tag, expected: \"{Identity.TAG}\", got \"{components[Identity._TAG_INDEX]}\"."); }
             byte[] json = Utility.FromBase64(components[Identity._CLAIMS_INDEX]);
             this._claims = JsonSerializer.Deserialize<IdentityClaims>(json);
             if (this._claims.pri != null)

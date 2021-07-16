@@ -36,7 +36,7 @@ namespace ShiftEverywhere.DiME
         /// <summary></summary>
         public static KeyBox Generate(KeyType type, Profile profile = Crypto.DEFUALT_PROFILE)
         {
-            return Crypto.GenerateKeyPair(profile, type);
+            return Crypto.GenerateKeyBox(profile, type);
         }
 
         public static KeyBox FromBase58Key(string encodedKey)
@@ -67,7 +67,7 @@ namespace ShiftEverywhere.DiME
 
         internal KeyBox(Guid id, KeyType type, byte[] key, byte[] publickey, Profile profile = Crypto.DEFUALT_PROFILE)
         {
-            if (!Crypto.SupportedProfile(profile)) { throw new UnsupportedProfileException(); }
+            if (!Crypto.SupportedProfile(profile)) { throw new ArgumentException("Unsupported profile.", nameof(profile)); }
             long iat = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
             this._claims = new _KeyBoxClaims(
                 null, 
@@ -93,8 +93,8 @@ namespace ShiftEverywhere.DiME
         protected override void Decode(string encoded)
         {
             string[] components = encoded.Split(new char[] { Envelope._COMPONENT_DELIMITER });
-            if (components.Length != KeyBox._NBR_EXPECTED_COMPONENTS) { throw new DataFormatException($"Unexpected number of components for identity issuing request, expected {KeyBox._NBR_EXPECTED_COMPONENTS}, got {components.Length}."); }
-            if (components[KeyBox._TAG_INDEX] != KeyBox.TAG) { throw new DataFormatException($"Unexpected item tag, expected: \"{KeyBox.TAG}\", got \"{components[KeyBox._TAG_INDEX]}\"."); }
+            if (components.Length != KeyBox._NBR_EXPECTED_COMPONENTS) { throw new FormatException($"Unexpected number of components for identity issuing request, expected {KeyBox._NBR_EXPECTED_COMPONENTS}, got {components.Length}."); }
+            if (components[KeyBox._TAG_INDEX] != KeyBox.TAG) { throw new FormatException($"Unexpected item tag, expected: \"{KeyBox.TAG}\", got \"{components[KeyBox._TAG_INDEX]}\"."); }
             byte[] json = Utility.FromBase64(components[KeyBox._CLAIMS_INDEX]);
             this._claims = JsonSerializer.Deserialize<_KeyBoxClaims>(json);
             DecodeKey(this._claims.key);
@@ -162,10 +162,10 @@ namespace ShiftEverywhere.DiME
             {
                 byte[] bytes = Base58.Decode(encodedKey);
                 Profile profile = (Profile)bytes[1];
-                if (this.Profile != Profile.Undefined && profile != this.Profile) { throw new DataFormatException("Cryptographic profile version mismatch."); }
+                if (this.Profile != Profile.Undefined && profile != this.Profile) { throw new FormatException($"Cryptographic profile version mismatch, got: '{profile}', expected: '{this.Profile}'."); }
                 this.Profile = profile;
                 KeyType type = (KeyType)((byte)((uint)bytes[2] & 0xFE));
-                if (this.Type != KeyType.Undefined && type != this.Type) { throw new DataFormatException("Key type mismatch."); }
+                if (this.Type != KeyType.Undefined && type != this.Type) { throw new FormatException($"Key type mismatch, got: '{type}', expected: '{this.Type}'."); }
                 this.Type = type;
                 KeyVariant variant = (KeyVariant)((byte)((uint)bytes[2] & 0x01));
                 switch (variant)

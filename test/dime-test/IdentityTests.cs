@@ -114,7 +114,7 @@ namespace ShiftEverywhere.DiMETest
                 Identity identity = IdentityIssuingRequest.Generate(keypair).IssueIdentity(Guid.NewGuid(), 100, null, keypair, null);
                 Assert.IsTrue(identity.IsSelfSigned);
                 identity.VerifyTrust();
-            } catch (UntrustedIdentityException) { return; } // All is well
+            } catch (InvalidOperationException) { return; } // All is well
             Assert.IsTrue(false, "This should not happen.");
         }
 
@@ -153,7 +153,7 @@ namespace ShiftEverywhere.DiMETest
         {
             Identity.SetTrustedIdentity(Commons.TrustedIdentity);
             List<Capability> caps = new List<Capability> { Capability.Generic, Capability.Identify };
-            KeyBox keypair = Crypto.GenerateKeyPair(Profile.Uno, KeyType.Identity);
+            KeyBox keypair = Crypto.GenerateKeyBox(Profile.Uno, KeyType.Identity);
             Identity identity = IdentityIssuingRequest.Generate(keypair, caps).IssueIdentity(Guid.NewGuid(), IdentityIssuingRequest.VALID_FOR_1_YEAR, caps, Commons.IntermediateKeybox, Commons.IntermediateIdentity);
             string exported = identity.Export();
             Assert.IsNotNull(exported);

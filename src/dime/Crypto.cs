@@ -49,7 +49,7 @@ namespace ShiftEverywhere.DiME
             }
         }
 
-        public static KeyBox GenerateKeyPair(Profile profile, KeyType type)
+        public static KeyBox GenerateKeyBox(Profile profile, KeyType type)
         {
             if (!Crypto.SupportedProfile(profile)) { throw new UnsupportedProfileException(); }
             Key key;
@@ -64,7 +64,7 @@ namespace ShiftEverywhere.DiME
                     key = new Key(KeyAgreementAlgorithm.X25519, parameters);
                     break;
                 default:
-                    throw new NotSupportedException("Unkown keypair type.");
+                    throw new ArgumentException("Unkown key type.", nameof(type));
             }
             return new KeyBox(Guid.NewGuid(), 
                                type, 
@@ -97,7 +97,7 @@ namespace ShiftEverywhere.DiME
         {
             string[] keyComponents = key.Split(new char[] { Envelope._SECTION_DELIMITER });
             Profile profile; 
-            if (!Enum.TryParse<Profile>(keyComponents[0], out profile)) { throw new DataFormatException("Unable to determine key profile version, invalid data format."); }
+            if (!Enum.TryParse<Profile>(keyComponents[0], out profile)) { throw new FormatException("Unable to determine key profile version, invalid data format."); }
             if (!SupportedProfile(profile)) { return null; } // TODO: replace crypto impl.
             return Utility.FromBase64(keyComponents[2]);
         } 

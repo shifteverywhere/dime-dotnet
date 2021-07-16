@@ -34,7 +34,7 @@ namespace ShiftEverywhere.DiME
 
         public static Envelope Import(string exported)
         {
-            if (!exported.StartsWith(Envelope.HEADER)) { throw new FormatException("Not a Dime object, invalid header."); }
+            if (!exported.StartsWith(Envelope.HEADER)) { throw new FormatException("Not a Dime envelope object, invalid header."); }
             string[] sections = exported.Split(Envelope._SECTION_DELIMITER);
             // 0: HEADER
             string[] components = sections[0].Split(Envelope._COMPONENT_DELIMITER);
@@ -47,7 +47,7 @@ namespace ShiftEverywhere.DiME
             else if (components.Length == 1) 
                 dime = new Envelope();
             else 
-                throw new FormatException($"Not a valid Dime object, unexpected number of components in header, got: '{components.Length}', expexted: '1' or '2'");
+                throw new FormatException($"Not a valid Dime envelope object, unexpected number of components in header, got: '{components.Length}', expexted: '1' or '2'");
             // 1 to LAST or LAST - 1 
             int endIndex = (dime.IsAnonymous) ? sections.Length : sections.Length - 1; // end index dependent on anonymous Dime or not
             List<Item> items = new List<Item>(endIndex - 1);
@@ -65,7 +65,7 @@ namespace ShiftEverywhere.DiME
 
         public Envelope AddItem(Item item)
         {
-            if (this._signature != null) { throw new IntegrityException("Unable to modify Dime after signing."); }
+            if (this._signature != null) { throw new InvalidOperationException("Unable to add item, envelope is already signed."); }
             if (this._items == null)
                 this._items = new List<Item>();
             this._items.Add(item);
@@ -74,16 +74,16 @@ namespace ShiftEverywhere.DiME
 
         public Envelope SetItems(List<Item> items)
         {
-            if (this._signature != null) { throw new IntegrityException("Unable to modify Dime after signing."); }
+            if (this._signature != null) { throw new InvalidOperationException("Uanle to set items, envelope is already signed."); }
             this._items = items.ToList();
             return this;
         }
 
         public Envelope Sign(KeyBox keybox)
         {
-            if (this.IsAnonymous) { throw new FormatException("Cannot sign an anonymous Dime."); }
-            if (this._signature != null) { throw new FormatException("Dime already signed."); }
-            if (this._items == null || this._items.Count == 0) { throw new FormatException("At least one item must be attached before signing Dime."); }
+            if (this.IsAnonymous) { throw new InvalidOperationException("Unable to sign, envelope is anonymous."); }
+            if (this._signature != null) { throw new InvalidOperationException("Unable to sign, envelope is already signed."); }
+            if (this._items == null || this._items.Count == 0) { throw new InvalidOperationException("Unable to sign, at least one item must be attached before signing an envelope."); }
             this._signature = Crypto.GenerateSignature(Encode(), keybox);
             return this;
         }
@@ -95,8 +95,8 @@ namespace ShiftEverywhere.DiME
         
         public Envelope Verify(KeyBox keybox)
         {
-            if (this.IsAnonymous) { throw new FormatException("Anonymous Dime, unable to verify."); }
-            if (this._signature == null) { throw new IntegrityException("Dime is not singed."); }
+            if (this.IsAnonymous) { throw new InvalidOperationException("Unable to verify, envelope is anonymous."); }
+            if (this._signature == null) { throw new InvalidOperationException("Unable to verify, envelope is not signed."); }
             Crypto.VerifySignature(Encode(), this._signature, keybox);
             return this;
         }
@@ -105,7 +105,7 @@ namespace ShiftEverywhere.DiME
         {
             if (!this.IsAnonymous)
             {
-                if (this._signature == null) { throw new FormatException("Dime must be signed before exporting."); }
+                if (this._signature == null) { throw new InvalidOperationException("Unable to export, envelope is not signed."); }
                 return $"{Encode()}{Envelope._SECTION_DELIMITER}{this._signature}";
             }
             else

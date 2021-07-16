@@ -60,7 +60,7 @@ namespace ShiftEverywhere.DiME
 
         public override void Verify(KeyBox keybox)
         {
-            if (DateTimeOffset.UtcNow.ToUnixTimeSeconds() < this.IssuedAt) { throw new DateExpirationException("An identity issuing request cannot be issued at in the future."); }
+            if (DateTimeOffset.UtcNow.ToUnixTimeSeconds() < this.IssuedAt) { throw new DateExpirationException("An identity issuing request cannot have an issued at date in the future."); }
             base.Verify(keybox);
         }
 
@@ -114,8 +114,8 @@ namespace ShiftEverywhere.DiME
         protected override void Decode(string encoded) 
         {
             string[] components = encoded.Split(new char[] { Envelope._COMPONENT_DELIMITER });
-            if (components.Length != IdentityIssuingRequest._NBR_COMPONENTS_WITHOUT_SIGNATURE && components.Length != IdentityIssuingRequest._NBR_COMPONENTS_WITH_SIGNATURE) { throw new DataFormatException($"Unexpected number of components for identity issuing request, expected {IdentityIssuingRequest._NBR_COMPONENTS_WITHOUT_SIGNATURE} or  {IdentityIssuingRequest._NBR_COMPONENTS_WITH_SIGNATURE}, got {components.Length}."); }
-            if (components[IdentityIssuingRequest._TAG_INDEX] != IdentityIssuingRequest.TAG) { throw new DataFormatException($"Unexpected item tag, expected: \"{IdentityIssuingRequest.TAG}\", got \"{components[IdentityIssuingRequest._TAG_INDEX]}\"."); }
+            if (components.Length != IdentityIssuingRequest._NBR_COMPONENTS_WITHOUT_SIGNATURE && components.Length != IdentityIssuingRequest._NBR_COMPONENTS_WITH_SIGNATURE) { throw new FormatException($"Unexpected number of components for identity issuing request, expected {IdentityIssuingRequest._NBR_COMPONENTS_WITHOUT_SIGNATURE} or  {IdentityIssuingRequest._NBR_COMPONENTS_WITH_SIGNATURE}, got {components.Length}."); }
+            if (components[IdentityIssuingRequest._TAG_INDEX] != IdentityIssuingRequest.TAG) { throw new FormatException($"Unexpected item tag, expected: \"{IdentityIssuingRequest.TAG}\", got \"{components[IdentityIssuingRequest._TAG_INDEX]}\"."); }
             byte[] json = Utility.FromBase64(components[IdentityIssuingRequest._CLAIMS_INDEX]);
             this._claims = JsonSerializer.Deserialize<IirClaims>(json);
             this._capabilities = new List<string>(this._claims.cap).ConvertAll(str => { Capability cap; Enum.TryParse<Capability>(str, true, out cap); return cap; });

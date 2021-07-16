@@ -24,7 +24,7 @@ namespace ShiftEverywhere.DiMETest
             Envelope dime = new Envelope();
             try {
                 dime.Sign(Commons.SenderKeybox);
-            } catch (FormatException) { return; } // All is well
+            } catch (InvalidOperationException) { return; } // All is well
             Assert.IsTrue(false, "Should not happen.");
         }
 
@@ -34,7 +34,7 @@ namespace ShiftEverywhere.DiMETest
             Envelope dime = new Envelope(Commons.SenderIdentity.SubjectId);
             try {
                 dime.Sign(Commons.SenderKeybox);
-            } catch (FormatException) { return; } // All is well
+            } catch (InvalidOperationException) { return; } // All is well
             Assert.IsTrue(false, "Should not happen.");
         }
 
@@ -119,7 +119,7 @@ namespace ShiftEverywhere.DiMETest
             Assert.AreEqual(typeof(Identity), dime.Items.ElementAt(0).GetType());
             try {
                 dime.Verify(Commons.SenderKeybox);
-            } catch (FormatException) { return; } // All is well
+            } catch (InvalidOperationException) { return; } // All is well
             Assert.IsTrue(false, "Should not happen.");
         }
 

@@ -48,13 +48,13 @@ namespace ShiftEverywhere.DiME
 
         public override void Sign(KeyBox keybox)
         {
-            if (this._payload == null) { throw new FormatException("Unable to sign message, no payload added."); }
+            if (this._payload == null) { throw new InvalidOperationException("Unable to sign message, no payload added."); }
             base.Sign(keybox);
         }
 
-        internal override string ToEncoded()
+        public override string ToEncoded()
         {
-            if (this._payload == null) { throw new FormatException("Unable to encode message, no payload added."); }
+            if (this._payload == null) { throw new InvalidOperationException("Unable to encode message, no payload added."); }
             return base.ToEncoded();
         }
 
@@ -66,7 +66,7 @@ namespace ShiftEverywhere.DiME
         }
 
         public override void Verify(KeyBox keybox) { 
-            if (this._payload == null || this._payload.Length == 0) { throw new DataFormatException("Missing payload in message."); }
+            if (this._payload == null || this._payload.Length == 0) { throw new InvalidOperationException("Unable to verify message, no payload added."); }
             // Verify IssuedAt and ExpiresAt
             long now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
             if (this.IssuedAt > now) { throw new DateExpirationException("Issuing date in the future."); }
@@ -117,7 +117,7 @@ namespace ShiftEverywhere.DiME
         /// <exception cref="ArgumentNullException">If the passed message object is null.</exception> 
         public void LinkItem(Item item)
         {
-            if (this.IsSigned) { throw new IntegrityException("Unable to link item, message is already signed."); }
+            if (this.IsSigned) { throw new InvalidOperationException("Unable to link item, message is already signed."); }
             if (item == null) { throw new ArgumentNullException(nameof(item), "Item to link with must not be null."); }
             this._claims.lnk = $"{item.Tag}{Envelope._COMPONENT_DELIMITER}{item.UID.ToString()}{Envelope._COMPONENT_DELIMITER}{item.Thumbprint()}";
         }
@@ -135,8 +135,8 @@ namespace ShiftEverywhere.DiME
             string[] components = encoded.Split(new char[] { Envelope._COMPONENT_DELIMITER });
             if (components.Length != Message._NBR_EXPECTED_COMPONENTS_NO_SIGNATURE
             || components.Length != Message._NBR_EXPECTED_COMPONENTS_SIGNATURE) 
-                { throw new DataFormatException($"Unexpected number of components for identity issuing request, expected '{Message._NBR_EXPECTED_COMPONENTS_NO_SIGNATURE}' or '{Message._NBR_EXPECTED_COMPONENTS_SIGNATURE}', got '{components.Length}'."); }
-            if (components[Message._TAG_INDEX] != Message.TAG) { throw new DataFormatException($"Unexpected item tag, expected: \"{Message.TAG}\", got \"{components[Message._TAG_INDEX]}\"."); }
+                { throw new FormatException($"Unexpected number of components for identity issuing request, expected '{Message._NBR_EXPECTED_COMPONENTS_NO_SIGNATURE}' or '{Message._NBR_EXPECTED_COMPONENTS_SIGNATURE}', got '{components.Length}'."); }
+            if (components[Message._TAG_INDEX] != Message.TAG) { throw new FormatException($"Unexpected item tag, expected: \"{Message.TAG}\", got \"{components[Message._TAG_INDEX]}\"."); }
             this._claims = JsonSerializer.Deserialize<_MessageClaims>(Utility.FromBase64(components[Message._CLAIMS_INDEX]));
             this._payload = components[Message._PAYLOAD_INDEX];
             if (components.Length == Message._NBR_EXPECTED_COMPONENTS_SIGNATURE)

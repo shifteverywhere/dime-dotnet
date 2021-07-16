@@ -65,7 +65,7 @@ namespace ShiftEverywhere.DiMETest
             Message message = new Message(Commons.ReceiverIdentity.SubjectId, Commons.SenderIdentity.SubjectId, 10);
             try {
                 message.Export();
-            } catch (FormatException) { return; } // All is well
+            } catch (InvalidOperationException) { return; } // All is well
             Assert.IsTrue(false, "Should not happen.");
         }  
 
@@ -162,7 +162,7 @@ namespace ShiftEverywhere.DiMETest
             Message message = new Message(Commons.ReceiverIdentity.SubjectId, Commons.SenderIdentity.SubjectId, 10);
             try {
                 message.Sign(Commons.SenderKeybox);
-            } catch (FormatException) { return; } // All is well
+            } catch (InvalidOperationException) { return; } // All is well
             Assert.IsTrue(false, "Should not happen.");
         }
 
@@ -234,7 +234,7 @@ namespace ShiftEverywhere.DiMETest
             message.Sign(Commons.SenderKeybox);
             try {
                 message.LinkItem(KeyBox.Generate(KeyType.Exchange));
-            } catch (IntegrityException) { return; } // All is well
+            } catch (InvalidOperationException) { return; } // All is well
             Assert.IsTrue(false, "Should not happen.");
         }
 
