@@ -29,7 +29,7 @@ namespace ShiftEverywhere.DiME
         public Envelope(Guid issuerId)
         {
             long now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-            this._claims = new _DimeClaims(issuerId, now);
+            this._claims = new DimeClaims(issuerId, now);
         }
 
         public static Envelope Import(string exported)
@@ -41,7 +41,7 @@ namespace ShiftEverywhere.DiME
             Envelope dime;
             if (components.Length == 2)
             {
-                _DimeClaims claims = JsonSerializer.Deserialize<_DimeClaims>(Utility.FromBase64(components[1]));
+                DimeClaims claims = JsonSerializer.Deserialize<DimeClaims>(Utility.FromBase64(components[1]));
                 dime = new Envelope(claims);
             }
             else if (components.Length == 1) 
@@ -52,10 +52,7 @@ namespace ShiftEverywhere.DiME
             int endIndex = (dime.IsAnonymous) ? sections.Length : sections.Length - 1; // end index dependent on anonymous Dime or not
             List<Item> items = new List<Item>(endIndex - 1);
             for (int index = 1; index < endIndex; index++)
-            {
-                string iid = sections[index].Substring(0, sections[index].IndexOf(Envelope._COMPONENT_DELIMITER));
                 items.Add(Item.FromEncoded(sections[index]));
-            }
             dime._items = items;
             dime._encoded = exported.Substring(0, exported.LastIndexOf(Envelope._SECTION_DELIMITER));
             if (!dime.IsAnonymous)
@@ -118,7 +115,6 @@ namespace ShiftEverywhere.DiME
         }
 
         internal const char _COMPONENT_DELIMITER = '.';
-        internal const char _ARRAY_ITEM_DELIMITER = ';'; // TODO: check if it is used... ??
         internal const char _SECTION_DELIMITER = ':';
 
         #region -- PRIVATE --
@@ -126,15 +122,15 @@ namespace ShiftEverywhere.DiME
          private List<Item> _items;
         private string _encoded;
         private string _signature;
-        private _DimeClaims? _claims;
+        private DimeClaims? _claims;
 
-        private struct _DimeClaims
+        private struct DimeClaims
         {
             public Guid iss { get; set; }
             public long iat { get; set; }
 
             [JsonConstructor]
-            public _DimeClaims(Guid iss, long iat)
+            public DimeClaims(Guid iss, long iat)
             {
                 this.iss = iss;
                 this.iat = iat;
@@ -142,7 +138,7 @@ namespace ShiftEverywhere.DiME
 
         }
 
-        private Envelope(_DimeClaims claims)
+        private Envelope(DimeClaims claims)
         {
             this._claims = claims;
         }

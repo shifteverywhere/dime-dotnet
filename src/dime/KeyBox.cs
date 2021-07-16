@@ -69,12 +69,12 @@ namespace ShiftEverywhere.DiME
         {
             if (!Crypto.SupportedProfile(profile)) { throw new ArgumentException("Unsupported profile.", nameof(profile)); }
             long iat = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-            this._claims = new _KeyBoxClaims(
+            this._claims = new KeyBoxClaims(
                 null, 
                 id, 
                 iat, 
-                EncodeKey(key, (byte)type, (byte)KeyVariant.Private, (byte)profile), 
-                EncodeKey(publickey, (byte)type, (byte)KeyVariant.Public, (byte)profile));
+                KeyBox.EncodeKey(key, (byte)type, (byte)KeyVariant.Private, (byte)profile), 
+                KeyBox.EncodeKey(publickey, (byte)type, (byte)KeyVariant.Public, (byte)profile));
             this.Type = type;
             this.Profile = profile;
             this.RawKey = key;
@@ -96,7 +96,7 @@ namespace ShiftEverywhere.DiME
             if (components.Length != KeyBox._NBR_EXPECTED_COMPONENTS) { throw new FormatException($"Unexpected number of components for identity issuing request, expected {KeyBox._NBR_EXPECTED_COMPONENTS}, got {components.Length}."); }
             if (components[KeyBox._TAG_INDEX] != KeyBox.TAG) { throw new FormatException($"Unexpected item tag, expected: \"{KeyBox.TAG}\", got \"{components[KeyBox._TAG_INDEX]}\"."); }
             byte[] json = Utility.FromBase64(components[KeyBox._CLAIMS_INDEX]);
-            this._claims = JsonSerializer.Deserialize<_KeyBoxClaims>(json);
+            this._claims = JsonSerializer.Deserialize<KeyBoxClaims>(json);
             DecodeKey(this._claims.key);
             DecodeKey(this._claims.pub);
             this._encoded = encoded;
@@ -122,9 +122,9 @@ namespace ShiftEverywhere.DiME
         private const int _NBR_EXPECTED_COMPONENTS = 2;
         private const int _TAG_INDEX = 0;
         private const int _CLAIMS_INDEX = 1;
-        private _KeyBoxClaims _claims;
+        private KeyBoxClaims _claims;
 
-        private struct _KeyBoxClaims
+        private struct KeyBoxClaims
         {
             [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
             public Guid? iss { get; set; }
@@ -137,7 +137,7 @@ namespace ShiftEverywhere.DiME
             public string pub { get; set; }
 
             [JsonConstructor]
-            public _KeyBoxClaims(Guid? iss, Guid kid, long? iat, string key, string pub)
+            public KeyBoxClaims(Guid? iss, Guid kid, long? iat, string key, string pub)
             {
                 this.iss = iss;
                 this.kid = kid;
@@ -148,7 +148,7 @@ namespace ShiftEverywhere.DiME
 
         }
         
-        private string EncodeKey(byte[] key, byte type, byte variant, byte profile)
+        private static string EncodeKey(byte[] key, byte type, byte variant, byte profile)
         {
             if (key == null) return null;
             byte combinedType = (byte)((uint)type | (uint)variant);

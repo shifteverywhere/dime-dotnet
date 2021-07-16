@@ -23,8 +23,8 @@ namespace ShiftEverywhere.DiME
         
         public static string GenerateSignature(string data, KeyBox keybox)
         {
-            if (!Crypto.SupportedProfile(keybox.Profile)) { throw new NotSupportedException(); }
             if (keybox == null) { throw new ArgumentNullException(nameof(keybox), "Unable to sign, keybox must not be null."); }
+            if (!Crypto.SupportedProfile(keybox.Profile)) { throw new NotSupportedException(); }
             if (keybox.RawKey == null) { throw new ArgumentNullException(nameof(keybox), "Unable to sign, key in keybox must not be null."); }
             if (keybox.Type != KeyType.Identity) { throw new ArgumentException($"Unable to sign, wrong key type provided, got: {keybox.Type}, expected: KeyType.Identity."); }
             Key key = Key.Import(SignatureAlgorithm.Ed25519, keybox.RawKey, KeyBlobFormat.RawPrivateKey);
@@ -34,10 +34,10 @@ namespace ShiftEverywhere.DiME
 
         public static void VerifySignature(string data, string signature, KeyBox keybox)
         {
+            if (keybox == null) { throw new ArgumentNullException(nameof(keybox), "Unable to verify signature, keybox must not be null."); }
             if (!Crypto.SupportedProfile(keybox.Profile)) { throw new UnsupportedProfileException(); }
             if (data == null) { throw new ArgumentNullException(nameof(data), "Data must not be null."); }
             if (signature == null) { throw new ArgumentNullException(nameof(signature), "Signature must not be null."); }
-            if (keybox == null) { throw new ArgumentNullException(nameof(keybox), "Unable to verify signature, keybox must not be null."); }
             if (keybox.RawPublicKey == null) { throw new ArgumentNullException(nameof(keybox), "Unable to sign, public key in keybox must not be null."); }
             if (keybox.Type != KeyType.Identity) { throw new ArgumentException($"Unable to sign, wrong key type provided, got: {keybox.Type}, expected: KeyType.Identity."); }
             byte[] rawSignature = Utility.FromBase64(signature);
@@ -92,15 +92,6 @@ namespace ShiftEverywhere.DiME
             key.TryExport(keyBlobFormat, blobSpan, out blobSize);
             return blob;
         }
-
-        private static byte[] GetKey(string key)
-        {
-            string[] keyComponents = key.Split(new char[] { Envelope._SECTION_DELIMITER });
-            Profile profile; 
-            if (!Enum.TryParse<Profile>(keyComponents[0], out profile)) { throw new FormatException("Unable to determine key profile version, invalid data format."); }
-            if (!SupportedProfile(profile)) { return null; } // TODO: replace crypto impl.
-            return Utility.FromBase64(keyComponents[2]);
-        } 
 
     }
 

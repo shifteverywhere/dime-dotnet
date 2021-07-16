@@ -43,7 +43,7 @@ namespace ShiftEverywhere.DiME
         {
             long iat = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
             long? exp = (validFor.HasValue && validFor.Value > 0) ? iat + validFor.Value : null; 
-            this._claims = new _MessageClaims(Guid.NewGuid(), audienceId, issuerId, iat, exp, null, null, null);
+            this._claims = new MessageClaims(Guid.NewGuid(), audienceId, issuerId, iat, exp, null, null, null);
         }
 
         public override void Sign(KeyBox keybox)
@@ -137,7 +137,7 @@ namespace ShiftEverywhere.DiME
             || components.Length != Message._NBR_EXPECTED_COMPONENTS_SIGNATURE) 
                 { throw new FormatException($"Unexpected number of components for identity issuing request, expected '{Message._NBR_EXPECTED_COMPONENTS_NO_SIGNATURE}' or '{Message._NBR_EXPECTED_COMPONENTS_SIGNATURE}', got '{components.Length}'."); }
             if (components[Message._TAG_INDEX] != Message.TAG) { throw new FormatException($"Unexpected item tag, expected: \"{Message.TAG}\", got \"{components[Message._TAG_INDEX]}\"."); }
-            this._claims = JsonSerializer.Deserialize<_MessageClaims>(Utility.FromBase64(components[Message._CLAIMS_INDEX]));
+            this._claims = JsonSerializer.Deserialize<MessageClaims>(Utility.FromBase64(components[Message._CLAIMS_INDEX]));
             this._payload = components[Message._PAYLOAD_INDEX];
             if (components.Length == Message._NBR_EXPECTED_COMPONENTS_SIGNATURE)
             {
@@ -172,10 +172,10 @@ namespace ShiftEverywhere.DiME
         private const int _LINK_ITEM_TYPE_INDEX = 0;
         private const int _LINK_UID_INDEX = 1;
         private const int _LINK_THUMBPRINT_INDEX = 2;
-        private _MessageClaims _claims;
+        private MessageClaims _claims;
         private string _payload;
 
-        private struct _MessageClaims
+        private struct MessageClaims
         {
             public Guid uid { get; set; }
             public Guid aud { get; set; }
@@ -191,7 +191,7 @@ namespace ShiftEverywhere.DiME
             public string lnk { get; set; }
 
             [JsonConstructor]
-            public _MessageClaims(Guid uid, Guid aud, Guid iss, long iat, long? exp, Guid? kid, string xky, string lnk)
+            public MessageClaims(Guid uid, Guid aud, Guid iss, long iat, long? exp, Guid? kid, string xky, string lnk)
             {
                 this.uid = uid;
                 this.aud = aud;
