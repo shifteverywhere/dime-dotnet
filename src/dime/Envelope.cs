@@ -19,20 +19,17 @@ namespace ShiftEverywhere.DiME
     {
         public const string HEADER = "Di";
         public Guid? IssuerId { get { return (this._claims.HasValue) ? this._claims.Value.iss : null; } }
-        public long? IssuedAt { get { return (this._claims.HasValue) ? this._claims.Value.iat : null; } }
-        public string State { get { return (this._claims.HasValue) ? this._claims.Value.sta : null; } }
-        
+        public long? IssuedAt { get { return (this._claims.HasValue) ? this._claims.Value.iat : null; } } 
         public IList<Item> Items { get { return (this._items != null) ? this._items.AsReadOnly() : null; } }
-
         public bool IsSigned { get { return (this._signature != null); } }
         public bool IsAnonymous { get { return !this._claims.HasValue; } }
 
         public Envelope() { }
 
-        public Envelope(Guid issuerId, string state = null)
+        public Envelope(Guid issuerId)
         {
             long now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-            this._claims = new _DimeClaims(issuerId, now, state);
+            this._claims = new _DimeClaims(issuerId, now);
         }
 
         public static Envelope Import(string exported)
@@ -135,15 +132,12 @@ namespace ShiftEverywhere.DiME
         {
             public Guid iss { get; set; }
             public long iat { get; set; }
-            [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-            public string sta { get; set; }
 
             [JsonConstructor]
-            public _DimeClaims(Guid iss, long iat, string sta)
+            public _DimeClaims(Guid iss, long iat)
             {
                 this.iss = iss;
                 this.iat = iat;
-                this.sta = sta;
             }
 
         }
