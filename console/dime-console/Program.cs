@@ -81,6 +81,7 @@ namespace ShiftEverywhere.DiMEConsole
 
             /** At back-end side **/
             Message sp_message_at_backend = Item.Import<Message>(sp_message_encoded);
+            // sp_message_at_backend.IssuerId == prg.serviceProviderIdentity.SubjectId -> look up and fetch service provider identity
             sp_message_at_backend.Verify(prg.serviceProviderIdentity.PublicKey);
             Envelope be_envelope = new Envelope();
             be_envelope.AddItem(sp_message_at_backend);
@@ -92,6 +93,7 @@ namespace ShiftEverywhere.DiMEConsole
             Envelope be_envelope_at_mob = Envelope.Import(be_envelope_encoded);
             be_envelope_at_mob.Verify(prg.trustedIdentity.PublicKey);
             Message sp_message_at_mob = (Message)be_envelope_at_mob.Items.ElementAt(0);
+            // sp_message_at_mob.IssuerId == prg.serviceProviderIdentity.SubjectId -> look up and fetch service provider identity
             sp_message_at_mob.Verify(prg.serviceProviderIdentity.PublicKey);
             Message mob_response = prg.GenerateMessage(prg.mobileIdentity, prg.serviceProviderIdentity, "Luke, who's your father?");
             mob_response.LinkItem(sp_message_at_mob);
@@ -105,11 +107,13 @@ namespace ShiftEverywhere.DiMEConsole
             /** At back-end side **/
             Envelope mob_envelope_at_be = Envelope.Import(mob_envelope_encoded);
             Message sp_message_at_be_2 = (Message)mob_envelope_at_be.Items.ElementAt(0);
+            // sp_message_at_be_2.IssuerId == prg.serviceProviderIdentity.SubjectId -> look up and fetch service provider identity
             sp_message_at_be_2.Verify(prg.serviceProviderIdentity.PublicKey);
             Message mob_response_at_be = (Message)mob_envelope_at_be.Items.ElementAt(1);
+            // mob_response_at_be.IssuerId == prg.mobileIdentity.SubjectId -> look up and fetch mobile client identity
             mob_response_at_be.Verify(prg.mobileIdentity.PublicKey, sp_message_at_be_2);
             Envelope be_envelope_2 = new Envelope();
-            be_envelope_2.AddItem(sp_message_at_be_2);
+            //be_envelope_2.AddItem(sp_message_at_be_2); // this may be optional
             be_envelope_2.AddItem(mob_response_at_be);
             be_envelope_2.Sign(prg.trustedKeypair);
             string be_envelope_2_encoded = be_envelope_2.Export();
@@ -118,9 +122,8 @@ namespace ShiftEverywhere.DiMEConsole
             /** At service provider side **/
             Envelope be_envelope_2_at_sp = Envelope.Import(be_envelope_2_encoded);
             be_envelope_2_at_sp.Verify(prg.trustedIdentity.PublicKey);
-            Message sp_message_at_sp = (Message)mob_envelope_at_be.Items.ElementAt(0);
-            sp_message_at_sp.Verify(prg.serviceProviderIdentity.PublicKey);
-            Message mob_response_at_sp = (Message)mob_envelope_at_be.Items.ElementAt(1);
+            Message mob_response_at_sp = (Message)mob_envelope_at_be.Items.ElementAt(0);
+            // mob_response_at_sp.IssuerId == prg.mobileIdentity.SubjectId -> look up and fetch mobile client identity
             mob_response_at_sp.Verify(prg.mobileIdentity.PublicKey, sp_message_at_be_2);
 
         }
