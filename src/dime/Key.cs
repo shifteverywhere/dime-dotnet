@@ -1,6 +1,6 @@
 //
 //  Key.cs
-//  DiME - Digital Identity Message Envelope
+//  Di:ME - Digital Identity Message Envelope
 //  A secure and compact messaging format for assertion and practical use of digital identities
 //
 //  Released under the MIT licence, see LICENSE for more information.
@@ -22,7 +22,7 @@ namespace ShiftEverywhere.DiME
         public Profile Profile { get; private set; }
          public Guid? IssuerId { get { return this._claims.iss; } }
         /// <summary></summary>
-        public override Guid UniqueId { get { return this._claims.kid; } }
+        public override Guid UniqueId { get { return this._claims.uid; } }
         public DateTime IssuedAt { get { return Utility.FromTimestamp(this._claims.iat); } }
         /// <summary></summary>
         public DateTime ExpiresAt { get { return Utility.FromTimestamp(this._claims.exp); } }
@@ -136,7 +136,7 @@ namespace ShiftEverywhere.DiME
         {
             [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
             public Guid? iss { get; set; }
-            public Guid kid { get; set; }
+            public Guid uid { get; set; }
             [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
             public string iat { get; set; }
             [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
@@ -147,10 +147,10 @@ namespace ShiftEverywhere.DiME
             public string pub { get; set; }
 
             [JsonConstructor]
-            public KeyClaims(Guid? iss, Guid kid, string iat, string exp, string key, string pub)
+            public KeyClaims(Guid? iss, Guid uid, string iat, string exp, string key, string pub)
             {
                 this.iss = iss;
-                this.kid = kid;
+                this.uid = uid;
                 this.iat = iat;
                 this.exp = exp;
                 this.key = key;
@@ -163,7 +163,7 @@ namespace ShiftEverywhere.DiME
         {
             if (key == null) return null;
             byte combinedType = (byte)((uint)type | (uint)variant);
-            byte[] prefix = { 0x04, profile, combinedType, 0x00 };
+            byte[] prefix = { 0x00, profile, combinedType, 0x00 };
             return Base58.Encode(Utility.Combine(prefix, key));
         }
 

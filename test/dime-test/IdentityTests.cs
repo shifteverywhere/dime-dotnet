@@ -1,6 +1,6 @@
 //
 //  IdentityTests.cs
-//  DiME - Digital Identity Message Envelope
+//  Di:ME - Digital Identity Message Envelope
 //  A secure and compact messaging format for assertion and practical use of digital identities
 //
 //  Released under the MIT licence, see LICENSE for more information.
@@ -168,15 +168,15 @@ namespace ShiftEverywhere.DiMETest
         public void ImportTest1()
         {
             Identity.SetTrustedIdentity(Commons.TrustedIdentity);
-            string exported = "Di:ID.eyJ1aWQiOiI3ZDZhNTVlOC0yMWJhLTQ4MGMtOGFmNi1iNGE0NGYwMjRmYWUiLCJzdWIiOiI5NzNhNmI2My02MjRhLTQwYjktYjNjZi1hMDU1MTljODVhZWYiLCJpc3MiOiI0OTdkMTU2Ny1kMTBhLTRiNWYtOGIwOS00YmQ5NDc3ZTQyOTUiLCJpYXQiOiIyMDIxLTA4LTA5VDEwOjE2OjMxLjAyMzE5M1oiLCJleHAiOiIyMDIyLTA4LTA5VDEwOjE2OjMxLjAyMzE5M1oiLCJwdWIiOiJDWUh0N1pmSnlnZXloOWdtNUV3Z0s5NUVWanJvRE4xQzZlV2JpY0pCc0ZuTjJnaUN1VEJNRk4iLCJjYXAiOlsiZ2VuZXJpYyIsImlkZW50aWZ5Il19.SUQuZXlKMWFXUWlPaUkyWmpVek4yUXlZUzB3TWpKaUxUUmhNR1F0WWpVNFl5MHlNRFZqT1dRd01XRXpOelFpTENKemRXSWlPaUkwT1Rka01UVTJOeTFrTVRCaExUUmlOV1l0T0dJd09TMDBZbVE1TkRjM1pUUXlPVFVpTENKcGMzTWlPaUpoWXpZMFlXTm1aaTFrTXpCbUxUUXdNVEF0WWprMk5TMHpOVEZoTVRkbE1URTBOMllpTENKcFlYUWlPaUl5TURJeExUQTRMVEE1VkRBNU9qVXhPakkwTGpjM016azJPVm9pTENKbGVIQWlPaUl5TURJMkxUQTRMVEE0VkRBNU9qVXhPakkwTGpjM016azJPVm9pTENKd2RXSWlPaUpEV1VoME4zSk5RV3Q2TVUxU1FrSjJRbkUwVFhOTVJWSnZRVVZpTjJSMlZ6STJXa05yTjFaVFZsWlZhRmRwWTFOcmNrSlNhVVFpTENKallYQWlPbHNpWjJWdVpYSnBZeUlzSW1sa1pXNTBhV1o1SWl3aWFYTnpkV1VpWFgwLkFRdFFuaUZ2My9mMXlod1p0ZjZxcCtoZVVpaW9sdlVnYUp3TzFMWjIrcTJydG1tWGtQNC9xenp0Vms5a1ZOZE1KYzRFdFVjTVlaOTEzWXJydEpudnpnWQ.AUInSyL4AsrkXLFGC5M5yPp0rF7zUVGk4GC6p9wNiefueZSTEatN0mBE4ePXfFqDW4WnFHUnLtpnmsO45W0+uQw";
+            string exported = "Di:ID.eyJ1aWQiOiI1YjM2MGQwNy1mODY5LTRmZGItODBjNi00MzU2M2ZlZGU4ZjYiLCJzdWIiOiJmZDdkNmY1Yy01YzUxLTRkNmYtYmJjMy1iNDU5Mjc1Y2Q4NjMiLCJpc3MiOiJmNjhkMTVhYy04MjJkLTRmZGMtODFjYy04ZTUwYjQ3ODc3MmUiLCJpYXQiOiIyMDIxLTA4LTA5VDE4OjQxOjU3LjMwNjk1NVoiLCJleHAiOiIyMDIyLTA4LTA5VDE4OjQxOjU3LjMwNjk1NVoiLCJwdWIiOiIxaFBLaUo1V3ZoTFpTaGU3N3R1UWlOc2Y2c2t2SHJlZ1I2Ykx3d3liU1hhc3RQV1VIb1pjMSIsImNhcCI6WyJnZW5lcmljIiwiaWRlbnRpZnkiXX0.SUQuZXlKMWFXUWlPaUl5T1RCa01XUm1ZaTB3TVdJMExUUXpPVFV0WW1FMVlpMWlObUkwTURGa1lXVXlNVFFpTENKemRXSWlPaUptTmpoa01UVmhZeTA0TWpKa0xUUm1aR010T0RGall5MDRaVFV3WWpRM09EYzNNbVVpTENKcGMzTWlPaUpqWTJVNU16azBNQzFoWm1OaUxUUmhZVEV0T1RBMk15MW1NR1l3WVRZellUVmxaREFpTENKcFlYUWlPaUl5TURJeExUQTRMVEE1VkRFd09qVXlPak16TGpBd056SXpPRm9pTENKbGVIQWlPaUl5TURJMkxUQTRMVEE0VkRFd09qVXlPak16TGpBd056SXpPRm9pTENKd2RXSWlPaUl4YUZCS1NGazNhMk5aVlhSdGVIVmlRbU5CV0daS1dHOTVTMk54V0V3elJuTkVWVVJ1Vm10aVIwcG9VSGw1UzJoV2JsSnBWU0lzSW1OaGNDSTZXeUpuWlc1bGNtbGpJaXdpYVdSbGJuUnBabmtpTENKcGMzTjFaU0pkZlEuQVZXNFh4dVcyTWYrdVd4dG8zYmZpbGZhVi9FQWRMWVhnL3V6aW5pTFhKOFZQUDQveFNSTmVRYVQrcjJKQmY2WHFkK0JJTmdDbGNCTmhReDNxZU9xREFv.AQU4ijDHE23nHWhOzv7hoxq+NGSBjhjhz/j0q1wocScjChWG4016Fwcwb/WmEVoo5ImpSoOAc6Hvcj1ulFt7JAc";
             Identity identity = Item.Import<Identity>(exported);
             Assert.IsNotNull(identity);
-            Assert.AreEqual(new Guid("7d6a55e8-21ba-480c-8af6-b4a44f024fae"), identity.UniqueId);
-            Assert.AreEqual(new Guid("973a6b63-624a-40b9-b3cf-a05519c85aef"), identity.SubjectId);
-            Assert.AreEqual(DateTime.Parse("2021-08-09T10:16:31.023193Z"), identity.IssuedAt);
-            Assert.AreEqual(DateTime.Parse("2022-08-09T10:16:31.023193Z"), identity.ExpiresAt);
-            Assert.AreEqual(new Guid("497d1567-d10a-4b5f-8b09-4bd9477e4295"), identity.IssuerId);
-            Assert.AreEqual("CYHt7ZfJygeyh9gm5EwgK95EVjroDN1C6eWbicJBsFnN2giCuTBMFN", identity.PublicKey);
+            Assert.AreEqual(new Guid("5b360d07-f869-4fdb-80c6-43563fede8f6"), identity.UniqueId);
+            Assert.AreEqual(new Guid("fd7d6f5c-5c51-4d6f-bbc3-b459275cd863"), identity.SubjectId);
+            Assert.AreEqual(DateTime.Parse("2021-08-09T18:41:57.306955Z"), identity.IssuedAt);
+            Assert.AreEqual(DateTime.Parse("2022-08-09T18:41:57.306955Z"), identity.ExpiresAt);
+            Assert.AreEqual(new Guid("f68d15ac-822d-4fdc-81cc-8e50b478772e"), identity.IssuerId);
+            Assert.AreEqual("1hPKiJ5WvhLZShe77tuQiNsf6skvHregR6bLwwybSXastPWUHoZc1", identity.PublicKey);
             Assert.IsTrue(identity.HasCapability(Capability.Generic));
             Assert.IsTrue(identity.HasCapability(Capability.Identify));
             Assert.IsNotNull(identity.TrustChain);

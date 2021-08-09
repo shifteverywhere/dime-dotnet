@@ -1,6 +1,6 @@
 //
 //  KeyTests.cs
-//  DiME - Digital Identity Message Envelope
+//  Di:ME - Digital Identity Message Envelope
 //  A secure and compact messaging format for assertion and practical use of digital identities
 //
 //  Released under the MIT licence, see LICENSE for more information.
@@ -51,14 +51,14 @@ namespace ShiftEverywhere.DiMETest
         [TestMethod]
         public void ImportTest1()
         {
-            string encoded = "Di:KEY.eyJraWQiOiIxNGVkNzdmZC1lY2QwLTRiMTItYTdkYi00NTUwMGI0NjE2NGIiLCJpYXQiOiIyMDIxLTA4LTA5VDEwOjE4OjUzLjQ0OTQ1MVoiLCJrZXkiOiJDWUhqWU5HN2N1bzJEb1Nrd3ZiNm45QmlETlZ4RmVKcXdUaU5RMXQ3QnFLZEhNS1lmeVRtS20iLCJwdWIiOiJDWUh0N1prbnFZVExZdWJIdWFwNzJOOHN3cTZHZThKeFU1WjFWMUVGOUNqSEhmU05jQUU5RTcifQ";
+            string encoded = "Di:KEY.eyJ1aWQiOiI0ZjQwMmI1NC1lY2FmLTRhNDctOTI3NC00YmUyNGFjNWJjZjQiLCJpYXQiOiIyMDIxLTA4LTA5VDEwOjQ3OjQ3LjAxMzIwNVoiLCJrZXkiOiJDWUhqWWJXWXdGWEhzamlLVTNIY25wSnZGc3pNQmZ4dHkxUXY5WGVCUG9zc1laWXhmR2p0aFAiLCJwdWIiOiJDWUh0NzV4S3pmWVl1ZTQ5TFVrcnU5SlRRQ3V6cUprMVRRd0xGODZBSmJpV0RBczZoVXcyTVMifQ";
             Key key = Item.Import<Key>(encoded);
             Assert.AreEqual(Profile.Uno, key.Profile);
             Assert.AreEqual(KeyType.Identity, key.Type);
-            Assert.AreEqual(new Guid("14ed77fd-ecd0-4b12-a7db-45500b46164b"), key.UniqueId);
-            Assert.AreEqual(DateTime.Parse("2021-08-09T10:18:53.449451Z"), key.IssuedAt);
-            Assert.AreEqual("CYHjYNG7cuo2DoSkwvb6n9BiDNVxFeJqwTiNQ1t7BqKdHMKYfyTmKm", key.Secret);
-            Assert.AreEqual("CYHt7ZknqYTLYubHuap72N8swq6Ge8JxU5Z1V1EF9CjHHfSNcAE9E7", key.Public);
+            Assert.AreEqual(new Guid("4f402b54-ecaf-4a47-9274-4be24ac5bcf4"), key.UniqueId);
+            Assert.AreEqual(DateTime.Parse("2021-08-09T10:47:47.013205Z"), key.IssuedAt);
+            Assert.AreEqual("CYHjYbWYwFXHsjiKU3HcnpJvFszMBfxty1Qv9XeBPossYZYxfGjthP", key.Secret);
+            Assert.AreEqual("CYHt75xKzfYYue49LUkru9JTQCuzqJk1TQwLF86AJbiWDAs6hUw2MS", key.Public);
         }
 
         [TestMethod]
@@ -84,10 +84,10 @@ namespace ShiftEverywhere.DiMETest
         public void PublicOnlyTest2()
         {
             Key key = Key.Generate(KeyType.Identity, -1, Profile.Uno);
-            Message message = new Message(Commons.ReceiverIdentity.SubjectId, Commons.SenderIdentity.SubjectId, 100);
+            Message message = new Message(Commons.AudienceIdentity.SubjectId, Commons.IssuerIdentity.SubjectId, 100);
             message.SetPayload(Encoding.UTF8.GetBytes("Racecar is racecar backwards."));
-            message.Sign(Commons.SenderKey);
-            Key pubOnly = Commons.SenderKey.PublicCopy();
+            message.Sign(Commons.IssuerKey);
+            Key pubOnly = Commons.IssuerKey.PublicCopy();
             message.Verify(pubOnly);            
         }
 

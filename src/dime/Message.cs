@@ -1,6 +1,6 @@
 //
 //  Message.cs
-//  DiME - Digital Identity Message Envelope
+//  Di:ME - Digital Identity Message Envelope
 //  A secure and compact messaging format for assertion and practical use of digital identities
 //
 //  Released under the MIT licence, see LICENSE for more information.
@@ -23,7 +23,7 @@ namespace ShiftEverywhere.DiME
         #region -- PUBLIC DATA MEMBERS --
         public const string TAG = "MSG"; 
         public override string Tag { get { return Message.TAG; } }
-        /// <summary>A unique identity for the message.</summary>
+        /// <summary>A unique identifier for the message.</summary>
         public override Guid UniqueId { get { return this._claims.uid; } }
         /// <summary>The id of the receiver.</summary>
         public Guid AudienceId { get { return this._claims.aud; } }

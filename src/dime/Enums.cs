@@ -1,6 +1,6 @@
 //
 //  Enums.cs
-//  DiME - Digital Identity Message Envelope
+//  Di:ME - Digital Identity Message Envelope
 //  A secure and compact messaging format for assertion and practical use of digital identities.
 //
 //  Released under the MIT licence, see LICENSE for more information.
