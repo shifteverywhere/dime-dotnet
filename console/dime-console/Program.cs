@@ -21,42 +21,42 @@ namespace ShiftEverywhere.DiMEConsole
     class Program
     {
         public Identity trustedIdentity;
-        public KeyBox trustedKeypair;
+        public Key trustedKeypair;
         public Identity serviceProviderIdentity;
-        public KeyBox serviceProviderKeypair;
+        public Key serviceProviderKeypair;
         public Identity mobileIdentity;
-        public KeyBox mobileKeypair;
+        public Key mobileKeypair;
 
         public Program()
         {
-            this.trustedKeypair = KeyBox.Generate(KeyType.Identity);
+            this.trustedKeypair = Key.Generate(KeyType.Identity);
             this.trustedIdentity = GenerateIdentity(this.trustedKeypair, new List<Capability> { Capability.Issue, Capability.Generic, Capability.Identify });
             Console.WriteLine("++++++++++++++++++++++++++++++++++++++++++++++" + Environment.NewLine + "Trusted Key Pair");
-            Console.WriteLine("private key : " + this.trustedKeypair.Key.ToString());
-            Console.WriteLine("public key : " + this.trustedKeypair.PublicKey.ToString());
+            Console.WriteLine("private key : " + this.trustedKeypair.Secret.ToString());
+            Console.WriteLine("public key : " + this.trustedKeypair.Public.ToString());
             Console.WriteLine("Thumbprint : " + this.trustedIdentity.Thumbprint().ToString());
             Console.WriteLine("++++++++++++++++++++++++++++++++++++++++++++++" + Environment.NewLine);
 
-            this.serviceProviderKeypair = KeyBox.Generate(KeyType.Identity);
+            this.serviceProviderKeypair = Key.Generate(KeyType.Identity);
             this.serviceProviderIdentity = GenerateIdentity(this.serviceProviderKeypair, new List<Capability> { Capability.Generic, Capability.Identify });
             Console.WriteLine("++++++++++++++++++++++++++++++++++++++++++++++" + Environment.NewLine + "Service Provider Key Pair");
-            Console.WriteLine("private key : " + this.serviceProviderKeypair.Key.ToString());
-            Console.WriteLine("public key : " + this.serviceProviderKeypair.PublicKey.ToString());
+            Console.WriteLine("private key : " + this.serviceProviderKeypair.Secret.ToString());
+            Console.WriteLine("public key : " + this.serviceProviderKeypair.Public.ToString());
             Console.WriteLine("Thumbprint : " + this.serviceProviderIdentity.Thumbprint().ToString());
             Console.WriteLine("++++++++++++++++++++++++++++++++++++++++++++++" + Environment.NewLine);
 
-            this.mobileKeypair = KeyBox.Generate(KeyType.Identity);
+            this.mobileKeypair = Key.Generate(KeyType.Identity);
             this.mobileIdentity = GenerateIdentity(this.mobileKeypair, new List<Capability> {  Capability.Generic, Capability.Identify });
             Console.WriteLine("++++++++++++++++++++++++++++++++++++++++++++++" + Environment.NewLine + "Mobile Key Pair");
-            Console.WriteLine("private key : " + this.mobileKeypair.Key.ToString());
-            Console.WriteLine("public key : " + this.mobileKeypair.PublicKey.ToString());
+            Console.WriteLine("private key : " + this.mobileKeypair.Secret.ToString());
+            Console.WriteLine("public key : " + this.mobileKeypair.Public.ToString());
             Console.WriteLine("Thumbprint : " + this.mobileIdentity.Thumbprint().ToString());
             Console.WriteLine("++++++++++++++++++++++++++++++++++++++++++++++" + Environment.NewLine);
 
             Identity.SetTrustedIdentity(this.trustedIdentity);
         }
 
-        public Identity GenerateIdentity(KeyBox keypair, List<Capability> capabilities)
+        public Identity GenerateIdentity(Key keypair, List<Capability> capabilities)
         {
             List<Capability> caps = capabilities;
             IdentityIssuingRequest iir = IdentityIssuingRequest.Generate(keypair, caps);    

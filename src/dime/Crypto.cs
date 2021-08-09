@@ -21,18 +21,18 @@ namespace ShiftEverywhere.DiME
             return profile == Crypto.DEFUALT_PROFILE;
         }
         
-        public static string GenerateSignature(string data, KeyBox keybox)
+        public static string GenerateSignature(string data, Key keybox)
         {
             if (keybox == null) { throw new ArgumentNullException(nameof(keybox), "Unable to sign, keybox must not be null."); }
             if (!Crypto.SupportedProfile(keybox.Profile)) { throw new NotSupportedException(); }
             if (keybox.RawKey == null) { throw new ArgumentNullException(nameof(keybox), "Unable to sign, key in keybox must not be null."); }
             if (keybox.Type != KeyType.Identity) { throw new ArgumentException($"Unable to sign, wrong key type provided, got: {keybox.Type}, expected: KeyType.Identity."); }
-            Key key = Key.Import(SignatureAlgorithm.Ed25519, keybox.RawKey, KeyBlobFormat.RawPrivateKey);
+            NSec.Cryptography.Key key = NSec.Cryptography.Key.Import(SignatureAlgorithm.Ed25519, keybox.RawKey, KeyBlobFormat.RawPrivateKey);
             byte[] rawSignature = SignatureAlgorithm.Ed25519.Sign(key, Encoding.UTF8.GetBytes(data));
             return System.Convert.ToBase64String(Utility.Prefix((byte)keybox.Profile, rawSignature)).Trim('=');
         }
 
-        public static void VerifySignature(string data, string signature, KeyBox keybox)
+        public static void VerifySignature(string data, string signature, Key keybox)
         {
             if (keybox == null) { throw new ArgumentNullException(nameof(keybox), "Unable to verify signature, keybox must not be null."); }
             if (!Crypto.SupportedProfile(keybox.Profile)) { throw new UnsupportedProfileException(); }
@@ -49,24 +49,24 @@ namespace ShiftEverywhere.DiME
             }
         }
 
-        public static KeyBox GenerateKeyBox(Profile profile, KeyType type)
+        public static Key GenerateKeyBox(Profile profile, KeyType type)
         {
             if (!Crypto.SupportedProfile(profile)) { throw new UnsupportedProfileException(); }
-            Key key;
+            NSec.Cryptography.Key key;
             KeyCreationParameters parameters = new KeyCreationParameters();
             parameters.ExportPolicy = KeyExportPolicies.AllowPlaintextExport;
             switch (type)
             {
                 case KeyType.Identity:
-                    key = new Key(SignatureAlgorithm.Ed25519, parameters);
+                    key = new NSec.Cryptography.Key(SignatureAlgorithm.Ed25519, parameters);
                     break;
                 case KeyType.Exchange:
-                    key = new Key(KeyAgreementAlgorithm.X25519, parameters);
+                    key = new NSec.Cryptography.Key(KeyAgreementAlgorithm.X25519, parameters);
                     break;
                 default:
                     throw new ArgumentException("Unkown key type.", nameof(type));
             }
-            return new KeyBox(Guid.NewGuid(), 
+            return new Key(Guid.NewGuid(), 
                                type, 
                                Crypto.ExportKey(key, KeyBlobFormat.RawPrivateKey),
                                Crypto.ExportKey(key, KeyBlobFormat.RawPublicKey),
@@ -75,12 +75,12 @@ namespace ShiftEverywhere.DiME
 
         #region -- KEY AGREEMENT --
 
-        public static Key GenerateSharedSecret(KeyBox localKeybox, KeyBox remoteKeybox, byte[] salt, byte[] info)
+        public static NSec.Cryptography.Key GenerateSharedSecret(Key localKeybox, Key remoteKeybox, byte[] salt, byte[] info)
         {  
             if (localKeybox.Profile != remoteKeybox.Profile) { throw new KeyMismatchException("Unable to generate shared key, source keys from diffrent profiles."); }
             if (!SupportedProfile(localKeybox.Profile)) { throw new UnsupportedProfileException(); }
             if (localKeybox.Type != KeyType.Exchange || remoteKeybox.Type != KeyType.Exchange) { throw new KeyMismatchException("Keys must be of type 'Exchange'."); }
-            Key privateKey = Key.Import(KeyAgreementAlgorithm.X25519, localKeybox.RawKey, KeyBlobFormat.RawPrivateKey);
+            NSec.Cryptography.Key privateKey = NSec.Cryptography.Key.Import(KeyAgreementAlgorithm.X25519, localKeybox.RawKey, KeyBlobFormat.RawPrivateKey);
             PublicKey publicKey = PublicKey.Import(KeyAgreementAlgorithm.X25519, remoteKeybox.RawPublicKey, KeyBlobFormat.RawPublicKey);
             SharedSecret shared = KeyAgreementAlgorithm.X25519.Agree(privateKey, publicKey);
             return KeyDerivationAlgorithm.HkdfSha256.DeriveKey(shared, salt, info, AeadAlgorithm.ChaCha20Poly1305);  
@@ -90,7 +90,7 @@ namespace ShiftEverywhere.DiME
 
         #region -- ENCRYPTION/DECRYPTION --
 
-        public static byte[] Encrypt(byte[] plainText, Key key)     
+        public static byte[] Encrypt(byte[] plainText, NSec.Cryptography.Key key)     
         {
             if (plainText == null || plainText.Length == 0) { throw new ArgumentNullException(nameof(plainText), "Plain text to encrypt must not be null and not have a length of 0."); }
             if (key == null) { throw new ArgumentNullException(nameof(key), "Key must not be null."); }
@@ -100,7 +100,7 @@ namespace ShiftEverywhere.DiME
             return Utility.Prefix((byte)Crypto.DEFUALT_PROFILE, attached);
         }
 
-        public static byte[] Decrypt(byte[] cipherText, Key key)
+        public static byte[] Decrypt(byte[] cipherText, NSec.Cryptography.Key key)
         {
             if (cipherText == null ||cipherText.Length == 0) { throw new ArgumentNullException(nameof(cipherText), "Cipher text to decrypt must not be null and not have a length of 0."); }
             if (key == null) { throw new ArgumentNullException(nameof(key), "Key must not be null."); }
@@ -127,7 +127,7 @@ namespace ShiftEverywhere.DiME
 
         #endregion
 
-        private static byte[] ExportKey(Key key, KeyBlobFormat keyBlobFormat)
+        private static byte[] ExportKey(NSec.Cryptography.Key key, KeyBlobFormat keyBlobFormat)
         {
             var blob = new byte[key.GetExportBlobSize(keyBlobFormat)];
             var blobSpan = new Span<byte>(blob);

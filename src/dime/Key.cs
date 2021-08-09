@@ -1,5 +1,5 @@
 //
-//  KeyBox.cs
+//  Key.cs
 //  DiME - Digital Identity Message Envelope
 //  A secure and compact messaging format for assertion and practical use of digital identities
 //
@@ -13,12 +13,12 @@ using System.Text.Json.Serialization;
 
 namespace ShiftEverywhere.DiME
 {
-    public class KeyBox: Item
+    public class Key: Item
     {
         #region -- PUBLIC --
 
         public const string TAG = "KEY";
-        public override string Tag { get { return KeyBox.TAG; } }
+        public override string Tag { get { return DiME.Key.TAG; } }
         public Profile Profile { get; private set; }
          public Guid? IssuerId { get { return this._claims.iss; } }
         /// <summary></summary>
@@ -27,33 +27,33 @@ namespace ShiftEverywhere.DiME
         /// <summary></summary>
         public KeyType Type { get; private set; }
         /// <summary></summary>
-        public string Key { get { return this._claims.key; } }
+        public string Secret { get { return this._claims.key; } }
         /// <summary></summary>
-        public string PublicKey { get { return this._claims.pub; } }
+        public string Public { get { return this._claims.pub; } }
 
-        public KeyBox() { }
+        public Key() { }
 
         /// <summary></summary>
-        public static KeyBox Generate(KeyType type, Profile profile = Crypto.DEFUALT_PROFILE)
+        public static Key Generate(KeyType type, Profile profile = Crypto.DEFUALT_PROFILE)
         {
             return Crypto.GenerateKeyBox(profile, type);
         }
 
-        public static KeyBox FromBase58Key(string encodedKey)
+        public static Key FromBase58Key(string encodedKey)
         {
-            KeyBox keybox = new KeyBox();
+            Key keybox = new Key();
             keybox.DecodeKey(encodedKey);
             return keybox;
         }
 
-        public KeyBox PublicOnly()
+        public Key PublicCopy()
         {
-            return new KeyBox(this.UniqueId, this.Type, null, this.RawPublicKey, this.Profile);
+            return new Key(this.UniqueId, this.Type, null, this.RawPublicKey, this.Profile);
         }
 
-        internal new static KeyBox FromEncoded(string encoded)
+        internal new static Key FromEncoded(string encoded)
         {
-            KeyBox keybox = new KeyBox();
+            Key keybox = new Key();
             keybox.Decode(encoded);
             return keybox;
         }
@@ -65,23 +65,23 @@ namespace ShiftEverywhere.DiME
         internal byte[] RawKey { get; private set; }
         internal byte[] RawPublicKey { get; private set; }
 
-        internal KeyBox(Guid id, KeyType type, byte[] key, byte[] publickey, Profile profile = Crypto.DEFUALT_PROFILE)
+        internal Key(Guid id, KeyType type, byte[] key, byte[] publickey, Profile profile = Crypto.DEFUALT_PROFILE)
         {
             if (!Crypto.SupportedProfile(profile)) { throw new ArgumentException("Unsupported profile.", nameof(profile)); }
             long iat = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-            this._claims = new KeyBoxClaims(
+            this._claims = new KeyClaims(
                 null, 
                 id, 
-                iat, 
-                KeyBox.EncodeKey(key, (byte)type, (byte)KeyVariant.Private, (byte)profile), 
-                KeyBox.EncodeKey(publickey, (byte)type, (byte)KeyVariant.Public, (byte)profile));
+                iat,
+                DiME.Key.EncodeKey(key, (byte)type, (byte)KeyVariant.Private, (byte)profile),
+                DiME.Key.EncodeKey(publickey, (byte)type, (byte)KeyVariant.Public, (byte)profile));
             this.Type = type;
             this.Profile = profile;
             this.RawKey = key;
             this.RawPublicKey = publickey;
         }
 
-        internal KeyBox(string base58key)
+        internal Key(string base58key)
         {
             DecodeKey(base58key);
         }
@@ -93,10 +93,10 @@ namespace ShiftEverywhere.DiME
         protected override void Decode(string encoded)
         {
             string[] components = encoded.Split(new char[] { Envelope._COMPONENT_DELIMITER });
-            if (components.Length != KeyBox._NBR_EXPECTED_COMPONENTS) { throw new FormatException($"Unexpected number of components for identity issuing request, expected {KeyBox._NBR_EXPECTED_COMPONENTS}, got {components.Length}."); }
-            if (components[KeyBox._TAG_INDEX] != KeyBox.TAG) { throw new FormatException($"Unexpected item tag, expected: \"{KeyBox.TAG}\", got \"{components[KeyBox._TAG_INDEX]}\"."); }
-            byte[] json = Utility.FromBase64(components[KeyBox._CLAIMS_INDEX]);
-            this._claims = JsonSerializer.Deserialize<KeyBoxClaims>(json);
+            if (components.Length != DiME.Key._NBR_EXPECTED_COMPONENTS) { throw new FormatException($"Unexpected number of components for identity issuing request, expected {DiME.Key._NBR_EXPECTED_COMPONENTS}, got {components.Length}."); }
+            if (components[DiME.Key._TAG_INDEX] != DiME.Key.TAG) { throw new FormatException($"Unexpected item tag, expected: \"{DiME.Key.TAG}\", got \"{components[DiME.Key._TAG_INDEX]}\"."); }
+            byte[] json = Utility.FromBase64(components[DiME.Key._CLAIMS_INDEX]);
+            this._claims = JsonSerializer.Deserialize<KeyClaims>(json);
             DecodeKey(this._claims.key);
             DecodeKey(this._claims.pub);
             this._encoded = encoded;
@@ -107,7 +107,7 @@ namespace ShiftEverywhere.DiME
             if (this._encoded == null)
             {
                 StringBuilder builder = new StringBuilder();
-                builder.Append(KeyBox.TAG);
+                builder.Append(DiME.Key.TAG);
                 builder.Append(Envelope._COMPONENT_DELIMITER);
                 builder.Append(Utility.ToBase64(JsonSerializer.Serialize(this._claims)));
                 this._encoded = builder.ToString();
@@ -122,9 +122,9 @@ namespace ShiftEverywhere.DiME
         private const int _NBR_EXPECTED_COMPONENTS = 2;
         private const int _TAG_INDEX = 0;
         private const int _CLAIMS_INDEX = 1;
-        private KeyBoxClaims _claims;
+        private KeyClaims _claims;
 
-        private struct KeyBoxClaims
+        private struct KeyClaims
         {
             [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
             public Guid? iss { get; set; }
@@ -137,7 +137,7 @@ namespace ShiftEverywhere.DiME
             public string pub { get; set; }
 
             [JsonConstructor]
-            public KeyBoxClaims(Guid? iss, Guid kid, long? iat, string key, string pub)
+            public KeyClaims(Guid? iss, Guid kid, long? iat, string key, string pub)
             {
                 this.iss = iss;
                 this.kid = kid;

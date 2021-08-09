@@ -71,7 +71,7 @@ namespace ShiftEverywhere.DiME
             } 
             string publicKey = this.TrustChain != null ? this.TrustChain.PublicKey : Identity.TrustedIdentity.PublicKey;
             try {
-                Crypto.VerifySignature(this._encoded, this._signature, KeyBox.FromBase58Key(publicKey));
+                Crypto.VerifySignature(this._encoded, this._signature, Key.FromBase58Key(publicKey));
             } catch (IntegrityException) 
             {
                 throw new UntrustedIdentityException("Identity cannot be trusted.");

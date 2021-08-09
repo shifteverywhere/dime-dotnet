@@ -19,7 +19,7 @@ namespace ShiftEverywhere.DiMETest
         public void GenerateRequestTest1()
         {
             try {
-                IdentityIssuingRequest iir = IdentityIssuingRequest.Generate(KeyBox.Generate(KeyType.Exchange));
+                IdentityIssuingRequest iir = IdentityIssuingRequest.Generate(Key.Generate(KeyType.Exchange));
             } catch (ArgumentException) { return; } // All is well
             Assert.IsTrue(false, "Should not happen.");
         }
@@ -27,20 +27,20 @@ namespace ShiftEverywhere.DiMETest
         [TestMethod]
         public void GenerateRequestTest2()
         {
-            IdentityIssuingRequest iir = IdentityIssuingRequest.Generate(KeyBox.Generate(KeyType.Identity));
+            IdentityIssuingRequest iir = IdentityIssuingRequest.Generate(Key.Generate(KeyType.Identity));
         }
 
         [TestMethod]
         public void VerifyTest1()
         {
-            IdentityIssuingRequest iir = IdentityIssuingRequest.Generate(KeyBox.Generate(KeyType.Identity));
+            IdentityIssuingRequest iir = IdentityIssuingRequest.Generate(Key.Generate(KeyType.Identity));
             iir.Verify();
         }
 
         [TestMethod]
         public void ThumbprintTest1()
         {
-            IdentityIssuingRequest iir = IdentityIssuingRequest.Generate(KeyBox.Generate(KeyType.Identity));
+            IdentityIssuingRequest iir = IdentityIssuingRequest.Generate(Key.Generate(KeyType.Identity));
             string thumbprint = iir.Thumbprint();
             Assert.IsNotNull(thumbprint);
             Assert.IsTrue(thumbprint.Length > 0, "Thumbprint should not be empty string");
@@ -50,15 +50,15 @@ namespace ShiftEverywhere.DiMETest
         [TestMethod]
         public void ThumbprintTest2()
         {
-            IdentityIssuingRequest iir1 = IdentityIssuingRequest.Generate(KeyBox.Generate(KeyType.Identity));
-            IdentityIssuingRequest iir2 = IdentityIssuingRequest.Generate(KeyBox.Generate(KeyType.Identity));
+            IdentityIssuingRequest iir1 = IdentityIssuingRequest.Generate(Key.Generate(KeyType.Identity));
+            IdentityIssuingRequest iir2 = IdentityIssuingRequest.Generate(Key.Generate(KeyType.Identity));
             Assert.IsFalse(iir1.Thumbprint() == iir2.Thumbprint(), "Thumbprints of diffrent iirs should not be the same");
         }
 
         [TestMethod]
         public void ToStringTest1()
         {
-            KeyBox keybox = KeyBox.Generate(KeyType.Identity);
+            Key keybox = Key.Generate(KeyType.Identity);
             IdentityIssuingRequest iir = IdentityIssuingRequest.Generate(keybox);
             string exported = iir.Export();
             Assert.IsNotNull(exported);

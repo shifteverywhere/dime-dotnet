@@ -32,11 +32,11 @@ namespace ShiftEverywhere.DiME
 
         public IdentityIssuingRequest() { }
 
-        public static IdentityIssuingRequest Generate(KeyBox keybox, List<Capability> capabilities = null, Dictionary<string, dynamic> principles = null) 
+        public static IdentityIssuingRequest Generate(Key keybox, List<Capability> capabilities = null, Dictionary<string, dynamic> principles = null) 
         {
             if (!Crypto.SupportedProfile(keybox.Profile)) { throw new ArgumentException("Unsupported profile version.", nameof(keybox)); }
             if (keybox.Type != KeyType.Identity) { throw new ArgumentException("KeyBox of invalid type.", nameof(keybox)); }
-            if (keybox.Key == null) { throw new ArgumentNullException(nameof(keybox), "Private key must not be null"); }
+            if (keybox.Secret == null) { throw new ArgumentNullException(nameof(keybox), "Private key must not be null"); }
             IdentityIssuingRequest iir = new IdentityIssuingRequest();
             if (capabilities == null || capabilities.Count == 0) 
                 iir._capabilities = new List<Capability>() { Capability.Generic }; 
@@ -48,17 +48,17 @@ namespace ShiftEverywhere.DiME
                 cap = capabilities.ConvertAll(c => c.ToString().ToLower()).ToArray();
             else
                 cap = new string[1] { Capability.Generic.ToString().ToLower() };
-            iir._claims = new IirClaims(Guid.NewGuid(), now, keybox.PublicKey, cap, principles);
+            iir._claims = new IirClaims(Guid.NewGuid(), now, keybox.Public, cap, principles);
             iir._signature = Crypto.GenerateSignature(iir.Encode(), keybox);
             return iir;
         }
 
         public void Verify()
         {
-            Verify(KeyBox.FromBase58Key(this.PublicKey));
+            Verify(Key.FromBase58Key(this.PublicKey));
         }
 
-        public override void Verify(KeyBox keybox)
+        public override void Verify(Key keybox)
         {
             if (DateTimeOffset.UtcNow.ToUnixTimeSeconds() < this.IssuedAt) { throw new DateExpirationException("An identity issuing request cannot have an issued at date in the future."); }
             base.Verify(keybox);
@@ -79,9 +79,9 @@ namespace ShiftEverywhere.DiME
         /// <param name="allowedCapabilities">The capabilities allowed for the to be issued identity.</param>
         /// <param name="issuerIdentitys">The identity of the issuer (optional).</param>
         /// <returns>Returns an imutable Identity instance.</returns>
-        public Identity IssueIdentity(Guid subjectId, long validFor, List<Capability> allowedCapabilities, KeyBox issuerKeypair, Identity issuerIdentity, string[] ambits = null) 
+        public Identity IssueIdentity(Guid subjectId, long validFor, List<Capability> allowedCapabilities, Key issuerKeypair, Identity issuerIdentity, string[] ambits = null) 
         {    
-            bool isSelfSign = (issuerIdentity == null || this.PublicKey == issuerKeypair.PublicKey);
+            bool isSelfSign = (issuerIdentity == null || this.PublicKey == issuerKeypair.Public);
             this.CompleteCapabilities(allowedCapabilities, isSelfSign);
             if (isSelfSign || issuerIdentity.HasCapability(Capability.Issue))
             {

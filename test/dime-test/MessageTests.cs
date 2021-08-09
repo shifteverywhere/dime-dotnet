@@ -50,7 +50,7 @@ namespace ShiftEverywhere.DiMETest
             Identity.SetTrustedIdentity(Commons.TrustedIdentity);
             Message message = new Message(Commons.ReceiverIdentity.SubjectId, Commons.SenderIdentity.SubjectId, 10);
             message.SetPayload(Encoding.UTF8.GetBytes("Racecar is racecar backwards."));
-            message.Sign(Commons.SenderKeybox);
+            message.Sign(Commons.SenderKey);
             string encoded = message.Export();
             Assert.IsNotNull(encoded);
             Assert.IsTrue(encoded.Length > 0);
@@ -75,7 +75,7 @@ namespace ShiftEverywhere.DiMETest
             Identity.SetTrustedIdentity(Commons.TrustedIdentity);
             Message message = new Message(Commons.ReceiverIdentity.SubjectId, Commons.SenderIdentity.SubjectId, 10);
             message.SetPayload(Encoding.UTF8.GetBytes("Racecar is racecar backwards."));
-            message.Sign(Commons.SenderKeybox);
+            message.Sign(Commons.SenderKey);
             Assert.AreEqual(message.Export(), message.Export());
         }
 
@@ -85,9 +85,9 @@ namespace ShiftEverywhere.DiMETest
             Identity.SetTrustedIdentity(Commons.TrustedIdentity);
             Message message = new Message(Commons.ReceiverIdentity.SubjectId, Commons.SenderIdentity.SubjectId, -10);
             message.SetPayload(Encoding.UTF8.GetBytes("Racecar is racecar backwards."));
-            message.Sign(Commons.SenderKeybox);
+            message.Sign(Commons.SenderKey);
             try {
-                message.Verify(Commons.SenderKeybox);
+                message.Verify(Commons.SenderKey);
             } catch (DateExpirationException) { return; } // All is well
             Assert.IsTrue(false, "Should not happen.");     
         }
@@ -96,14 +96,14 @@ namespace ShiftEverywhere.DiMETest
         public void VerifyTest2()
         {
             List<Capability> caps = new List<Capability> { Capability.Identify };
-            KeyBox keypair = KeyBox.Generate(KeyType.Identity);
+            Key keypair = Key.Generate(KeyType.Identity);
             Identity untrustedSender = IdentityIssuingRequest.Generate(keypair).IssueIdentity(Guid.NewGuid(), 120, caps,  keypair,  null);
             Identity.SetTrustedIdentity(Commons.TrustedIdentity);
             Message message = new Message(Commons.ReceiverIdentity.SubjectId, untrustedSender.SubjectId, 120);
             message.SetPayload(Encoding.UTF8.GetBytes("Racecar is racecar backwards."));
             message.Sign(keypair);
             try {
-                message.Verify(Commons.SenderKeybox);
+                message.Verify(Commons.SenderKey);
             } catch (IntegrityException) { return; } // All is well
             Assert.IsTrue(false, "Should not happen.");
         }
@@ -114,7 +114,7 @@ namespace ShiftEverywhere.DiMETest
             Identity.SetTrustedIdentity(Commons.TrustedIdentity);
             Message message = new Message(Commons.ReceiverIdentity.SubjectId, Commons.SenderIdentity.SubjectId, 120);
             message.SetPayload(Encoding.UTF8.GetBytes("Racecar is racecar backwards."));
-            message.Sign(Commons.SenderKeybox);
+            message.Sign(Commons.SenderKey);
             message.Verify(Commons.SenderIdentity.PublicKey);
         }
 
@@ -149,10 +149,10 @@ namespace ShiftEverywhere.DiMETest
         {  
             Message message1 = new Message(Commons.ReceiverIdentity.SubjectId, Commons.SenderIdentity.SubjectId, 120);
             message1.SetPayload(Encoding.UTF8.GetBytes("Racecar is racecar backwards."));
-            message1.Sign(Commons.SenderKeybox);
+            message1.Sign(Commons.SenderKey);
             string encoded = message1.Export();
             Message message2 = Item.Import<Message>(encoded);
-            message2.Verify(Commons.SenderKeybox);
+            message2.Verify(Commons.SenderKey);
         }
 
         [TestMethod]
@@ -161,7 +161,7 @@ namespace ShiftEverywhere.DiMETest
             Identity.SetTrustedIdentity(Commons.TrustedIdentity);
             Message message = new Message(Commons.ReceiverIdentity.SubjectId, Commons.SenderIdentity.SubjectId, 10);
             try {
-                message.Sign(Commons.SenderKeybox);
+                message.Sign(Commons.SenderKey);
             } catch (InvalidOperationException) { return; } // All is well
             Assert.IsTrue(false, "Should not happen.");
         }
@@ -173,7 +173,7 @@ namespace ShiftEverywhere.DiMETest
             Message message = new Message(Commons.ReceiverIdentity.SubjectId, Commons.SenderIdentity.SubjectId, 10);
             message.SetPayload(Encoding.UTF8.GetBytes("Racecar is racecar backwards."));
             Assert.IsFalse(message.IsSigned);
-            message.Sign(Commons.SenderKeybox);
+            message.Sign(Commons.SenderKey);
             Assert.IsTrue(message.IsSigned);
         }
         
@@ -191,7 +191,7 @@ namespace ShiftEverywhere.DiMETest
             Message message1 = new Message(Commons.ReceiverIdentity.SubjectId, Commons.SenderIdentity.SubjectId, 100);
             message1.SetPayload(Encoding.UTF8.GetBytes("Racecar is racecar backwards."));
             Assert.AreEqual("Racecar is racecar backwards.", System.Text.Encoding.UTF8.GetString(message1.GetPayload()));
-            message1.Sign(Commons.SenderKeybox);
+            message1.Sign(Commons.SenderKey);
             Message message2 = Item.Import<Message>(message1.Export());
             Assert.AreEqual("Racecar is racecar backwards.", System.Text.Encoding.UTF8.GetString(message2.GetPayload()));
         }
@@ -199,8 +199,8 @@ namespace ShiftEverywhere.DiMETest
         [TestMethod]
         public void SetPayloadTest3()
         {
-            KeyBox localAudienceKeyBox = KeyBox.Generate(KeyType.Exchange);
-            KeyBox remoteAudenceKeyBox = localAudienceKeyBox.PublicOnly();
+            Key localAudienceKeyBox = Key.Generate(KeyType.Exchange);
+            Key remoteAudenceKeyBox = localAudienceKeyBox.PublicOnly();
             Message message = new Message(Commons.ReceiverIdentity.SubjectId, Commons.SenderIdentity.SubjectId, 100);
             message.SetPayload(Encoding.UTF8.GetBytes("Racecar is racecar backwards."), remoteAudenceKeyBox);
             try {
@@ -212,8 +212,8 @@ namespace ShiftEverywhere.DiMETest
         [TestMethod]
         public void SetPayloadTest4()
         {
-            KeyBox localAudienceKeyBox = KeyBox.Generate(KeyType.Exchange);
-            KeyBox remoteAudenceKeyBox = localAudienceKeyBox.PublicOnly();
+            Key localAudienceKeyBox = Key.Generate(KeyType.Exchange);
+            Key remoteAudenceKeyBox = localAudienceKeyBox.PublicOnly();
             Message message = new Message(Commons.ReceiverIdentity.SubjectId, Commons.SenderIdentity.SubjectId, 100);
             message.SetPayload(Encoding.UTF8.GetBytes("Racecar is racecar backwards."), remoteAudenceKeyBox);
             Assert.AreEqual("Racecar is racecar backwards.", System.Text.Encoding.UTF8.GetString(message.GetPayload(localAudienceKeyBox)));
@@ -222,11 +222,11 @@ namespace ShiftEverywhere.DiMETest
         [TestMethod]
         public void SetPayloadTest5()
         {
-            KeyBox localAudienceKeyBox = KeyBox.Generate(KeyType.Exchange);
-            KeyBox remoteAudenceKeyBox = localAudienceKeyBox.PublicOnly();
+            Key localAudienceKeyBox = Key.Generate(KeyType.Exchange);
+            Key remoteAudenceKeyBox = localAudienceKeyBox.PublicOnly();
             Message message1 = new Message(Commons.ReceiverIdentity.SubjectId, Commons.SenderIdentity.SubjectId, 100);
             message1.SetPayload(Encoding.UTF8.GetBytes("Racecar is racecar backwards."), remoteAudenceKeyBox);
-            message1.Sign(Commons.SenderKeybox);
+            message1.Sign(Commons.SenderKey);
             Message message2 = Item.Import<Message>(message1.Export());
             Assert.AreEqual("Racecar is racecar backwards.", System.Text.Encoding.UTF8.GetString(message2.GetPayload(localAudienceKeyBox)));
         }
@@ -234,7 +234,7 @@ namespace ShiftEverywhere.DiMETest
         [TestMethod]
         public void SetPayloadTest6()
         {
-            KeyBox keybox = KeyBox.Generate(KeyType.Identity);
+            Key keybox = Key.Generate(KeyType.Identity);
             Message message = new Message(Commons.ReceiverIdentity.SubjectId, Commons.SenderIdentity.SubjectId, 100);
             try {
                 message.SetPayload(Encoding.UTF8.GetBytes("Racecar is racecar backwards."), keybox);
@@ -250,16 +250,16 @@ namespace ShiftEverywhere.DiMETest
             Identity receiver = Commons.ReceiverIdentity;
             Message issuerMessage = new Message(receiver.SubjectId, issuer.SubjectId, 100);
             issuerMessage.SetPayload(Encoding.UTF8.GetBytes("Racecar is racecar backwards."));
-            issuerMessage.Sign(Commons.SenderKeybox);
+            issuerMessage.Sign(Commons.SenderKey);
             string issuerEncoded = issuerMessage.Export();
             Message receivedMessage = Item.Import<Message>(issuerEncoded);
             Message responseMessage = new Message(issuer.SubjectId, receiver.SubjectId, 100);
             responseMessage.SetPayload(Encoding.UTF8.GetBytes("It is!"));
             responseMessage.LinkItem(issuerMessage);
-            responseMessage.Sign(Commons.ReceiverKeybox);
+            responseMessage.Sign(Commons.ReceiverKey);
             string responseEncoded = responseMessage.Export();
             Message finalMessage = Item.Import<Message>(responseEncoded);
-            finalMessage.Verify(Commons.ReceiverKeybox, issuerMessage);
+            finalMessage.Verify(Commons.ReceiverKey, issuerMessage);
         }
 
         [TestMethod]
@@ -268,10 +268,10 @@ namespace ShiftEverywhere.DiMETest
             Identity.SetTrustedIdentity(Commons.TrustedIdentity);
             Message message = new Message(Commons.ReceiverIdentity.SubjectId, Commons.SenderIdentity.SubjectId, 100);
             message.SetPayload(Encoding.UTF8.GetBytes("Racecar is racecar backwards."));
-            message.LinkItem(KeyBox.Generate(KeyType.Exchange));
-            message.Sign(Commons.SenderKeybox);
+            message.LinkItem(Key.Generate(KeyType.Exchange));
+            message.Sign(Commons.SenderKey);
             try {
-                message.Verify(Commons.SenderKeybox, Commons.SenderKeybox);
+                message.Verify(Commons.SenderKey, Commons.SenderKey);
             } catch (IntegrityException) { return; } // All is well
             Assert.IsTrue(false, "Should not happen.");
         }
@@ -282,9 +282,9 @@ namespace ShiftEverywhere.DiMETest
             Identity.SetTrustedIdentity(Commons.TrustedIdentity);
             Message message = new Message(Commons.ReceiverIdentity.SubjectId, Commons.SenderIdentity.SubjectId, 100);
             message.SetPayload(Encoding.UTF8.GetBytes("Racecar is racecar backwards."));
-            message.Sign(Commons.SenderKeybox);
+            message.Sign(Commons.SenderKey);
             try {
-                message.LinkItem(KeyBox.Generate(KeyType.Exchange));
+                message.LinkItem(Key.Generate(KeyType.Exchange));
             } catch (InvalidOperationException) { return; } // All is well
             Assert.IsTrue(false, "Should not happen.");
         }
@@ -295,7 +295,7 @@ namespace ShiftEverywhere.DiMETest
             Identity.SetTrustedIdentity(Commons.TrustedIdentity);
             Message message1 = new Message(Commons.ReceiverIdentity.SubjectId, Commons.SenderIdentity.SubjectId, 100);
             message1.SetPayload(Encoding.UTF8.GetBytes("Racecar is racecar backwards."));
-            message1.Sign(Commons.SenderKeybox);
+            message1.Sign(Commons.SenderKey);
             string thumbprint1 = message1.Thumbprint();
             string encoded = message1.Export();
             Message message2 = Item.Import<Message>(encoded);
@@ -311,10 +311,10 @@ namespace ShiftEverywhere.DiMETest
             Identity receiver = Commons.ReceiverIdentity;
             Message issuerMessage1 = new Message(receiver.SubjectId, issuer.SubjectId, 100);
             issuerMessage1.SetPayload(Encoding.UTF8.GetBytes("Racecar is racecar backwards."));
-            issuerMessage1.Sign(Commons.SenderKeybox);
+            issuerMessage1.Sign(Commons.SenderKey);
             Message issuerMessage2 = new Message(receiver.SubjectId, issuer.SubjectId, 100);
             issuerMessage2.SetPayload(Encoding.UTF8.GetBytes("Racecar is racecar backwards."));
-            issuerMessage2.Sign(Commons.SenderKeybox);
+            issuerMessage2.Sign(Commons.SenderKey);
             Assert.AreNotEqual(issuerMessage1.Thumbprint(), issuerMessage2.Thumbprint());
         }
  

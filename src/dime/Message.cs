@@ -67,7 +67,7 @@ namespace ShiftEverywhere.DiME
         #endregion
         #region -- PUBLIC INTERFACE --
 
-        public override void Sign(KeyBox keybox)
+        public override void Sign(Key keybox)
         {
             if (this._payload == null) { throw new InvalidOperationException("Unable to sign message, no payload added."); }
             base.Sign(keybox);
@@ -86,7 +86,7 @@ namespace ShiftEverywhere.DiME
             return message;
         }
 
-        public override void Verify(KeyBox keybox) { 
+        public override void Verify(Key keybox) { 
             if (this._payload == null || this._payload.Length == 0) { throw new InvalidOperationException("Unable to verify message, no payload added."); }
             // Verify IssuedAt and ExpiresAt
             long now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
@@ -98,10 +98,10 @@ namespace ShiftEverywhere.DiME
 
         public void Verify(string publicKey, Item linkedItem)
         {
-            Verify(new KeyBox(publicKey), linkedItem);
+            Verify(new Key(publicKey), linkedItem);
         }
 
-        public void Verify(KeyBox keybox, Item linkedItem)
+        public void Verify(Key keybox, Item linkedItem)
         {
             Verify(keybox);
             if (linkedItem != null)
@@ -120,16 +120,16 @@ namespace ShiftEverywhere.DiME
         /// <summary>Will set a message payload. This may be any valid byte-array, at export this will be
         /// encoded as a Base64 string. If a payload is already set, then the old will be overwritten.</summary>
         /// <param name="payload">The payload to set.</param>
-        public void SetPayload(byte[] payload, KeyBox audienceKeybox = null)
+        public void SetPayload(byte[] payload, Key audienceKeybox = null)
         {
             if (this.IsSigned) { throw new InvalidOperationException("Unable to set payload, message already signed."); }
             if (audienceKeybox != null)
             {
                 if (audienceKeybox.Type != KeyType.Exchange) { throw new ArgumentException("Unable to encrypt, invalid key type.", nameof(audienceKeybox)); }
-                if (audienceKeybox.PublicKey == null) { throw new ArgumentNullException(nameof(audienceKeybox), "Unable to encrypt, public key must not be null."); }
+                if (audienceKeybox.Public == null) { throw new ArgumentNullException(nameof(audienceKeybox), "Unable to encrypt, public key must not be null."); }
                 this._claims.kid = audienceKeybox.UniqueId;
-                KeyBox ephemeralKeyBox = KeyBox.Generate(KeyType.Exchange, audienceKeybox.Profile);
-                this._claims.pub = ephemeralKeyBox.PublicKey;
+                Key ephemeralKeyBox = Key.Generate(KeyType.Exchange, audienceKeybox.Profile);
+                this._claims.pub = ephemeralKeyBox.Public;
                 byte[] info = Crypto.GenerateHash(audienceKeybox.Profile, Utility.Combine(this.IssuerId.ToByteArray(), this.AudienceId.ToByteArray()));
                 var key = Crypto.GenerateSharedSecret(ephemeralKeyBox, audienceKeybox, audienceKeybox.UniqueId.ToByteArray(), info);
                 this._payload = Utility.ToBase64(Crypto.Encrypt(payload, key));
@@ -140,16 +140,16 @@ namespace ShiftEverywhere.DiME
 
         /// <summary>Returns the payload inside the message.</summary>
         /// <returns>A byte-array.</returns>
-        public byte[] GetPayload(KeyBox audienceKeybox = null)
+        public byte[] GetPayload(Key audienceKeybox = null)
         {
             if (this.KeyId.HasValue && audienceKeybox == null) { throw new ArgumentNullException(nameof(audienceKeybox), "Payload is encrypted, provide a valid keybox for decryption."); }
             if (this.KeyId.HasValue && audienceKeybox != null)
             {
                 if (audienceKeybox.Type != KeyType.Exchange) { throw new ArgumentException("Unable to decrypt, invalid key type.", nameof(audienceKeybox)); }
-                if (audienceKeybox.Key == null) { throw new ArgumentNullException(nameof(audienceKeybox), "Unable to decrypt, key must not be null."); }
+                if (audienceKeybox.Secret == null) { throw new ArgumentNullException(nameof(audienceKeybox), "Unable to decrypt, key must not be null."); }
                 if (audienceKeybox.UniqueId != this.KeyId) { throw new KeyMismatchException("Unable to decrypt, mismatching unique id of key provided."); }
                 byte[] info = Crypto.GenerateHash(audienceKeybox.Profile, Utility.Combine(this.IssuerId.ToByteArray(), this.AudienceId.ToByteArray()));
-                var key = Crypto.GenerateSharedSecret(audienceKeybox, new KeyBox(this._claims.pub), audienceKeybox.UniqueId.ToByteArray(), info);
+                var key = Crypto.GenerateSharedSecret(audienceKeybox, new Key(this._claims.pub), audienceKeybox.UniqueId.ToByteArray(), info);
                 return Crypto.Decrypt(Utility.FromBase64(this._payload), key);
             }
             else

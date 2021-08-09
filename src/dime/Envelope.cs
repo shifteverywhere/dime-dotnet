@@ -76,21 +76,21 @@ namespace ShiftEverywhere.DiME
             return this;
         }
 
-        public Envelope Sign(KeyBox keybox)
+        public Envelope Sign(Key key)
         {
             if (this.IsAnonymous) { throw new InvalidOperationException("Unable to sign, envelope is anonymous."); }
             if (this._signature != null) { throw new InvalidOperationException("Unable to sign, envelope is already signed."); }
             if (this._items == null || this._items.Count == 0) { throw new InvalidOperationException("Unable to sign, at least one item must be attached before signing an envelope."); }
-            this._signature = Crypto.GenerateSignature(Encode(), keybox);
+            this._signature = Crypto.GenerateSignature(Encode(), key);
             return this;
         }
 
         public void Verify(string publicKey)
         {
-            Verify(new KeyBox(publicKey));
+            Verify(new Key(publicKey));
         }
         
-        public Envelope Verify(KeyBox keybox)
+        public Envelope Verify(Key keybox)
         {
             if (this.IsAnonymous) { throw new InvalidOperationException("Unable to verify, envelope is anonymous."); }
             if (this._signature == null) { throw new InvalidOperationException("Unable to verify, envelope is not signed."); }

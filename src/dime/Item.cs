@@ -43,10 +43,10 @@ namespace ShiftEverywhere.DiME
             return item;
         }
         
-        public virtual void Sign(KeyBox keybox)
+        public virtual void Sign(Key keybox)
         {
             if (this.IsSigned) { throw new InvalidOperationException("Unable to sign item, it is already signed."); }
-            if (keybox == null || keybox.Key == null) { throw new ArgumentNullException(nameof(keybox), "Unable to sign item, key for signing must not be null."); }
+            if (keybox == null || keybox.Secret == null) { throw new ArgumentNullException(nameof(keybox), "Unable to sign item, key for signing must not be null."); }
             this._signature = Crypto.GenerateSignature(Encode(), keybox);
         }
 
@@ -69,17 +69,17 @@ namespace ShiftEverywhere.DiME
                 case Identity.TAG: return typeof(Identity);
                 case IdentityIssuingRequest.TAG: return typeof(IdentityIssuingRequest);
                 case Message.TAG: return typeof(Message);
-                case KeyBox.TAG: return typeof(KeyBox);
+                case Key.TAG: return typeof(Key);
                 default: return null;
             }
         }
 
         public void Verify(string publicKey)
         {
-            Verify(new KeyBox(publicKey));
+            Verify(new Key(publicKey));
         }
 
-        public virtual void Verify(KeyBox keybox)
+        public virtual void Verify(Key keybox)
         {
             if (!this.IsSigned) { throw new InvalidOperationException("Unable to verify, item is not signed."); }
             Crypto.VerifySignature(Encode(), this._signature, keybox);

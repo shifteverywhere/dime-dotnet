@@ -1,5 +1,5 @@
 //
-//  Enumerations.cs
+//  Enums.cs
 //  DiME - Digital Identity Message Envelope
 //  A secure and compact messaging format for assertion and practical use of digital identities.
 //
