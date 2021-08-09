@@ -43,11 +43,11 @@ namespace ShiftEverywhere.DiME
             return item;
         }
         
-        public virtual void Sign(Key keybox)
+        public virtual void Sign(Key key)
         {
             if (this.IsSigned) { throw new InvalidOperationException("Unable to sign item, it is already signed."); }
-            if (keybox == null || keybox.Secret == null) { throw new ArgumentNullException(nameof(keybox), "Unable to sign item, key for signing must not be null."); }
-            this._signature = Crypto.GenerateSignature(Encode(), keybox);
+            if (key == null || key.Secret == null) { throw new ArgumentNullException(nameof(key), "Unable to sign item, key for signing must not be null."); }
+            this._signature = Crypto.GenerateSignature(Encode(), key);
         }
 
         public string Thumbprint(Profile profile = Profile.Uno)

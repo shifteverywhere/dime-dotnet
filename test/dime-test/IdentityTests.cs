@@ -23,7 +23,7 @@ namespace ShiftEverywhere.DiMETest
             Identity.SetTrustedIdentity(null);
             Profile profile = Profile.Uno;
             Guid subjectId = Guid.NewGuid();
-            Key key = Key.Generate(KeyType.Identity, profile);
+            Key key = Key.Generate(KeyType.Identity, -1, profile);
             //string k = key.Export();
             List<Capability> caps = new List<Capability> { Capability.Generic, Capability.Issue };
             Identity identity = IdentityIssuingRequest.Generate(key, caps).IssueIdentity(subjectId, 100, caps,  key,  null);
@@ -35,7 +35,8 @@ namespace ShiftEverywhere.DiMETest
             Assert.IsTrue(identity.HasCapability(caps[1]));
             Assert.IsTrue(identity.HasCapability(Capability.Self));
             Assert.IsTrue(key.Public == identity.PublicKey);
-            Assert.IsTrue(identity.IssuedAt != 0);
+            Assert.IsNotNull(identity.IssuedAt);
+            Assert.IsNotNull(identity.ExpiresAt);
             Assert.IsTrue(identity.IssuedAt < identity.ExpiresAt);
             Assert.IsTrue(subjectId == identity.IssuerId);
         }
@@ -45,19 +46,20 @@ namespace ShiftEverywhere.DiMETest
         {
             Identity.SetTrustedIdentity(Commons.TrustedIdentity);
             Guid subjectId = Guid.NewGuid();
-            Key key = Key.Generate(KeyType.Identity, Profile.Uno);
-            //string k = key.Export();
+            Key key = Key.Generate(KeyType.Identity, -1, Profile.Uno);
+            string k = key.Export();
             List<Capability> caps = new List<Capability> { Capability.Generic, Capability.Identify };
             //List<Capability> caps = new List<Capability> { Capability.Generic, Capability.Identify, Capability.Issue };
             IdentityIssuingRequest iir = IdentityIssuingRequest.Generate(key, caps);
             Identity identity = IdentityIssuingRequest.Generate(key, caps).IssueIdentity(subjectId, IdentityIssuingRequest.VALID_FOR_1_YEAR, caps, Commons.IntermediateKey, Commons.IntermediateIdentity);
-            //Identity identity = IdentityIssuingRequest.Generate(key, caps).IssueIdentity(subjectId, IdentityIssuingRequest.VALID_FOR_1_YEAR * 5, caps, Commons.TrustedKeybox, Commons.TrustedIdentity);
-            //string id = identity.Export();
+            //Identity identity = IdentityIssuingRequest.Generate(key, caps).IssueIdentity(subjectId, IdentityIssuingRequest.VALID_FOR_1_YEAR * 5, caps, Commons.TrustedKey, Commons.TrustedIdentity);
+            string id = identity.Export();
             Assert.IsTrue(subjectId == identity.SubjectId);
             Assert.IsTrue(identity.HasCapability(caps[0]));
             Assert.IsTrue(identity.HasCapability(caps[1]));
             Assert.IsTrue(key.Public == identity.PublicKey);
-            Assert.IsTrue(identity.IssuedAt != 0);
+            Assert.IsNotNull(identity.IssuedAt);
+            Assert.IsNotNull(identity.ExpiresAt);
             Assert.IsTrue(identity.IssuedAt < identity.ExpiresAt);
             Assert.IsTrue(Commons.IntermediateIdentity.SubjectId == identity.IssuerId);
         }
@@ -166,15 +168,15 @@ namespace ShiftEverywhere.DiMETest
         public void ImportTest1()
         {
             Identity.SetTrustedIdentity(Commons.TrustedIdentity);
-            string exported = "Di:ID.eyJ1aWQiOiJjNDhlNGI2OC05MWFjLTRjOTMtYmE5Ni0xYzM1YzUwNzYxZDQiLCJzdWIiOiIzNGU3MDgxYi04ODcxLTQ2N2EtYTk2My03ZjBlZWRiNDJjODAiLCJpc3MiOiI2NDc1ODliZi03ZjdlLTRkNGMtODE3NC1lM2ViMzY2ZDVhOTEiLCJpYXQiOjE2MjYzNzg0OTYsImV4cCI6MTY1NzkxNDQ5NiwicHViIjoiQ1lIdDdnWVdqek54NXV6eWNmTjE4WVIxUjJMUEVmNTVoQWt1TkFCd0t3QXhBTkFia1pzOWR3IiwiY2FwIjpbImdlbmVyaWMiLCJpZGVudGlmeSJdfQ.SUQuZXlKMWFXUWlPaUprTWpjMVpESmpNeTAzWkRGbUxUUTBZVEV0T0Rjd1pTMHpPRFEyT1dWaU1EUmhORFVpTENKemRXSWlPaUkyTkRjMU9EbGlaaTAzWmpkbExUUmtOR010T0RFM05DMWxNMlZpTXpZMlpEVmhPVEVpTENKcGMzTWlPaUpqWVROaE1HWTFZeTAyTUdVeExUUmtZemd0WVRSaE9TMDNZVGd3T0Rrek5qTTVaV1lpTENKcFlYUWlPakUyTWpZek56Z3pNRFVzSW1WNGNDSTZNVGM0TkRBMU9ETXdOU3dpY0hWaUlqb2lRMWxJZERadFFXSldNemxwVG5kTVFrRkJWRTV0WTJaM2IwUTBWbTE1VUd0a2NFWldTa3RtU0RGTlJuSnpVRmN6WjNkMk1VcHlJaXdpWTJGd0lqcGJJbWRsYm1WeWFXTWlMQ0pwWkdWdWRHbG1lU0lzSW1semMzVmxJbDE5LkFhdmZLZzFXMTM1cndHamozMVZoNE5DMkM5N044QTE0ZDFWb1R1MGVnWElmK0s5N0lYdWxvYXJhY08zR1FUb044SHB2VjNMeVFPV0I2OHNnUHU1T3ZRcw.AavQrK+J3jQ+sEJKoFbh12aA0vhx4z7n3FijXsF9AOOLFNkmZSelEbdPxJ3A2VFrfHEaT5/GzB5LYcJ0jUbihgQ";
+            string exported = "Di:ID.eyJ1aWQiOiI3ZDZhNTVlOC0yMWJhLTQ4MGMtOGFmNi1iNGE0NGYwMjRmYWUiLCJzdWIiOiI5NzNhNmI2My02MjRhLTQwYjktYjNjZi1hMDU1MTljODVhZWYiLCJpc3MiOiI0OTdkMTU2Ny1kMTBhLTRiNWYtOGIwOS00YmQ5NDc3ZTQyOTUiLCJpYXQiOiIyMDIxLTA4LTA5VDEwOjE2OjMxLjAyMzE5M1oiLCJleHAiOiIyMDIyLTA4LTA5VDEwOjE2OjMxLjAyMzE5M1oiLCJwdWIiOiJDWUh0N1pmSnlnZXloOWdtNUV3Z0s5NUVWanJvRE4xQzZlV2JpY0pCc0ZuTjJnaUN1VEJNRk4iLCJjYXAiOlsiZ2VuZXJpYyIsImlkZW50aWZ5Il19.SUQuZXlKMWFXUWlPaUkyWmpVek4yUXlZUzB3TWpKaUxUUmhNR1F0WWpVNFl5MHlNRFZqT1dRd01XRXpOelFpTENKemRXSWlPaUkwT1Rka01UVTJOeTFrTVRCaExUUmlOV1l0T0dJd09TMDBZbVE1TkRjM1pUUXlPVFVpTENKcGMzTWlPaUpoWXpZMFlXTm1aaTFrTXpCbUxUUXdNVEF0WWprMk5TMHpOVEZoTVRkbE1URTBOMllpTENKcFlYUWlPaUl5TURJeExUQTRMVEE1VkRBNU9qVXhPakkwTGpjM016azJPVm9pTENKbGVIQWlPaUl5TURJMkxUQTRMVEE0VkRBNU9qVXhPakkwTGpjM016azJPVm9pTENKd2RXSWlPaUpEV1VoME4zSk5RV3Q2TVUxU1FrSjJRbkUwVFhOTVJWSnZRVVZpTjJSMlZ6STJXa05yTjFaVFZsWlZhRmRwWTFOcmNrSlNhVVFpTENKallYQWlPbHNpWjJWdVpYSnBZeUlzSW1sa1pXNTBhV1o1SWl3aWFYTnpkV1VpWFgwLkFRdFFuaUZ2My9mMXlod1p0ZjZxcCtoZVVpaW9sdlVnYUp3TzFMWjIrcTJydG1tWGtQNC9xenp0Vms5a1ZOZE1KYzRFdFVjTVlaOTEzWXJydEpudnpnWQ.AUInSyL4AsrkXLFGC5M5yPp0rF7zUVGk4GC6p9wNiefueZSTEatN0mBE4ePXfFqDW4WnFHUnLtpnmsO45W0+uQw";
             Identity identity = Item.Import<Identity>(exported);
             Assert.IsNotNull(identity);
-            Assert.AreEqual(new Guid("c48e4b68-91ac-4c93-ba96-1c35c50761d4"), identity.UniqueId);
-            Assert.AreEqual(new Guid("34e7081b-8871-467a-a963-7f0eedb42c80"), identity.SubjectId);
-            Assert.AreEqual(1626378496, identity.IssuedAt);
-            Assert.AreEqual(1657914496, identity.ExpiresAt);
-            Assert.AreEqual(new Guid("647589bf-7f7e-4d4c-8174-e3eb366d5a91"), identity.IssuerId);
-            Assert.AreEqual("CYHt7gYWjzNx5uzycfN18YR1R2LPEf55hAkuNABwKwAxANAbkZs9dw", identity.PublicKey);
+            Assert.AreEqual(new Guid("7d6a55e8-21ba-480c-8af6-b4a44f024fae"), identity.UniqueId);
+            Assert.AreEqual(new Guid("973a6b63-624a-40b9-b3cf-a05519c85aef"), identity.SubjectId);
+            Assert.AreEqual(DateTime.Parse("2021-08-09T10:16:31.023193Z"), identity.IssuedAt);
+            Assert.AreEqual(DateTime.Parse("2022-08-09T10:16:31.023193Z"), identity.ExpiresAt);
+            Assert.AreEqual(new Guid("497d1567-d10a-4b5f-8b09-4bd9477e4295"), identity.IssuerId);
+            Assert.AreEqual("CYHt7ZfJygeyh9gm5EwgK95EVjroDN1C6eWbicJBsFnN2giCuTBMFN", identity.PublicKey);
             Assert.IsTrue(identity.HasCapability(Capability.Generic));
             Assert.IsTrue(identity.HasCapability(Capability.Identify));
             Assert.IsNotNull(identity.TrustChain);

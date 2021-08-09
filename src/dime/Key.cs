@@ -23,7 +23,9 @@ namespace ShiftEverywhere.DiME
          public Guid? IssuerId { get { return this._claims.iss; } }
         /// <summary></summary>
         public override Guid UniqueId { get { return this._claims.kid; } }
-         public long? IssuedAt { get { return this._claims.iat; } }
+        public DateTime IssuedAt { get { return Utility.FromTimestamp(this._claims.iat); } }
+        /// <summary></summary>
+        public DateTime ExpiresAt { get { return Utility.FromTimestamp(this._claims.exp); } }
         /// <summary></summary>
         public KeyType Type { get; private set; }
         /// <summary></summary>
@@ -34,9 +36,15 @@ namespace ShiftEverywhere.DiME
         public Key() { }
 
         /// <summary></summary>
-        public static Key Generate(KeyType type, Profile profile = Crypto.DEFUALT_PROFILE)
+        public static Key Generate(KeyType type, double validFor = -1, Profile profile = Crypto.DEFUALT_PROFILE)
         {
-            return Crypto.GenerateKeyBox(profile, type);
+            Key key = Crypto.GenerateKeyBox(profile, type);
+            if (validFor != -1)
+            {
+                DateTime exp = key.IssuedAt.AddSeconds(validFor);
+                key._claims.exp = Utility.ToTimestamp(exp);
+            }
+            return key;
         }
 
         public static Key FromBase58Key(string encodedKey)
@@ -68,13 +76,13 @@ namespace ShiftEverywhere.DiME
         internal Key(Guid id, KeyType type, byte[] key, byte[] publickey, Profile profile = Crypto.DEFUALT_PROFILE)
         {
             if (!Crypto.SupportedProfile(profile)) { throw new ArgumentException("Unsupported profile.", nameof(profile)); }
-            long iat = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-            this._claims = new KeyClaims(
-                null, 
-                id, 
-                iat,
-                DiME.Key.EncodeKey(key, (byte)type, (byte)KeyVariant.Private, (byte)profile),
-                DiME.Key.EncodeKey(publickey, (byte)type, (byte)KeyVariant.Public, (byte)profile));
+            DateTime iat = DateTime.Now;
+            this._claims = new KeyClaims(null, 
+                                         id, 
+                                         Utility.ToTimestamp(iat),
+                                         null,
+                                         DiME.Key.EncodeKey(key, (byte)type, (byte)KeyVariant.Private, (byte)profile),
+                                         DiME.Key.EncodeKey(publickey, (byte)type, (byte)KeyVariant.Public, (byte)profile));
             this.Type = type;
             this.Profile = profile;
             this.RawKey = key;
@@ -130,18 +138,21 @@ namespace ShiftEverywhere.DiME
             public Guid? iss { get; set; }
             public Guid kid { get; set; }
             [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-            public long? iat { get; set; }
+            public string iat { get; set; }
+            [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+            public string exp { get; set; }
             [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
             public string key { get; set; }
             [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
             public string pub { get; set; }
 
             [JsonConstructor]
-            public KeyClaims(Guid? iss, Guid kid, long? iat, string key, string pub)
+            public KeyClaims(Guid? iss, Guid kid, string iat, string exp, string key, string pub)
             {
                 this.iss = iss;
                 this.kid = kid;
                 this.iat = iat;
+                this.exp = exp;
                 this.key = key;
                 this.pub = pub;
             }

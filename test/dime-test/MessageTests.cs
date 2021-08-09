@@ -21,14 +21,14 @@ namespace ShiftEverywhere.DiMETest
         public void MessageTest1()
         {
             Identity.SetTrustedIdentity(Commons.TrustedIdentity);
-            long now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+            DateTime now = DateTime.Now;
             Message message = new Message(Commons.ReceiverIdentity.SubjectId, Commons.SenderIdentity.SubjectId, 10);
             message.SetPayload(Encoding.UTF8.GetBytes("Racecar is racecar backwards."));
             Assert.IsNotNull(message.UniqueId);
             Assert.AreEqual(Commons.ReceiverIdentity.SubjectId, message.AudienceId);
             Assert.AreEqual("Racecar is racecar backwards.", System.Text.Encoding.UTF8.GetString(message.GetPayload()));
-            Assert.IsTrue(message.IssuedAt >= now && message.IssuedAt <= (now + 1));
-            Assert.IsTrue(message.ExpiresAt >= (now + 10) && message.ExpiresAt <= (now + 10));
+            Assert.IsTrue(message.IssuedAt >= now && message.IssuedAt <= (now.AddSeconds(1)));
+            Assert.IsTrue(message.ExpiresAt > (now.AddSeconds(9)) && message.ExpiresAt < (now.AddSeconds(11)));
         }
 
         [TestMethod]
@@ -122,14 +122,14 @@ namespace ShiftEverywhere.DiMETest
         public void ImportTest1()
         {   
             Identity.SetTrustedIdentity(Commons.TrustedIdentity);
-            string encoded = "Di:MSG.eyJ1aWQiOiI0NzEzOTc0Ni0wODdhLTQ0ZmYtYTEwNi0yMzZhM2NmNzdmYTciLCJhdWQiOiIwZTMyZGY2Zi0xNjg3LTQwNTktODIyOS0yM2E2NzlhODExYzkiLCJpc3MiOiIzNGU3MDgxYi04ODcxLTQ2N2EtYTk2My03ZjBlZWRiNDJjODAiLCJpYXQiOjE2MjYzNzg4NDEsImV4cCI6MTYyNjM3ODg1MX0.UmFjZWNhciBpcyByYWNlY2FyIGJhY2t3YXJkcy4.ASkLvPlPcgrzFusLAulkOUCL1ZnMw5L8g4uZlbpwj5ClmQKOFpGdOOcxb9wLlHi8lZoFobqoxlvDR4Q11YkGiAc";
+            string encoded = "Di:MSG.eyJ1aWQiOiI2NjczZjE2NS1jN2E3LTQ4YWMtOThlZC1mMDg5MzBkYWYzNmYiLCJhdWQiOiIyZDIyNGZlYy0zNjZmLTQyODQtYTgyMi0wYTVmZjA0ZTcxMWQiLCJpc3MiOiJkMDBhZjBiNy04YWFlLTQ2YmEtYTMwOC0zZjMzYTg5ZGU0OGYiLCJpYXQiOiIyMDIxLTA4LTA5VDEwOjI4OjExLjY2MjYwNFoiLCJleHAiOiIyMDIxLTA4LTA5VDEwOjI4OjIxLjY2MjYwNFoifQ.UmFjZWNhciBpcyByYWNlY2FyIGJhY2t3YXJkcy4.AeMnAzWXEefl6FasxARy461SEkOfvKQ8rfpvdmAXxprJ1wjJgyktocGO8xMPT0B28kv+zK1/P60cnb3gcpHWtQ8";
             Message message = Item.Import<Message>(encoded);
-            Assert.AreEqual(new Guid("47139746-087a-44ff-a106-236a3cf77fa7"), message.UniqueId);
-            Assert.AreEqual(new Guid("0e32df6f-1687-4059-8229-23a679a811c9"), message.AudienceId);
-            Assert.AreEqual(new Guid("34e7081b-8871-467a-a963-7f0eedb42c80"), message.IssuerId);
+            Assert.AreEqual(new Guid("6673f165-c7a7-48ac-98ed-f08930daf36f"), message.UniqueId);
+            Assert.AreEqual(new Guid("2d224fec-366f-4284-a822-0a5ff04e711d"), message.AudienceId);
+            Assert.AreEqual(new Guid("d00af0b7-8aae-46ba-a308-3f33a89de48f"), message.IssuerId);
             Assert.AreEqual("Racecar is racecar backwards.", System.Text.Encoding.UTF8.GetString(message.GetPayload()));
-            Assert.AreEqual(1626378841, message.IssuedAt);
-            Assert.AreEqual(1626378851, message.ExpiresAt);
+            Assert.AreEqual(DateTime.Parse("2021-08-09T10:28:11.662604Z"), message.IssuedAt);
+            Assert.AreEqual(DateTime.Parse("2021-08-09T10:28:21.662604Z"), message.ExpiresAt);
             Assert.AreEqual(message.IssuerId, Commons.SenderIdentity.SubjectId);
         } 
 
@@ -200,7 +200,7 @@ namespace ShiftEverywhere.DiMETest
         public void SetPayloadTest3()
         {
             Key localAudienceKeyBox = Key.Generate(KeyType.Exchange);
-            Key remoteAudenceKeyBox = localAudienceKeyBox.PublicOnly();
+            Key remoteAudenceKeyBox = localAudienceKeyBox.PublicCopy();
             Message message = new Message(Commons.ReceiverIdentity.SubjectId, Commons.SenderIdentity.SubjectId, 100);
             message.SetPayload(Encoding.UTF8.GetBytes("Racecar is racecar backwards."), remoteAudenceKeyBox);
             try {
@@ -213,7 +213,7 @@ namespace ShiftEverywhere.DiMETest
         public void SetPayloadTest4()
         {
             Key localAudienceKeyBox = Key.Generate(KeyType.Exchange);
-            Key remoteAudenceKeyBox = localAudienceKeyBox.PublicOnly();
+            Key remoteAudenceKeyBox = localAudienceKeyBox.PublicCopy();
             Message message = new Message(Commons.ReceiverIdentity.SubjectId, Commons.SenderIdentity.SubjectId, 100);
             message.SetPayload(Encoding.UTF8.GetBytes("Racecar is racecar backwards."), remoteAudenceKeyBox);
             Assert.AreEqual("Racecar is racecar backwards.", System.Text.Encoding.UTF8.GetString(message.GetPayload(localAudienceKeyBox)));
@@ -223,7 +223,7 @@ namespace ShiftEverywhere.DiMETest
         public void SetPayloadTest5()
         {
             Key localAudienceKeyBox = Key.Generate(KeyType.Exchange);
-            Key remoteAudenceKeyBox = localAudienceKeyBox.PublicOnly();
+            Key remoteAudenceKeyBox = localAudienceKeyBox.PublicCopy();
             Message message1 = new Message(Commons.ReceiverIdentity.SubjectId, Commons.SenderIdentity.SubjectId, 100);
             message1.SetPayload(Encoding.UTF8.GetBytes("Racecar is racecar backwards."), remoteAudenceKeyBox);
             message1.Sign(Commons.SenderKey);

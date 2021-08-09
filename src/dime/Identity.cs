@@ -30,9 +30,9 @@ namespace ShiftEverywhere.DiME
         /// <summary>A unique UUID (GUID) of the identity. Same as the "sub" field.</summary>
         public Guid SubjectId { get { return this._claims.sub; } }        
         /// <summary>The date when the identity was issued, i.e. approved by the issuer. Same as the "iat" field.</summary>
-        public long IssuedAt { get { return this._claims.iat; } }
+        public DateTime IssuedAt { get { return Utility.FromTimestamp(this._claims.iat); } }
         /// <summary>The date when the identity will expire and should not be accepted anymore. Same as the "exp" field.</summary>
-        public long ExpiresAt { get { return this._claims.exp; } } 
+        public DateTime ExpiresAt { get { return Utility.FromTimestamp(this._claims.exp); } } 
         /// <summary>A unique UUID (GUID) of the issuer of the identity. Same as the "iss" field. If same value as subjectId, then this is a self-issued identity.</summary>
         public Guid IssuerId { get { return this._claims.iss; } }
         /// <summary>The public key associated with the identity. Same as the "iky" field.</summary>
@@ -61,7 +61,7 @@ namespace ShiftEverywhere.DiME
         public void VerifyTrust()
         {
             if (Identity.TrustedIdentity == null) { throw new InvalidOperationException("Unable to verify trust, no trusted identity set."); }
-            long now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+            DateTime now = DateTime.Now;
             if (this.IssuedAt > now) { throw new DateExpirationException("Identity is not yet valid, issued at date in the future."); }
             if (this.IssuedAt > this.ExpiresAt) { throw new DateExpirationException("Invalid expiration date, expires at before issued at."); }
             if (this.ExpiresAt < now) { throw new DateExpirationException("Identity has expired."); }
@@ -97,11 +97,19 @@ namespace ShiftEverywhere.DiME
 
         #region -- INTERNAL --
 
-        internal Identity(Guid subjectId, string publicKey, long issuedAt, long expiresAt, Guid issuerId, List<Capability> capabilities, Dictionary<string, dynamic> principles, string[] ambits) 
+        internal Identity(Guid subjectId, string publicKey, DateTime issuedAt, DateTime expiresAt, Guid issuerId, List<Capability> capabilities, Dictionary<string, dynamic> principles, string[] ambits) 
         {
             this._capabilities = capabilities;
             string[] cap = capabilities.ConvertAll(c => c.ToString().ToLower()).ToArray();
-            this._claims = new IdentityClaims(Guid.NewGuid(), subjectId, issuerId, issuedAt, expiresAt, publicKey, cap, principles, ambits);
+            this._claims = new IdentityClaims(Guid.NewGuid(), 
+                                              subjectId, 
+                                              issuerId, 
+                                              Utility.ToTimestamp(issuedAt), 
+                                              Utility.ToTimestamp(expiresAt), 
+                                              publicKey, 
+                                              cap, 
+                                              principles, 
+                                              ambits);
             if (ambits != null)
                 this.Ambits = new List<string>(ambits).AsReadOnly();
         }
@@ -169,8 +177,8 @@ namespace ShiftEverywhere.DiME
             public Guid uid { get; set; }
             public Guid sub { get; set; }
             public Guid iss { get; set; }
-            public long iat { get; set; }
-            public long exp { get; set; }
+            public string iat { get; set; }
+            public string exp { get; set; }
             public string pub { get; set; }
             [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
             public string[] cap { get; set; }
@@ -180,7 +188,7 @@ namespace ShiftEverywhere.DiME
             public string[] amb { get; set; }
 
             [JsonConstructor]
-            public IdentityClaims(Guid uid, Guid sub, Guid iss, long iat, long exp, string pub, string[] cap, Dictionary<string, dynamic> pri, string[] amb)
+            public IdentityClaims(Guid uid, Guid sub, Guid iss, string iat, string exp, string pub, string[] cap, Dictionary<string, dynamic> pri, string[] amb)
             {
                 this.uid = uid;
                 this.sub = sub;

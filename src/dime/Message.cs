@@ -30,9 +30,9 @@ namespace ShiftEverywhere.DiME
         /// <summary>The id of the issuer (subject id of the issuer).</summary>
         public Guid IssuerId { get { return this._claims.iss; } }
         /// <summary>The timestamp of when the message was created (issued).</summary>
-        public long IssuedAt { get { return this._claims.iat; } }
+        public DateTime IssuedAt { get { return Utility.FromTimestamp(this._claims.iat); } }
         /// <summary>The timestamp of when the message is expired and is no longer valid.</summary>
-        public long ExpiresAt { get { return this._claims.exp ?? -1; } }
+        public DateTime? ExpiresAt { get { return (this._claims.exp != null) ? Utility.FromTimestamp(this._claims.exp) : null; } }
         /// <summary>Will be set to the unique identifier of a KeyBox used to derive a shared encryption
         /// key for the attached payload. This will be a KeyBox with type 'Exchange' that has previously
         /// been shared, in its public form, by the audience (receiver) of this message.
@@ -57,11 +57,18 @@ namespace ShiftEverywhere.DiME
 
         public Message() { }
 
-        public Message(Guid audienceId, Guid issuerId, long? validFor = null)
+        public Message(Guid audienceId, Guid issuerId, double validFor = -1)
         {
-            long iat = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-            long? exp = (validFor.HasValue && validFor.Value > 0) ? iat + validFor.Value : null; 
-            this._claims = new MessageClaims(Guid.NewGuid(), audienceId, issuerId, iat, exp, null, null, null);
+            DateTime iat = DateTime.Now;
+            DateTime? exp = (validFor != -1) ? iat.AddSeconds(validFor) : null; 
+            this._claims = new MessageClaims(Guid.NewGuid(), 
+                                             audienceId, 
+                                             issuerId, 
+                                             Utility.ToTimestamp(iat), 
+                                             (exp.HasValue) ? Utility.ToTimestamp(exp.Value) : null, 
+                                             null, 
+                                             null, 
+                                             null);
         }
 
         #endregion
@@ -89,7 +96,7 @@ namespace ShiftEverywhere.DiME
         public override void Verify(Key keybox) { 
             if (this._payload == null || this._payload.Length == 0) { throw new InvalidOperationException("Unable to verify message, no payload added."); }
             // Verify IssuedAt and ExpiresAt
-            long now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+            DateTime now = DateTime.Now;
             if (this.IssuedAt > now) { throw new DateExpirationException("Issuing date in the future."); }
             if (this.IssuedAt > this.ExpiresAt) { throw new DateExpirationException("Expiration before issuing date."); }
             if (this.ExpiresAt < now) { throw new DateExpirationException("Passed expiration date."); }
@@ -128,7 +135,7 @@ namespace ShiftEverywhere.DiME
                 if (audienceKeybox.Type != KeyType.Exchange) { throw new ArgumentException("Unable to encrypt, invalid key type.", nameof(audienceKeybox)); }
                 if (audienceKeybox.Public == null) { throw new ArgumentNullException(nameof(audienceKeybox), "Unable to encrypt, public key must not be null."); }
                 this._claims.kid = audienceKeybox.UniqueId;
-                Key ephemeralKeyBox = Key.Generate(KeyType.Exchange, audienceKeybox.Profile);
+                Key ephemeralKeyBox = Key.Generate(KeyType.Exchange, -1, audienceKeybox.Profile);
                 this._claims.pub = ephemeralKeyBox.Public;
                 byte[] info = Crypto.GenerateHash(audienceKeybox.Profile, Utility.Combine(this.IssuerId.ToByteArray(), this.AudienceId.ToByteArray()));
                 var key = Crypto.GenerateSharedSecret(ephemeralKeyBox, audienceKeybox, audienceKeybox.UniqueId.ToByteArray(), info);
@@ -225,9 +232,9 @@ namespace ShiftEverywhere.DiME
             public Guid uid { get; set; }
             public Guid aud { get; set; }
             public Guid iss { get; set; }
-            public long iat { get; set; }
+            public string iat { get; set; }
             [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-            public long? exp { get; set; }
+            public string exp { get; set; }
             [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
             public Guid? kid { get; set; }
             [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
@@ -236,7 +243,7 @@ namespace ShiftEverywhere.DiME
             public string lnk { get; set; }
 
             [JsonConstructor]
-            public MessageClaims(Guid uid, Guid aud, Guid iss, long iat, long? exp, Guid? kid, string pub, string lnk)
+            public MessageClaims(Guid uid, Guid aud, Guid iss, string iat, string exp, Guid? kid, string pub, string lnk)
             {
                 this.uid = uid;
                 this.aud = aud;

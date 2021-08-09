@@ -58,8 +58,8 @@ namespace ShiftEverywhere.DiMETest
         [TestMethod]
         public void ToStringTest1()
         {
-            Key keybox = Key.Generate(KeyType.Identity);
-            IdentityIssuingRequest iir = IdentityIssuingRequest.Generate(keybox);
+            Key key = Key.Generate(KeyType.Identity);
+            IdentityIssuingRequest iir = IdentityIssuingRequest.Generate(key);
             string exported = iir.Export();
             Assert.IsNotNull(exported);
             Assert.IsTrue(exported.Length > 0);
@@ -70,13 +70,13 @@ namespace ShiftEverywhere.DiMETest
         [TestMethod]
         public void FromStringTest2()
         {
-            string exported = "Di:IIR.eyJ1aWQiOiIxYjFiZGNiOC05YWM5LTQwNmEtOWMyYi04NWM2YzdhN2ZkOTciLCJpYXQiOjE2MjYzNzkzNTMsInB1YiI6IkNZSHQ3M2NTWXJlRm9jUDN4VU5FeDJtcVJtWUoySFFCMTdwNlpUVDJZclh6Q1pOeGNyNllzRCIsImNhcCI6WyJnZW5lcmljIl19.AZFU4+oZoXyky6vc6eI0vBfUTMrjIuyLahjrsYdJfUS41jW+7G8oEitVJsZY3aZjwYoPt0dCpPIsD6EGH7F+KAU";
+            string exported = "Di:IIR.eyJ1aWQiOiI1YmE5OGJlOS0zMmRmLTQxMmUtYWQ4ZC05OTgzOWM4MWMxMmUiLCJpYXQiOiIyMDIxLTA4LTA5VDEwOjE0OjI3Ljc3NjQzNloiLCJwdWIiOiJDWUh0NlhTRHBvdnZ2VnQxNDZtWW1XemE2Q29CbW5qdENSRW5ZVWl1VHBlZzdlaWROU2RmMzIiLCJjYXAiOlsiZ2VuZXJpYyJdfQ.ASZGxVADMvXI4elwkPxn0tAJe7yN32YUXIpxlJtO5T0etq8UchdWILXb7XWfHegc6q1uCR3GQf/u/aNpEDZ3FQU";
             IdentityIssuingRequest iir = Item.Import<IdentityIssuingRequest>(exported);
             Assert.IsNotNull(iir);
-            Assert.AreEqual(new Guid("1b1bdcb8-9ac9-406a-9c2b-85c6c7a7fd97"), iir.UniqueId);
-            Assert.AreEqual(1626379353, iir.IssuedAt);
+            Assert.AreEqual(new Guid("5ba98be9-32df-412e-ad8d-99839c81c12e"), iir.UniqueId);
+            Assert.AreEqual(DateTime.Parse("2021-08-09T10:14:27.776436Z"), iir.IssuedAt);
             Assert.IsTrue(iir.WantsCapability(Capability.Generic));
-            Assert.AreEqual("CYHt73cSYreFocP3xUNEx2mqRmYJ2HQB17p6ZTT2YrXzCZNxcr6YsD", iir.PublicKey);
+            Assert.AreEqual("CYHt6XSDpovvvVt146mYmWza6CoBmnjtCREnYUiuTpeg7eidNSdf32", iir.PublicKey);
             iir.Verify();
         }
         

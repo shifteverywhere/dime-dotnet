@@ -19,7 +19,7 @@ namespace ShiftEverywhere.DiME
     {
         public const string HEADER = "Di";
         public Guid? IssuerId { get { return (this._claims.HasValue) ? this._claims.Value.iss : null; } }
-        public long? IssuedAt { get { return (this._claims.HasValue) ? this._claims.Value.iat : null; } } 
+        public DateTime? IssuedAt { get { return (this._claims.HasValue) ? Utility.FromTimestamp(this._claims.Value.iat) : null; } } 
         public IList<Item> Items { get { return (this._items != null) ? this._items.AsReadOnly() : null; } }
         public bool IsSigned { get { return (this._signature != null); } }
         public bool IsAnonymous { get { return !this._claims.HasValue; } }
@@ -28,7 +28,7 @@ namespace ShiftEverywhere.DiME
 
         public Envelope(Guid issuerId)
         {
-            long now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+            string now = Utility.ToTimestamp(DateTime.Now);
             this._claims = new DimeClaims(issuerId, now);
         }
 
@@ -127,10 +127,10 @@ namespace ShiftEverywhere.DiME
         private struct DimeClaims
         {
             public Guid iss { get; set; }
-            public long iat { get; set; }
+            public string iat { get; set; }
 
             [JsonConstructor]
-            public DimeClaims(Guid iss, long iat)
+            public DimeClaims(Guid iss, string iat)
             {
                 this.iss = iss;
                 this.iat = iat;

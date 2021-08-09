@@ -142,7 +142,7 @@ namespace ShiftEverywhere.DiMEConsole
 
             /** At back-end side **/
             Message serviceProviderMessageAtBackEnd = Item.Import<Message>(serviceProviderMessageEncoded);
-            serviceProviderMessageAtBackEnd.Verify(prg.serviceProviderKeypair.PublicOnly());
+            serviceProviderMessageAtBackEnd.Verify(prg.serviceProviderKeypair.PublicCopy());
             //serviceProviderMessageAtBackEnd.SetVerifiedToken(prg.trustedIdentity, prg.trustedKeypair.Key);
             string backEndMessageEncoded = serviceProviderMessageAtBackEnd.Export();
             // ==> Send 'backEndEnvelopeEncoded' to mobile
@@ -152,7 +152,7 @@ namespace ShiftEverywhere.DiMEConsole
 
             /** At mobile side **/
             Message serviceProviderMessageAtMobile = Item.Import<Message>(serviceProviderMessageEncoded);
-            serviceProviderMessageAtMobile.Verify(prg.serviceProviderKeypair.PublicOnly());
+            serviceProviderMessageAtMobile.Verify(prg.serviceProviderKeypair.PublicCopy());
             //serviceProviderMessageAtMobile.ValidateVerifiedToken(prg.trustedIdentity);
             string messagePayload = System.Text.Encoding.UTF8.GetString(serviceProviderMessageAtMobile.GetPayload(), 0, serviceProviderMessageAtMobile.GetPayload().Length);
             Console.WriteLine("Message from service provider: " + messagePayload);
@@ -167,7 +167,7 @@ namespace ShiftEverywhere.DiMEConsole
 
             /** At back-end side **/
             Message mobileMessageAtBackEnd = Item.Import<Message>(mobileMessageEncoded);
-            mobileMessageAtBackEnd.Verify(prg.mobileKeypair.PublicOnly());
+            mobileMessageAtBackEnd.Verify(prg.mobileKeypair.PublicCopy());
             //mobileMessageAtBackEnd.SetVerifiedToken(prg.trustedIdentity, prg.trustedKeypair.Key);
             string finalBackEndMessageEncoded = mobileMessageAtBackEnd.Export();
             // ==> Send 'finalBackEndEnvelopeEncoded' to service provider
@@ -177,7 +177,7 @@ namespace ShiftEverywhere.DiMEConsole
 
             /** At service provider side **/
             Message mobileResponseMessageAtServiceProvider = Item.Import<Message>(finalBackEndMessageEncoded);
-            mobileResponseMessageAtServiceProvider.Verify(prg.mobileKeypair.PublicOnly()); 
+            mobileResponseMessageAtServiceProvider.Verify(prg.mobileKeypair.PublicCopy()); 
             //mobileResponseMessageAtServiceProvider.ValidateVerifiedToken(prg.trustedIdentity);
             string responcePayload = System.Text.Encoding.UTF8.GetString(mobileResponseMessageAtServiceProvider.GetPayload(), 0, mobileResponseMessageAtServiceProvider.GetPayload().Length);
             Console.WriteLine("++++++++++++++++++++++++++++++++++++++++++++++" + Environment.NewLine + "Response From Mobile");

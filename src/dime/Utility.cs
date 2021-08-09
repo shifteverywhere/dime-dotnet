@@ -9,6 +9,7 @@
 using System;
 using System.Text;
 using System.Security.Cryptography;
+using System.Xml;
 
 namespace ShiftEverywhere.DiME
 {
@@ -84,6 +85,17 @@ namespace ShiftEverywhere.DiME
             bytes[0] = prefix;
             return bytes;
         }
+
+        public static string ToTimestamp(DateTime date)
+        {
+            DateTime UtcDateTime = TimeZoneInfo.ConvertTimeToUtc(date);
+            return XmlConvert.ToString(UtcDateTime, XmlDateTimeSerializationMode.Utc);
+        }
+
+        public static DateTime FromTimestamp(string timestamp)  
+        {
+            return DateTime.Parse(timestamp);
+        } 
 
     }
 

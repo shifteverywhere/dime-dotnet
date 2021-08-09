@@ -25,31 +25,31 @@ namespace ShiftEverywhere.DiME
         /// <summary></summary>
         public override Guid UniqueId { get { return this._claims.uid; } }
         /// <summary></summary>
-        public long IssuedAt { get { return this._claims.iat; } }
+        public DateTime IssuedAt { get { return Utility.FromTimestamp(this._claims.iat); } }
         /// <summary></summary>
         public string PublicKey { get { return this._claims.pub; } }
         public Dictionary<string, dynamic> Principles { get { return this._claims.pri; } }
 
         public IdentityIssuingRequest() { }
 
-        public static IdentityIssuingRequest Generate(Key keybox, List<Capability> capabilities = null, Dictionary<string, dynamic> principles = null) 
+        public static IdentityIssuingRequest Generate(Key key, List<Capability> capabilities = null, Dictionary<string, dynamic> principles = null) 
         {
-            if (!Crypto.SupportedProfile(keybox.Profile)) { throw new ArgumentException("Unsupported profile version.", nameof(keybox)); }
-            if (keybox.Type != KeyType.Identity) { throw new ArgumentException("KeyBox of invalid type.", nameof(keybox)); }
-            if (keybox.Secret == null) { throw new ArgumentNullException(nameof(keybox), "Private key must not be null"); }
+            if (!Crypto.SupportedProfile(key.Profile)) { throw new ArgumentException("Unsupported profile version.", nameof(key)); }
+            if (key.Type != KeyType.Identity) { throw new ArgumentException("Key of invalid type.", nameof(key)); }
+            if (key.Secret == null) { throw new ArgumentNullException(nameof(key), "Private key must not be null"); }
             IdentityIssuingRequest iir = new IdentityIssuingRequest();
             if (capabilities == null || capabilities.Count == 0) 
                 iir._capabilities = new List<Capability>() { Capability.Generic }; 
             else 
                 iir._capabilities = capabilities; 
-            long now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+            DateTime now = DateTime.Now;
             string[] cap;
             if (capabilities != null && capabilities.Count > 0)
                 cap = capabilities.ConvertAll(c => c.ToString().ToLower()).ToArray();
             else
                 cap = new string[1] { Capability.Generic.ToString().ToLower() };
-            iir._claims = new IirClaims(Guid.NewGuid(), now, keybox.Public, cap, principles);
-            iir._signature = Crypto.GenerateSignature(iir.Encode(), keybox);
+            iir._claims = new IirClaims(Guid.NewGuid(), Utility.ToTimestamp(now), key.Public, cap, principles);
+            iir._signature = Crypto.GenerateSignature(iir.Encode(), key);
             return iir;
         }
 
@@ -60,7 +60,7 @@ namespace ShiftEverywhere.DiME
 
         public override void Verify(Key keybox)
         {
-            if (DateTimeOffset.UtcNow.ToUnixTimeSeconds() < this.IssuedAt) { throw new DateExpirationException("An identity issuing request cannot have an issued at date in the future."); }
+            if (DateTime.Now < this.IssuedAt) { throw new DateExpirationException("An identity issuing request cannot have an issued at date in the future."); }
             base.Verify(keybox);
         }
 
@@ -79,15 +79,16 @@ namespace ShiftEverywhere.DiME
         /// <param name="allowedCapabilities">The capabilities allowed for the to be issued identity.</param>
         /// <param name="issuerIdentitys">The identity of the issuer (optional).</param>
         /// <returns>Returns an imutable Identity instance.</returns>
-        public Identity IssueIdentity(Guid subjectId, long validFor, List<Capability> allowedCapabilities, Key issuerKeypair, Identity issuerIdentity, string[] ambits = null) 
+        public Identity IssueIdentity(Guid subjectId, double validFor, List<Capability> allowedCapabilities, Key issuerKeypair, Identity issuerIdentity, string[] ambits = null) 
         {    
             bool isSelfSign = (issuerIdentity == null || this.PublicKey == issuerKeypair.Public);
             this.CompleteCapabilities(allowedCapabilities, isSelfSign);
             if (isSelfSign || issuerIdentity.HasCapability(Capability.Issue))
             {
-                long now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+                DateTime now = DateTime.Now;
+                DateTime expires = now.AddSeconds(validFor);
                 Guid issuerId = issuerIdentity != null ? issuerIdentity.SubjectId : subjectId;
-                Identity identity = new Identity(subjectId, this.PublicKey, now, (now + validFor), issuerId, this._capabilities, this.Principles, ambits);
+                Identity identity = new Identity(subjectId, this.PublicKey, now, expires, issuerId, this._capabilities, this.Principles, ambits);
                 if (Identity.TrustedIdentity != null && issuerIdentity != null && issuerIdentity.SubjectId != Identity.TrustedIdentity.SubjectId)
                 {
                     issuerIdentity.VerifyTrust();
@@ -155,7 +156,7 @@ namespace ShiftEverywhere.DiME
         private struct IirClaims
         {
             public Guid uid { get; set; }
-            public long iat { get; set; }
+            public string iat { get; set; }
             public string pub { get; set; }
             [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
             public string[] cap { get; set; }
@@ -163,7 +164,7 @@ namespace ShiftEverywhere.DiME
             public Dictionary<string, dynamic> pri {get; set; }
 
             [JsonConstructor]
-            public IirClaims(Guid uid, long iat, string pub, string[] cap, Dictionary<string, dynamic>pri)
+            public IirClaims(Guid uid, string iat, string pub, string[] cap, Dictionary<string, dynamic>pri)
             {
                 this.uid = uid;
                 this.iat = iat;
