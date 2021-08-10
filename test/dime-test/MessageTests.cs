@@ -122,16 +122,16 @@ namespace ShiftEverywhere.DiMETest
         public void ImportTest1()
         {   
             Identity.SetTrustedIdentity(Commons.TrustedIdentity);
-            string encoded = "Di:MSG.eyJ1aWQiOiIzMjgwYzFlNy1mOGExLTRkM2ItYjNkZS03ZDAzNTIwZTBmYTMiLCJhdWQiOiI0ZDAzMTM1Zi0wZTBkLTQ4YjYtYTQ0Ny01ZDM1YmU3ODE5ZjkiLCJpc3MiOiI2MDY2OTQ1My1jNGQ5LTQ2MjgtODg4MC05NmM0YmUyNWQzY2UiLCJpYXQiOiIyMDIxLTA4LTA5VDE4OjQ2OjMyLjA2NDc3OFoiLCJleHAiOiIyMDIxLTA4LTA5VDE4OjQ2OjQyLjA2NDc3OFoifQ.UmFjZWNhciBpcyByYWNlY2FyIGJhY2t3YXJkcy4.AWKKiB8Rbq6myeuyZDRkZgJ6xko57OIsL2+c9c1wTgcIrOaZBUSUhTQ6ieepwtZjd6rNGLiBHvB1uKUn9TJkTgs";
+            string encoded = "Di:MSG.eyJ1aWQiOiIzMzE1N2Q4MS1jN2M1LTRhMDUtOTkyNy01OGU1MTU1YzE5MWMiLCJhdWQiOiJmYzFjYzhjOC0yOWUyLTQ1Y2UtYjFjMi0xNzJhOTNlNzcxZTUiLCJpc3MiOiJlZTAwYjVlZC01YTVhLTRkMDEtOGQ1MC00ZTAzODk0ZDI1ZDQiLCJpYXQiOiIyMDIxLTA4LTEwVDA2OjM2OjQ0LjIzOTAxMVoiLCJleHAiOiIyMDIxLTA4LTEwVDA2OjM2OjU0LjIzOTAxMVoifQ.UmFjZWNhciBpcyByYWNlY2FyIGJhY2t3YXJkcy4.AZgtRkI3CFs5PD4tSQoIxQrF0qyx/BkeWTgFoM1/GreaOfNDVbOs56S4UC1dtdgDs7LmLZMUm2NvCJjubEQ5qQw";
             Message message = Item.Import<Message>(encoded);
-            Assert.AreEqual(new Guid("3280c1e7-f8a1-4d3b-b3de-7d03520e0fa3"), message.UniqueId);
-            Assert.AreEqual(new Guid("4d03135f-0e0d-48b6-a447-5d35be7819f9"), message.AudienceId);
-            Assert.AreEqual(new Guid("60669453-c4d9-4628-8880-96c4be25d3ce"), message.IssuerId);
+            Assert.AreEqual(new Guid("33157d81-c7c5-4a05-9927-58e5155c191c"), message.UniqueId);
+            Assert.AreEqual(new Guid("fc1cc8c8-29e2-45ce-b1c2-172a93e771e5"), message.AudienceId);
+            Assert.AreEqual(new Guid("ee00b5ed-5a5a-4d01-8d50-4e03894d25d4"), message.IssuerId);
             Assert.AreEqual("Racecar is racecar backwards.", System.Text.Encoding.UTF8.GetString(message.GetPayload()));
-            Assert.AreEqual(DateTime.Parse("2021-08-09T18:46:32.064778Z"), message.IssuedAt);
-            Assert.AreEqual(DateTime.Parse("2021-08-09T18:46:42.064778Z"), message.ExpiresAt);
+            Assert.AreEqual(DateTime.Parse("2021-08-10T06:36:44.239011Z"), message.IssuedAt);
+            Assert.AreEqual(DateTime.Parse("2021-08-10T06:36:54.239011Z"), message.ExpiresAt);
             Assert.AreEqual(message.IssuerId, Commons.IssuerIdentity.SubjectId);
-        } 
+        }
 
         [TestMethod]
         public void ImportTest2()

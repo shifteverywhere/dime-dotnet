@@ -51,14 +51,14 @@ namespace ShiftEverywhere.DiMETest
         [TestMethod]
         public void ImportTest1()
         {
-            string encoded = "Di:KEY.eyJ1aWQiOiI0ZjQwMmI1NC1lY2FmLTRhNDctOTI3NC00YmUyNGFjNWJjZjQiLCJpYXQiOiIyMDIxLTA4LTA5VDEwOjQ3OjQ3LjAxMzIwNVoiLCJrZXkiOiJDWUhqWWJXWXdGWEhzamlLVTNIY25wSnZGc3pNQmZ4dHkxUXY5WGVCUG9zc1laWXhmR2p0aFAiLCJwdWIiOiJDWUh0NzV4S3pmWVl1ZTQ5TFVrcnU5SlRRQ3V6cUprMVRRd0xGODZBSmJpV0RBczZoVXcyTVMifQ";
+            string encoded = "Di:KEY.eyJ1aWQiOiIzMTEyNjAxYS0xZWFlLTRkYjgtYTczYi0wNDc0N2EzOGU4N2MiLCJpYXQiOiIyMDIxLTA4LTEwVDA2OjM0OjQzLjUxNzIzWiIsImtleSI6IjFoRWl3UjNCcUxZMkV1QVJYZFpVRmFIb2l1aDVSdVg1dlZZNW4xNWVnVTVReFhuU2VYbUFjIiwicHViIjoiMWhQS3luTG1xaWlDa1RHN1JIendtOVFXTXJvaFdFMjV5bTgzQTdZbW9wQ2hIWWF2YUFEemcifQ";
             Key key = Item.Import<Key>(encoded);
             Assert.AreEqual(Profile.Uno, key.Profile);
             Assert.AreEqual(KeyType.Identity, key.Type);
-            Assert.AreEqual(new Guid("4f402b54-ecaf-4a47-9274-4be24ac5bcf4"), key.UniqueId);
-            Assert.AreEqual(DateTime.Parse("2021-08-09T10:47:47.013205Z"), key.IssuedAt);
-            Assert.AreEqual("CYHjYbWYwFXHsjiKU3HcnpJvFszMBfxty1Qv9XeBPossYZYxfGjthP", key.Secret);
-            Assert.AreEqual("CYHt75xKzfYYue49LUkru9JTQCuzqJk1TQwLF86AJbiWDAs6hUw2MS", key.Public);
+            Assert.AreEqual(new Guid("3112601a-1eae-4db8-a73b-04747a38e87c"), key.UniqueId);
+            Assert.AreEqual(DateTime.Parse("2021-08-10T06:34:43.51723Z"), key.IssuedAt);
+            Assert.AreEqual("1hEiwR3BqLY2EuARXdZUFaHoiuh5RuX5vVY5n15egU5QxXnSeXmAc", key.Secret);
+            Assert.AreEqual("1hPKynLmqiiCkTG7RHzwm9QWMrohWE25ym83A7YmopChHYavaADzg", key.Public);
         }
 
         [TestMethod]
