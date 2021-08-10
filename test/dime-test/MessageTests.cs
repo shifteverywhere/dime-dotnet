@@ -97,7 +97,7 @@ namespace ShiftEverywhere.DiMETest
         {
             List<Capability> caps = new List<Capability> { Capability.Identify };
             Key keypair = Key.Generate(KeyType.Identity);
-            Identity untrustedSender = IdentityIssuingRequest.Generate(keypair).IssueIdentity(Guid.NewGuid(), 120, caps,  keypair,  null);
+            Identity untrustedSender = IdentityIssuingRequest.Generate(keypair).IssueIdentity(Commons.METHOD_NAME, Guid.NewGuid(), 120, caps,  keypair,  null);
             Identity.SetTrustedIdentity(Commons.TrustedIdentity);
             Message message = new Message(Commons.AudienceIdentity.SubjectId, untrustedSender.SubjectId, 120);
             message.SetPayload(Encoding.UTF8.GetBytes("Racecar is racecar backwards."));
