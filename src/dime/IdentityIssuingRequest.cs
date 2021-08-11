@@ -75,30 +75,21 @@ namespace ShiftEverywhere.DiME
         /// returned identity will be self-signed. </summary>
         /// <param name="systemName">An unique name of the system where the identity is deployed (system, infrastructure, application, etc.).</param>
         /// <param name="subjectId">The subject id that should be associated with the identity.</param>
-        /// <param name="issuerKeypair">The key pair of the issuer.</param>
+        /// <param name="issuerKey">The key pair of the issuer.</param>
         /// <param name="allowedCapabilities">The capabilities allowed for the to be issued identity.</param>
         /// <param name="issuerIdentitys">The identity of the issuer (optional).</param>
+        /// <param name="ambit">The areas or regions where the identity is valid.</param>
         /// <returns>Returns an imutable Identity instance.</returns>
-        public Identity IssueIdentity(string systemName, Guid subjectId, double validFor, List<Capability> allowedCapabilities, Key issuerKeypair, Identity issuerIdentity, string[] ambits = null) 
+        public Identity IssueIdentity(Guid subjectId, double validFor, List<Capability> allowedCapabilities, Key issuerKey, Identity issuerIdentity, string[] ambit = null) 
         {    
-            bool isSelfSign = (issuerIdentity == null || this.PublicKey == issuerKeypair.Public);
-            this.CompleteCapabilities(allowedCapabilities, isSelfSign);
-            if (isSelfSign || issuerIdentity.HasCapability(Capability.Issue))
-            {
-                DateTime now = DateTime.Now;
-                DateTime expires = now.AddSeconds(validFor);
-                Guid issuerId = issuerIdentity != null ? issuerIdentity.SubjectId : subjectId;
-                Identity identity = new Identity(systemName, subjectId, this.PublicKey, now, expires, issuerId, this._capabilities, this.Principles, ambits);
-                if (Identity.TrustedIdentity != null && issuerIdentity != null && issuerIdentity.SubjectId != Identity.TrustedIdentity.SubjectId)
-                {
-                    issuerIdentity.VerifyTrust();
-                    // The chain will only be set if this is not the trusted identity (and as long as one is set)
-                    identity.TrustChain = issuerIdentity;
-                }
-                identity.Sign(issuerKeypair);
-                return identity;
-            }
-            throw new IdentityCapabilityException("Issuing identity missing 'issue' capability.");
+            if (issuerIdentity == null) { throw new ArgumentNullException(nameof(issuerIdentity), "Issuer identity must not be null."); }
+            return this.Issue(issuerIdentity.SystemName, subjectId, validFor, allowedCapabilities, issuerKey, issuerIdentity, ambit);
+        }
+
+        public Identity SelfIssue(Guid subjectId, double validFor, Key issuerKey, string systemName, string[] ambit = null)
+        {
+            if (systemName == null || systemName.Length == 0) { throw new ArgumentNullException(nameof(systemName), "System name must not be null or empty."); }
+            return this.Issue(systemName, subjectId, validFor, null, issuerKey, null, ambit);
         }
 
         internal new static IdentityIssuingRequest FromEncoded(string encoded)
@@ -172,6 +163,29 @@ namespace ShiftEverywhere.DiME
                 this.cap = cap;
                 this.pri = pri;
             }
+        }
+        
+        private Identity Issue(string systemName, Guid subjectId, double validFor, List<Capability> allowedCapabilities, Key issuerKey, Identity issuerIdentity, string[] ambit = null)
+        {
+            bool isSelfSign = (issuerIdentity == null || this.PublicKey == issuerKey.Public);
+            this.CompleteCapabilities(allowedCapabilities, isSelfSign);
+            if (isSelfSign || issuerIdentity.HasCapability(Capability.Issue))
+            {
+                DateTime now = DateTime.Now;
+                DateTime expires = now.AddSeconds(validFor);
+                Guid issuerId = issuerIdentity != null ? issuerIdentity.SubjectId : subjectId;
+                Identity identity = new Identity(systemName, subjectId, this.PublicKey, now, expires, issuerId, this._capabilities, this.Principles, ambit);
+                if (Identity.TrustedIdentity != null && issuerIdentity != null && issuerIdentity.SubjectId != Identity.TrustedIdentity.SubjectId)
+                {
+                    issuerIdentity.VerifyTrust();
+                    // The chain will only be set if this is not the trusted identity (and as long as one is set)
+                    identity.TrustChain = issuerIdentity;
+                }
+                identity.Sign(issuerKey);
+                return identity;
+            }
+            throw new IdentityCapabilityException("Issuing identity missing 'issue' capability.");
+
         }
 
         private void CompleteCapabilities(List<Capability> allowedCapabilities, bool isSelfSign)

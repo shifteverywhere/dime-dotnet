@@ -41,19 +41,19 @@ namespace ShiftEverywhere.DiME
         /// <summary>The trust chain of signed public keys.</summary>
         public Identity TrustChain { get; internal set; }
         public ReadOnlyDictionary<string, dynamic> Principles { get; private set; }
-        public IList<string> Ambits { get; private set; }
+        public IList<string> Ambit { get; private set; }
 
         public bool IsSelfSigned { get { return (this.SubjectId == this.IssuerId && this.HasCapability(Capability.Self)); } }
 
         ///<summary>Set the shared trusted identity, which forms the basis of the trust chain. All identities will be verified
         /// from a trust perspecitve using this identity. For the trust chain to hold, then all identities must be either issued
         /// by this identity or other identities (with the 'issue' capability) that has been issued by this identity.
-        ///<param name="identity">The identity to set as the trusted identity.</param>
-        public static void SetTrustedIdentity(Identity identity)
+        ///<param name="trustedIdentity">The identity to set as the trusted identity.</param>
+        public static void SetTrustedIdentity(Identity trustedIdentity)
         {
             lock(Identity._lock)
             {
-                Identity._trustedIdentity = identity;
+                Identity._trustedIdentity = trustedIdentity;
             }
         }
 
@@ -66,6 +66,7 @@ namespace ShiftEverywhere.DiME
             if (this.IssuedAt > now) { throw new DateExpirationException("Identity is not yet valid, issued at date in the future."); }
             if (this.IssuedAt > this.ExpiresAt) { throw new DateExpirationException("Invalid expiration date, expires at before issued at."); }
             if (this.ExpiresAt < now) { throw new DateExpirationException("Identity has expired."); }
+            if (Identity._trustedIdentity.SystemName != this.SystemName) { throw new UntrustedIdentityException("Unable to trust identity, identity part of another system."); }
             if (this.TrustChain != null)
             {
                 this.TrustChain.VerifyTrust();
@@ -98,8 +99,9 @@ namespace ShiftEverywhere.DiME
 
         #region -- INTERNAL --
 
-        internal Identity(string systemName, Guid subjectId, string publicKey, DateTime issuedAt, DateTime expiresAt, Guid issuerId, List<Capability> capabilities, Dictionary<string, dynamic> principles, string[] ambits) 
+        internal Identity(string systemName, Guid subjectId, string publicKey, DateTime issuedAt, DateTime expiresAt, Guid issuerId, List<Capability> capabilities, Dictionary<string, dynamic> principles, string[] ambit) 
         {
+            if (systemName == null || systemName.Length == 0) { throw new ArgumentNullException(nameof(systemName), "System name must not be null or empty."); }
             this._capabilities = capabilities;
             string[] cap = capabilities.ConvertAll(c => c.ToString().ToLower()).ToArray();
             this._claims = new IdentityClaims(systemName,
@@ -111,9 +113,9 @@ namespace ShiftEverywhere.DiME
                                               publicKey, 
                                               cap, 
                                               principles, 
-                                              ambits);
-            if (ambits != null)
-                this.Ambits = new List<string>(ambits).AsReadOnly();
+                                              ambit);
+            if (ambit != null)
+                this.Ambit = new List<string>(ambit).AsReadOnly();
         }
 
         protected override void Decode(string encoded) 
@@ -124,10 +126,11 @@ namespace ShiftEverywhere.DiME
             if (components[Identity._TAG_INDEX] != Identity.TAG) { throw new FormatException($"Unexpected item tag, expected: \"{Identity.TAG}\", got \"{components[Identity._TAG_INDEX]}\"."); }
             byte[] json = Utility.FromBase64(components[Identity._CLAIMS_INDEX]);
             this._claims = JsonSerializer.Deserialize<IdentityClaims>(json);
+            if (this._claims.sys == null || this._claims.sys.Length == 0) { throw new FormatException("System name missing from identity."); } 
             if (this._claims.pri != null)
                 this.Principles = new ReadOnlyDictionary<string, dynamic>(this._claims.pri);
             if (this._claims.amb != null)
-                this.Ambits = new List<string>(this._claims.amb);
+                this.Ambit = new List<string>(this._claims.amb);
             this._capabilities = new List<string>(this._claims.cap).ConvertAll(str => { Capability cap; Enum.TryParse<Capability>(str, true, out cap); return cap; });
             if (components.Length == Identity._NBR_EXPECTED_COMPONENTS_MAX) // There is also a trust chain identity 
             {
