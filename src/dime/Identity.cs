@@ -26,7 +26,7 @@ namespace ShiftEverywhere.DiME
         public static Identity TrustedIdentity { get { lock(Identity._lock) { return Identity._trustedIdentity; } } }
         public const string TAG = "ID";
         public override string Tag { get { return Identity.TAG; } }
-        public string MethodName { get { return this._claims.mtd; } }
+        public string SystemName { get { return this._claims.sys; } }
         public override Guid UniqueId { get { return this._claims.uid; } }
         /// <summary>A unique UUID (GUID) of the identity. Same as the "sub" field.</summary>
         public Guid SubjectId { get { return this._claims.sub; } }        
@@ -98,11 +98,11 @@ namespace ShiftEverywhere.DiME
 
         #region -- INTERNAL --
 
-        internal Identity(string methodName, Guid subjectId, string publicKey, DateTime issuedAt, DateTime expiresAt, Guid issuerId, List<Capability> capabilities, Dictionary<string, dynamic> principles, string[] ambits) 
+        internal Identity(string systemName, Guid subjectId, string publicKey, DateTime issuedAt, DateTime expiresAt, Guid issuerId, List<Capability> capabilities, Dictionary<string, dynamic> principles, string[] ambits) 
         {
             this._capabilities = capabilities;
             string[] cap = capabilities.ConvertAll(c => c.ToString().ToLower()).ToArray();
-            this._claims = new IdentityClaims(methodName,
+            this._claims = new IdentityClaims(systemName,
                                               Guid.NewGuid(), 
                                               subjectId, 
                                               issuerId, 
@@ -177,7 +177,7 @@ namespace ShiftEverywhere.DiME
         private struct IdentityClaims
         {
             [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-            public string mtd { get; set; }
+            public string sys { get; set; }
             public Guid uid { get; set; }
             public Guid sub { get; set; }
             public Guid iss { get; set; }
@@ -192,9 +192,9 @@ namespace ShiftEverywhere.DiME
             public string[] amb { get; set; }
 
             [JsonConstructor]
-            public IdentityClaims(string mtd, Guid uid, Guid sub, Guid iss, string iat, string exp, string pub, string[] cap, Dictionary<string, dynamic> pri, string[] amb)
+            public IdentityClaims(string sys, Guid uid, Guid sub, Guid iss, string iat, string exp, string pub, string[] cap, Dictionary<string, dynamic> pri, string[] amb)
             {
-                this.mtd = mtd;
+                this.sys = sys;
                 this.uid = uid;
                 this.sub = sub;
                 this.iss = iss;

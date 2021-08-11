@@ -73,13 +73,13 @@ namespace ShiftEverywhere.DiME
         /// will be signed by the provided issuerIdentity. The identity of the issuer must either be trusted
         /// by the TrustedIdentity, or be the TrustedIdentity. If the issuerIdentity is omitted, then the 
         /// returned identity will be self-signed. </summary>
-        /// <param name="methodName">A unique name of the method where the identity is deployed (system, infrastructure, application, etc.).</param>
+        /// <param name="systemName">An unique name of the system where the identity is deployed (system, infrastructure, application, etc.).</param>
         /// <param name="subjectId">The subject id that should be associated with the identity.</param>
         /// <param name="issuerKeypair">The key pair of the issuer.</param>
         /// <param name="allowedCapabilities">The capabilities allowed for the to be issued identity.</param>
         /// <param name="issuerIdentitys">The identity of the issuer (optional).</param>
         /// <returns>Returns an imutable Identity instance.</returns>
-        public Identity IssueIdentity(string methodName, Guid subjectId, double validFor, List<Capability> allowedCapabilities, Key issuerKeypair, Identity issuerIdentity, string[] ambits = null) 
+        public Identity IssueIdentity(string systemName, Guid subjectId, double validFor, List<Capability> allowedCapabilities, Key issuerKeypair, Identity issuerIdentity, string[] ambits = null) 
         {    
             bool isSelfSign = (issuerIdentity == null || this.PublicKey == issuerKeypair.Public);
             this.CompleteCapabilities(allowedCapabilities, isSelfSign);
@@ -88,7 +88,7 @@ namespace ShiftEverywhere.DiME
                 DateTime now = DateTime.Now;
                 DateTime expires = now.AddSeconds(validFor);
                 Guid issuerId = issuerIdentity != null ? issuerIdentity.SubjectId : subjectId;
-                Identity identity = new Identity(methodName, subjectId, this.PublicKey, now, expires, issuerId, this._capabilities, this.Principles, ambits);
+                Identity identity = new Identity(systemName, subjectId, this.PublicKey, now, expires, issuerId, this._capabilities, this.Principles, ambits);
                 if (Identity.TrustedIdentity != null && issuerIdentity != null && issuerIdentity.SubjectId != Identity.TrustedIdentity.SubjectId)
                 {
                     issuerIdentity.VerifyTrust();
