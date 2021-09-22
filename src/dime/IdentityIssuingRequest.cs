@@ -76,20 +76,21 @@ namespace ShiftEverywhere.DiME
         /// <param name="systemName">An unique name of the system where the identity is deployed (system, infrastructure, application, etc.).</param>
         /// <param name="subjectId">The subject id that should be associated with the identity.</param>
         /// <param name="issuerKey">The key pair of the issuer.</param>
-        /// <param name="allowedCapabilities">The capabilities allowed for the to be issued identity.</param>
         /// <param name="issuerIdentitys">The identity of the issuer (optional).</param>
+        /// <param name="allowedCapabilities">The capabilities that are allowed to be requested in the IIR, must not be null.</param>
+        /// <param name="requiredCapabilities">The capabilities that must be asked for in the IIR, may be null.</param>
         /// <param name="ambit">The areas or regions where the identity is valid.</param>
         /// <returns>Returns an imutable Identity instance.</returns>
-        public Identity Issue(Guid subjectId, double validFor, List<Capability> allowedCapabilities, Key issuerKey, Identity issuerIdentity, string[] ambit = null) 
+        public Identity Issue(Guid subjectId, double validFor, Key issuerKey, Identity issuerIdentity, List<Capability> allowedCapabilities, List<Capability> requiredCapabilities, string[] ambit = null) 
         {    
             if (issuerIdentity == null) { throw new ArgumentNullException(nameof(issuerIdentity), "Issuer identity must not be null."); }
-            return this.IssueIdentity(issuerIdentity.SystemName, subjectId, validFor, allowedCapabilities, issuerKey, issuerIdentity, ambit);
+            return this.IssueIdentity(issuerIdentity.SystemName, subjectId, validFor, issuerKey, issuerIdentity, allowedCapabilities, requiredCapabilities, ambit);
         }
 
         public Identity SelfIssue(Guid subjectId, double validFor, Key issuerKey, string systemName, string[] ambit = null)
         {
             if (systemName == null || systemName.Length == 0) { throw new ArgumentNullException(nameof(systemName), "System name must not be null or empty."); }
-            return this.IssueIdentity(systemName, subjectId, validFor, null, issuerKey, null, ambit);
+            return this.IssueIdentity(systemName, subjectId, validFor, issuerKey, null, null, null, ambit);
         }
 
         internal new static IdentityIssuingRequest FromEncoded(string encoded)
@@ -165,10 +166,10 @@ namespace ShiftEverywhere.DiME
             }
         }
         
-        private Identity IssueIdentity(string systemName, Guid subjectId, double validFor, List<Capability> allowedCapabilities, Key issuerKey, Identity issuerIdentity, string[] ambit = null)
+        private Identity IssueIdentity(string systemName, Guid subjectId, double validFor, Key issuerKey, Identity issuerIdentity, List<Capability> allowedCapabilities, List<Capability> requiredCapabilities, string[] ambit = null)
         {
             bool isSelfSign = (issuerIdentity == null || this.PublicKey == issuerKey.Public);
-            this.CompleteCapabilities(allowedCapabilities, isSelfSign);
+            this.CompleteCapabilities(allowedCapabilities, requiredCapabilities, isSelfSign);
             if (isSelfSign || issuerIdentity.HasCapability(Capability.Issue))
             {
                 DateTime now = DateTime.Now;
@@ -188,7 +189,7 @@ namespace ShiftEverywhere.DiME
 
         }
 
-        private void CompleteCapabilities(List<Capability> allowedCapabilities, bool isSelfSign)
+        private void CompleteCapabilities(List<Capability> allowedCapabilities, List<Capability> requiredCapabilities, bool isSelfSign)
         {
             if (this._capabilities == null) { this._capabilities = new List<Capability> { Capability.Generic }; }
             if (this._capabilities.Count == 0) { this._capabilities.Add(Capability.Generic); }
@@ -201,17 +202,11 @@ namespace ShiftEverywhere.DiME
             }
             else 
             {
-                if (allowedCapabilities == null || allowedCapabilities.Count == 0) { throw new IdentityCapabilityException("Allowed capabilities must be defined to issue identity."); }
-                foreach(Capability cap in this._capabilities)
-                {
-                    if (!allowedCapabilities.Any<Capability>(c => c == cap))
-                    {
-                        throw new IdentityCapabilityException($"Illegal capabilities requested: {this._capabilities}");
-                    }
-                }
+                if (allowedCapabilities == null || allowedCapabilities.Count == 0) { throw new ArgumentException("Allowed capabilities must be defined to issue identity.", nameof(allowedCapabilities)); }
+                if (this._capabilities.Except(allowedCapabilities).Count() > 0) { throw new IdentityCapabilityException("IIR contains one or more disallowed capabilities."); }
+                if (requiredCapabilities != null && requiredCapabilities.Except(this._capabilities).Count() > 0) { throw new IdentityCapabilityException("IIR is missing one or more required capabilities."); }
             }
         }
-
 
         #endregion
 

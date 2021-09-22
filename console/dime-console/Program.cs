@@ -60,7 +60,7 @@ namespace ShiftEverywhere.DiMEConsole
         {
             List<Capability> caps = capabilities;
             IdentityIssuingRequest iir = IdentityIssuingRequest.Generate(keypair, caps);    
-            return iir.Issue(Guid.NewGuid(), IdentityIssuingRequest.VALID_FOR_1_YEAR, caps, this.trustedKeypair, this.trustedIdentity);
+            return iir.Issue(Guid.NewGuid(), IdentityIssuingRequest.VALID_FOR_1_YEAR, this.trustedKeypair, this.trustedIdentity, caps, null);
         }
 
         public Message GenerateMessage(Identity audience, Identity issuer, string payload)

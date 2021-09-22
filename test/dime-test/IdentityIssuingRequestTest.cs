@@ -8,6 +8,7 @@
 //
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
+using System.Collections.Generic;
 using ShiftEverywhere.DiME;
 
 namespace ShiftEverywhere.DiMETest
@@ -56,7 +57,7 @@ namespace ShiftEverywhere.DiMETest
         }
 
         [TestMethod]
-        public void ToStringTest1()
+        public void ExportTest1()
         {
             Key key = Key.Generate(KeyType.Identity);
             IdentityIssuingRequest iir = IdentityIssuingRequest.Generate(key);
@@ -68,7 +69,7 @@ namespace ShiftEverywhere.DiMETest
         }
 
         [TestMethod]
-        public void FromStringTest2()
+        public void ImportTest1()
         {
             string exported = "Di:IIR.eyJ1aWQiOiIwZTIwNGQ0Mi0wOTRhLTQ5NTQtOGE2Ny0zNDViYTllYjY3NTciLCJpYXQiOiIyMDIxLTA4LTEwVDA2OjMwOjI3LjQxOTc4NloiLCJwdWIiOiIxaFBMMVpwbkRTNHh4THdFcVdoaW1TdTN4ZG5BRFRGcEIzeFUxSjY2aTFNeWtxNlo4SDFZSCIsImNhcCI6WyJnZW5lcmljIl19.AbtQgZuFmW+vwPe2DPVxXxLAI0VdjS2D6KhEO20ZC+Cu+iBTpbV/50uNpMOsjyei/sDM0CmBgXWtr3ueAgAEmgo";
             IdentityIssuingRequest iir = Item.Import<IdentityIssuingRequest>(exported);
@@ -79,7 +80,63 @@ namespace ShiftEverywhere.DiMETest
             Assert.AreEqual("1hPL1ZpnDS4xxLwEqWhimSu3xdnADTFpB3xU1J66i1Mykq6Z8H1YH", iir.PublicKey);
             iir.Verify();
         }
-        
+
+        [TestMethod]
+        public void CapabilityTest1()
+        {
+            Identity.SetTrustedIdentity(Commons.TrustedIdentity);
+            List<Capability> requestedCapabilities = new List<Capability> { Capability.Generic, Capability.Identify };
+            IdentityIssuingRequest iir = IdentityIssuingRequest.Generate(Key.Generate(KeyType.Identity), requestedCapabilities);
+            try
+            {
+                Identity identity = iir.Issue(Guid.NewGuid(), IdentityIssuingRequest.VALID_FOR_1_YEAR, Commons.IntermediateKey, Commons.IntermediateIdentity, null, null);
+            } catch (ArgumentException) { return; } // All is well
+            Assert.IsTrue(false, "Should not happen.");
+        }
+
+
+        [TestMethod]
+        public void CapabilityTest2()
+        {
+            Identity.SetTrustedIdentity(Commons.TrustedIdentity);
+            List<Capability> requestedCapabilities = new List<Capability> { Capability.Generic, Capability.Identify, Capability.Issue };
+            List<Capability> allowedCapabilities = new List<Capability> { Capability.Generic, Capability.Identify };
+            IdentityIssuingRequest iir = IdentityIssuingRequest.Generate(Key.Generate(KeyType.Identity), requestedCapabilities);
+            try
+            {
+                Identity identity = iir.Issue(Guid.NewGuid(), IdentityIssuingRequest.VALID_FOR_1_YEAR, Commons.IntermediateKey, Commons.IntermediateIdentity, allowedCapabilities, null);
+            } catch (IdentityCapabilityException) { return; } // All is well
+            Assert.IsTrue(false, "Should not happen.");
+        }
+
+        [TestMethod]
+        public void CapabilityTest3()
+        {
+            Identity.SetTrustedIdentity(Commons.TrustedIdentity);
+            List<Capability> requestedCapabilities = new List<Capability> { Capability.Generic };
+            List<Capability> allowedCapabilities = new List<Capability> { Capability.Generic, Capability.Identify };
+            List<Capability> requiredCapabilities = new List<Capability> { Capability.Identify };
+            IdentityIssuingRequest iir = IdentityIssuingRequest.Generate(Key.Generate(KeyType.Identity), requestedCapabilities);
+            try
+            {
+                Identity identity = iir.Issue(Guid.NewGuid(), IdentityIssuingRequest.VALID_FOR_1_YEAR, Commons.IntermediateKey, Commons.IntermediateIdentity, allowedCapabilities, requiredCapabilities);
+            } catch (IdentityCapabilityException) { return; } // All is well
+            Assert.IsTrue(false, "Should not happen.");
+        }
+
+        [TestMethod]
+        public void CapabilityTest4()
+        {
+            Identity.SetTrustedIdentity(Commons.TrustedIdentity);
+            List<Capability> requestedCapabilities = new List<Capability> { Capability.Generic, Capability.Identify };
+            List<Capability> allowedCapabilities = new List<Capability> { Capability.Generic, Capability.Identify };
+            List<Capability> requiredCapabilities = new List<Capability> { Capability.Identify };
+            IdentityIssuingRequest iir = IdentityIssuingRequest.Generate(Key.Generate(KeyType.Identity), requestedCapabilities);
+            Identity identity = iir.Issue(Guid.NewGuid(), IdentityIssuingRequest.VALID_FOR_1_YEAR, Commons.IntermediateKey, Commons.IntermediateIdentity, allowedCapabilities, requiredCapabilities);
+            Assert.IsTrue(identity.HasCapability(requestedCapabilities[0]));
+            Assert.IsTrue(identity.HasCapability(requestedCapabilities[1]));
+        }
+   
     }
 
 }
