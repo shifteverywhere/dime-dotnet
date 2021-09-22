@@ -17,19 +17,23 @@ namespace ShiftEverywhere.DiME
 {
     public class Envelope
     {
+        public const int MAX_CONTEXT_LENGTH = 84; 
         public const string HEADER = "Di";
         public Guid? IssuerId { get { return (this._claims.HasValue) ? this._claims.Value.iss : null; } }
         public DateTime? IssuedAt { get { return (this._claims.HasValue) ? Utility.FromTimestamp(this._claims.Value.iat) : null; } } 
+
+        public String Context { get { return (this._claims.HasValue) ? this._claims.Value.ctx : null; } } 
         public IList<Item> Items { get { return (this._items != null) ? this._items.AsReadOnly() : null; } }
         public bool IsSigned { get { return (this._signature != null); } }
         public bool IsAnonymous { get { return !this._claims.HasValue; } }
 
         public Envelope() { }
 
-        public Envelope(Guid issuerId)
+        public Envelope(Guid issuerId, string context = null)
         {
             string now = Utility.ToTimestamp(DateTime.Now);
-            this._claims = new DimeClaims(issuerId, now);
+            if (context != null && context.Length > Envelope.MAX_CONTEXT_LENGTH) { throw new ArgumentException($"Context must not be longer than {Envelope.MAX_CONTEXT_LENGTH}.", nameof(context)); }
+            this._claims = new DimeClaims(issuerId, now, context);
         }
 
         public static Envelope Import(string exported)
@@ -128,12 +132,15 @@ namespace ShiftEverywhere.DiME
         {
             public Guid iss { get; set; }
             public string iat { get; set; }
+            [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+            public string ctx { get; set; }
 
             [JsonConstructor]
-            public DimeClaims(Guid iss, string iat)
+            public DimeClaims(Guid iss, string iat, string ctx)
             {
                 this.iss = iss;
                 this.iat = iat;
+                this.ctx = ctx;
             }
 
         }

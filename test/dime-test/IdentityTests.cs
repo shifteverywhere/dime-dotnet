@@ -51,7 +51,7 @@ namespace ShiftEverywhere.DiMETest
             //List<Capability> caps = new List<Capability> { Capability.Generic, Capability.Identify, Capability.Issue };
             IdentityIssuingRequest iir = IdentityIssuingRequest.Generate(key, caps);
             Identity identity = iir.Issue(subjectId, IdentityIssuingRequest.VALID_FOR_1_YEAR, caps, Commons.IntermediateKey, Commons.IntermediateIdentity);
-            //Identity identity = iir.IssueIdentity(subjectId, IdentityIssuingRequest.VALID_FOR_1_YEAR * 5, caps, Commons.TrustedKey, Commons.TrustedIdentity);
+            //Identity identity = iir.Issue(subjectId, IdentityIssuingRequest.VALID_FOR_1_YEAR * 5, caps, Commons.TrustedKey, Commons.TrustedIdentity);
             string k = key.Export();
             string i = identity.Export();
             Assert.AreEqual(Identity.TrustedIdentity.SystemName, identity.SystemName);
@@ -177,16 +177,16 @@ namespace ShiftEverywhere.DiMETest
         public void ImportTest1()
         {
             Identity.SetTrustedIdentity(Commons.TrustedIdentity);
-            string exported = "Di:ID.eyJzeXMiOiJkaW1lIiwidWlkIjoiOWVjNDdlY2ItYmQ3Mi00NzZhLTkzMDAtMzIxYzE1MjZmMjE5Iiwic3ViIjoiMWMxNDQ1YWMtODZjZC00MjMyLWEyODQtMzE2ZWFmODVlZjU1IiwiaXNzIjoiNWU2OWQ5NDgtMmZlMC00Y2NmLTg2ZTUtNTFhYTNhYTY3YjZmIiwiaWF0IjoiMjAyMS0wOC0xMVQwNzo0MjoxMi41NzkwODRaIiwiZXhwIjoiMjAyMi0wOC0xMVQwNzo0MjoxMi41NzkwODRaIiwicHViIjoiMWhQSk5OcXdweUE5c3UydnFIdDRjU0xkckVvTDNUZjlrNzJVbWpWZ1pKSExwaDVlM25oZngiLCJjYXAiOlsiZ2VuZXJpYyIsImlkZW50aWZ5Il19.SUQuZXlKemVYTWlPaUprYVcxbElpd2lkV2xrSWpvaU1UTmtOV1ZpTXpBdFpHSmxaUzAwWmpjNExUZzNaVEF0T0RjNVptVmhZVEl5WkRCaklpd2ljM1ZpSWpvaU5XVTJPV1E1TkRndE1tWmxNQzAwWTJObUxUZzJaVFV0TlRGaFlUTmhZVFkzWWpabUlpd2lhWE56SWpvaVl6YzNZamcxWm1ZdFpHUTNaQzAwWTJVeExUaGpZak10WTJNeVlqWm1ZbVprWW1GaElpd2lhV0YwSWpvaU1qQXlNUzB3T0MweE1WUXdOem96T1RvMU55NHdPREkzTWpOYUlpd2laWGh3SWpvaU1qQXlOaTB3T0MweE1GUXdOem96T1RvMU55NHdPREkzTWpOYUlpd2ljSFZpSWpvaU1XaFFTMEUyUmxSdmJ6WTRhbWhCYm5CVlFsQkZTa1IzYlhaQlVIcGxOMUYxT0UxM2FGTjJSMUJrYm5SS09YSm9VM3BVU25FaUxDSmpZWEFpT2xzaVoyVnVaWEpwWXlJc0ltbGtaVzUwYVdaNUlpd2lhWE56ZFdVaVhYMC5BWXNqbmZvVnZqaDdZSVJWTCs0MlJQTkFDQWpwZ3c5aTRMd281WmdtN3FjOEM5V2FWZFgwMnV1cXlQNm9yeEExUTdubjBsV2E5Rlc0VldPRGhWZnJVd3M.AU9diJ5eJ0/3/6EdaBlYBlJzPMDsebkU8uFsAYDO3RsZLwXdwqy6mM2GjCvHranqbC50YG9kLKwaz4VPa96aUgk";
+            string exported = "Di:ID.eyJzeXMiOiJkaW1lIiwidWlkIjoiODhiMWYyYTAtNTZjNi00MTZmLWI0OWQtNGY1NThjMjcxMmU0Iiwic3ViIjoiNGRlZjk4NTEtMWJlNy00YzJiLTljMGQtMjY3M2U3MTJjMDQ1IiwiaXNzIjoiOTEyZWQ5YmEtYTcxYi00MDRjLWFhYjgtOTViNzI5ZTgxZjRjIiwiaWF0IjoiMjAyMS0wOS0yMlQxODoxNzoxMS4zMDM5NDNaIiwiZXhwIjoiMjAyMi0wOS0yMlQxODoxNzoxMS4zMDM5NDNaIiwicHViIjoiMWhQS0paWVlBSFV5OWNpdFB0VXZFWGRaNEE4SjRyUVMySHlSQ2Z4ZHlhdnF0VXg0MnRyNEQiLCJjYXAiOlsiZ2VuZXJpYyIsImlkZW50aWZ5Il19.SUQuZXlKemVYTWlPaUprYVcxbElpd2lkV2xrSWpvaU1UWXhZelEzWkdJdE1UYzJPQzAwTkdJMExUaGhPVEF0WkdSaE9XRmlaVGRpWW1Oaklpd2ljM1ZpSWpvaU9URXlaV1E1WW1FdFlUY3hZaTAwTURSakxXRmhZamd0T1RWaU56STVaVGd4WmpSaklpd2lhWE56SWpvaVlXVTJNbVJtTnpJdE16UTVNUzAwTTJFd0xXRmhPVEF0TVRrelpUUmhNVFF3TTJRNElpd2lhV0YwSWpvaU1qQXlNUzB3T1Mwd05sUXdPRG93TmpvME5TNDNOakUyTTFvaUxDSmxlSEFpT2lJeU1ESTJMVEE1TFRBMVZEQTRPakEyT2pRMUxqYzJNVFl6V2lJc0luQjFZaUk2SWpGb1VFdFpTbVI2Tm5ReE5VNTNOemt6ZDBoT1pGUnBXV2hGZFdzelZtbFVlV1ZxZEVWNlZrdHhVVEYwWjFkcllWSk1iemw0SWl3aVkyRndJanBiSW1kbGJtVnlhV01pTENKcFpHVnVkR2xtZVNJc0ltbHpjM1ZsSWwxOS5BYW4vdWJwY1gzL2pMK3d1QmpTWi9IT2VSSDlLVFpNZ0VNTWZmVGpSZUMwRzEwRXhyaVVmazZjRUZPOUhsM0hlQ1NaQ1NuWWR5Y0ErU09qNlpRK2hud1E.AUypvM3PVgq5jMGgzAlWhYRf4msby3FM5jW68mB1yS+aO8rg9b7NnSlTm/7vJHo5pWD/17u3sptUAz68SGwCqwg";
             Identity identity = Item.Import<Identity>(exported);
             Assert.IsNotNull(identity);
             Assert.AreEqual(Commons.SYSTEM_NAME, identity.SystemName);
-            Assert.AreEqual(new Guid("9ec47ecb-bd72-476a-9300-321c1526f219"), identity.UniqueId);
-            Assert.AreEqual(new Guid("1c1445ac-86cd-4232-a284-316eaf85ef55"), identity.SubjectId);
-            Assert.AreEqual(DateTime.Parse("2021-08-11T07:42:12.579084Z"), identity.IssuedAt);
-            Assert.AreEqual(DateTime.Parse("2022-08-11T07:42:12.579084Z"), identity.ExpiresAt);
+            Assert.AreEqual(new Guid("88b1f2a0-56c6-416f-b49d-4f558c2712e4"), identity.UniqueId);
+            Assert.AreEqual(new Guid("4def9851-1be7-4c2b-9c0d-2673e712c045"), identity.SubjectId);
+            Assert.AreEqual(DateTime.Parse("2021-09-22T18:17:11.303943Z"), identity.IssuedAt);
+            Assert.AreEqual(DateTime.Parse("2022-09-22T18:17:11.303943Z"), identity.ExpiresAt);
             Assert.AreEqual(Commons.IntermediateIdentity.SubjectId, identity.IssuerId);
-            Assert.AreEqual("1hPJNNqwpyA9su2vqHt4cSLdrEoL3Tf9k72UmjVgZJHLph5e3nhfx", identity.PublicKey);
+            Assert.AreEqual("1hPKJZYYAHUy9citPtUvEXdZ4A8J4rQS2HyRCfxdyavqtUx42tr4D", identity.PublicKey);
             Assert.IsTrue(identity.HasCapability(Capability.Generic));
             Assert.IsTrue(identity.HasCapability(Capability.Identify));
             Assert.IsNotNull(identity.TrustChain);
