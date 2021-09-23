@@ -26,7 +26,7 @@ namespace ShiftEverywhere.DiME
         /// <summary>A unique identifier for the message.</summary>
         public override Guid UniqueId { get { return this._claims.uid; } }
         /// <summary>The id of the receiver.</summary>
-        public Guid AudienceId { get { return this._claims.aud; } }
+        public Guid? AudienceId { get { return this._claims.aud; } }
         /// <summary>The id of the issuer (subject id of the issuer).</summary>
         public Guid IssuerId { get { return this._claims.iss; } }
         /// <summary>The timestamp of when the message was created (issued).</summary>
@@ -56,6 +56,20 @@ namespace ShiftEverywhere.DiME
         #region -- PUBLIC CONSTRUCTORS --
 
         public Message() { }
+
+        public Message(Guid issuerId, double validFor = -1)
+        {
+            DateTime iat = DateTime.Now;
+            DateTime? exp = (validFor != -1) ? iat.AddSeconds(validFor) : null; 
+            this._claims = new MessageClaims(Guid.NewGuid(), 
+                                             null, 
+                                             issuerId, 
+                                             Utility.ToTimestamp(iat), 
+                                             (exp.HasValue) ? Utility.ToTimestamp(exp.Value) : null, 
+                                             null, 
+                                             null, 
+                                             null);
+        }
 
         public Message(Guid audienceId, Guid issuerId, double validFor = -1)
         {
@@ -132,12 +146,13 @@ namespace ShiftEverywhere.DiME
             if (this.IsSigned) { throw new InvalidOperationException("Unable to set payload, message already signed."); }
             if (audienceKeybox != null)
             {
+                if (this.AudienceId == null) { throw new InvalidOperationException("AudienceId must be set in the message for encrypted payloads."); }
                 if (audienceKeybox.Type != KeyType.Exchange) { throw new ArgumentException("Unable to encrypt, invalid key type.", nameof(audienceKeybox)); }
                 if (audienceKeybox.Public == null) { throw new ArgumentNullException(nameof(audienceKeybox), "Unable to encrypt, public key must not be null."); }
                 this._claims.kid = audienceKeybox.UniqueId;
                 Key ephemeralKeyBox = Key.Generate(KeyType.Exchange, -1, audienceKeybox.Profile);
                 this._claims.pub = ephemeralKeyBox.Public;
-                byte[] info = Crypto.GenerateHash(audienceKeybox.Profile, Utility.Combine(this.IssuerId.ToByteArray(), this.AudienceId.ToByteArray()));
+                byte[] info = Crypto.GenerateHash(audienceKeybox.Profile, Utility.Combine(this.IssuerId.ToByteArray(), this.AudienceId.Value.ToByteArray()));
                 var key = Crypto.GenerateSharedSecret(ephemeralKeyBox, audienceKeybox, audienceKeybox.UniqueId.ToByteArray(), info);
                 this._payload = Utility.ToBase64(Crypto.Encrypt(payload, key));
             }
@@ -152,10 +167,11 @@ namespace ShiftEverywhere.DiME
             if (this.KeyId.HasValue && audienceKeybox == null) { throw new ArgumentNullException(nameof(audienceKeybox), "Payload is encrypted, provide a valid keybox for decryption."); }
             if (this.KeyId.HasValue && audienceKeybox != null)
             {
+                if (this.AudienceId == null) { throw new FormatException("AudienceId (aud) missing in message, unable to dectrypt payload."); }
                 if (audienceKeybox.Type != KeyType.Exchange) { throw new ArgumentException("Unable to decrypt, invalid key type.", nameof(audienceKeybox)); }
                 if (audienceKeybox.Secret == null) { throw new ArgumentNullException(nameof(audienceKeybox), "Unable to decrypt, key must not be null."); }
                 if (audienceKeybox.UniqueId != this.KeyId) { throw new KeyMismatchException("Unable to decrypt, mismatching unique id of key provided."); }
-                byte[] info = Crypto.GenerateHash(audienceKeybox.Profile, Utility.Combine(this.IssuerId.ToByteArray(), this.AudienceId.ToByteArray()));
+                byte[] info = Crypto.GenerateHash(audienceKeybox.Profile, Utility.Combine(this.IssuerId.ToByteArray(), this.AudienceId.Value.ToByteArray()));
                 var key = Crypto.GenerateSharedSecret(audienceKeybox, new Key(this._claims.pub), audienceKeybox.UniqueId.ToByteArray(), info);
                 return Crypto.Decrypt(Utility.FromBase64(this._payload), key);
             }
@@ -230,7 +246,8 @@ namespace ShiftEverywhere.DiME
         private struct MessageClaims
         {
             public Guid uid { get; set; }
-            public Guid aud { get; set; }
+            [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+            public Guid? aud { get; set; }
             public Guid iss { get; set; }
             public string iat { get; set; }
             [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
@@ -243,7 +260,7 @@ namespace ShiftEverywhere.DiME
             public string lnk { get; set; }
 
             [JsonConstructor]
-            public MessageClaims(Guid uid, Guid aud, Guid iss, string iat, string exp, Guid? kid, string pub, string lnk)
+            public MessageClaims(Guid uid, Guid? aud, Guid iss, string iat, string exp, Guid? kid, string pub, string lnk)
             {
                 this.uid = uid;
                 this.aud = aud;

@@ -45,6 +45,21 @@ namespace ShiftEverywhere.DiMETest
         }
 
         [TestMethod]
+        public void MessageTest3()
+        {
+            Identity.SetTrustedIdentity(Commons.TrustedIdentity);
+            string text = "Racecar is racecar backwards.";
+            byte[] payload = Encoding.UTF8.GetBytes(text);
+            Message message1 = new Message(Commons.IssuerIdentity.SubjectId);
+            message1.SetPayload(payload);
+            Assert.IsNull(message1.AudienceId);
+            message1.Sign(Commons.IssuerKey);
+            Message message2 = Item.Import<Message>(message1.Export());
+            Assert.IsNull(message2.AudienceId);
+            Assert.AreEqual(text, System.Text.Encoding.UTF8.GetString(message2.GetPayload()));
+        }
+
+        [TestMethod]
         public void ExportTest1()
         {  
             Identity.SetTrustedIdentity(Commons.TrustedIdentity);
@@ -122,8 +137,8 @@ namespace ShiftEverywhere.DiMETest
         public void ImportTest1()
         {   
             Identity.SetTrustedIdentity(Commons.TrustedIdentity);
-            string encoded = "Di:MSG.eyJ1aWQiOiI0ZmE2NmJhZC0wODRkLTRiMjAtOTU4NS03NjZhNWI2NTE5MjgiLCJhdWQiOiIyMjYzYTAxNy1lZTVhLTRkMmEtYTNmZS1lNjlmOTI2MmE2MDEiLCJpc3MiOiJkNGVlN2YyOS02OTNiLTQyY2MtODNmMy1kZGMyNDc5ZDU0NzUiLCJpYXQiOiIyMDIxLTA5LTIyVDE4OjEyOjE3LjIxOTIyNloiLCJleHAiOiIyMDIxLTA5LTIyVDE4OjEyOjI3LjIxOTIyNloifQ.UmFjZWNhciBpcyByYWNlY2FyIGJhY2t3YXJkcy4.AXpiWDZE+LuDrSuGKCN2NZ8rVUSzMBoWlGPu6jxuhSJp4RJ/+uccsBvDoyzUW0JmnTs5+Qm1/4TNBpz6KdpoiQo";
-            Message message = Item.Import<Message>(encoded);
+            string exported = "Di:MSG.eyJ1aWQiOiI0ZmE2NmJhZC0wODRkLTRiMjAtOTU4NS03NjZhNWI2NTE5MjgiLCJhdWQiOiIyMjYzYTAxNy1lZTVhLTRkMmEtYTNmZS1lNjlmOTI2MmE2MDEiLCJpc3MiOiJkNGVlN2YyOS02OTNiLTQyY2MtODNmMy1kZGMyNDc5ZDU0NzUiLCJpYXQiOiIyMDIxLTA5LTIyVDE4OjEyOjE3LjIxOTIyNloiLCJleHAiOiIyMDIxLTA5LTIyVDE4OjEyOjI3LjIxOTIyNloifQ.UmFjZWNhciBpcyByYWNlY2FyIGJhY2t3YXJkcy4.AXpiWDZE+LuDrSuGKCN2NZ8rVUSzMBoWlGPu6jxuhSJp4RJ/+uccsBvDoyzUW0JmnTs5+Qm1/4TNBpz6KdpoiQo";
+            Message message = Item.Import<Message>(exported);
             Assert.AreEqual(new Guid("4fa66bad-084d-4b20-9585-766a5b651928"), message.UniqueId);
             Assert.AreEqual(new Guid("2263a017-ee5a-4d2a-a3fe-e69f9262a601"), message.AudienceId);
             Assert.AreEqual(Commons.IssuerIdentity.SubjectId, message.IssuerId);

@@ -71,22 +71,30 @@ namespace ShiftEverywhere.DiME
 
         /// <summary>Issues a new signed identity from an identity issuing request (IIR). The new identity
         /// will be signed by the provided issuerIdentity. The identity of the issuer must either be trusted
-        /// by the TrustedIdentity, or be the TrustedIdentity. If the issuerIdentity is omitted, then the 
-        /// returned identity will be self-signed. </summary>
-        /// <param name="systemName">An unique name of the system where the identity is deployed (system, infrastructure, application, etc.).</param>
+        /// by the TrustedIdentity, or be the TrustedIdentity. The newly issued identity will belong to the same
+        /// system specified in issuerIdentity.</summary>
         /// <param name="subjectId">The subject id that should be associated with the identity.</param>
+        /// <param name="validFor">The number of seconds the identity should be valid, from issued at date, which is set automatically.</param>
         /// <param name="issuerKey">The key pair of the issuer.</param>
-        /// <param name="issuerIdentitys">The identity of the issuer (optional).</param>
+        /// <param name="issuerIdentity">The identity of the issuer (optional).</param>
         /// <param name="allowedCapabilities">The capabilities that are allowed to be requested in the IIR, must not be null.</param>
         /// <param name="requiredCapabilities">The capabilities that must be asked for in the IIR, may be null.</param>
         /// <param name="ambit">The areas or regions where the identity is valid.</param>
         /// <returns>Returns an imutable Identity instance.</returns>
-        public Identity Issue(Guid subjectId, double validFor, Key issuerKey, Identity issuerIdentity, List<Capability> allowedCapabilities, List<Capability> requiredCapabilities, string[] ambit = null) 
+        public Identity Issue(Guid subjectId, double validFor, Key issuerKey, Identity issuerIdentity, List<Capability> allowedCapabilities, List<Capability> requiredCapabilities = null, string[] ambit = null) 
         {    
             if (issuerIdentity == null) { throw new ArgumentNullException(nameof(issuerIdentity), "Issuer identity must not be null."); }
             return this.IssueIdentity(issuerIdentity.SystemName, subjectId, validFor, issuerKey, issuerIdentity, allowedCapabilities, requiredCapabilities, ambit);
         }
 
+        /// <summary>Issues a new self signed identity from an identity issuing request (IIR). The new identity
+        /// will be signed by the provided issuerKey, which must match the public key inside the IIR.</summary>
+        /// <param name="subjectId">The subject id that should be associated with the identity.</param>
+        /// <param name="validFor">The number of seconds the identity should be valid, from issued at date, which is set automatically.</param>
+        /// <param name="issuerKey">The key pair of the issuer.</param>
+        /// <param name="systemName">An unique name of the system where the identity is deployed (system, infrastructure, application, etc.).</param>
+        /// <param name="ambit">The areas or regions where the identity is valid.</param>
+        /// <returns>Returns an imutable self-issued Identity instance.</returns>
         public Identity SelfIssue(Guid subjectId, double validFor, Key issuerKey, string systemName, string[] ambit = null)
         {
             if (systemName == null || systemName.Length == 0) { throw new ArgumentNullException(nameof(systemName), "System name must not be null or empty."); }
@@ -166,7 +174,7 @@ namespace ShiftEverywhere.DiME
             }
         }
         
-        private Identity IssueIdentity(string systemName, Guid subjectId, double validFor, Key issuerKey, Identity issuerIdentity, List<Capability> allowedCapabilities, List<Capability> requiredCapabilities, string[] ambit = null)
+        private Identity IssueIdentity(string systemName, Guid subjectId, double validFor, Key issuerKey, Identity issuerIdentity, List<Capability> allowedCapabilities, List<Capability> requiredCapabilities = null, string[] ambit = null)
         {
             bool isSelfSign = (issuerIdentity == null || this.PublicKey == issuerKey.Public);
             this.CompleteCapabilities(allowedCapabilities, requiredCapabilities, isSelfSign);
