@@ -42,7 +42,7 @@ namespace ShiftEverywhere.DiME
                 iir._capabilities = new List<Capability>() { Capability.Generic }; 
             else 
                 iir._capabilities = capabilities; 
-            DateTime now = DateTime.Now;
+            DateTime now = DateTime.UtcNow;
             string[] cap;
             if (capabilities != null && capabilities.Count > 0)
                 cap = capabilities.ConvertAll(c => c.ToString().ToLower()).ToArray();
@@ -60,7 +60,7 @@ namespace ShiftEverywhere.DiME
 
         public override void Verify(Key keybox)
         {
-            if (DateTime.Now < this.IssuedAt) { throw new DateExpirationException("An identity issuing request cannot have an issued at date in the future."); }
+            if (DateTime.UtcNow < this.IssuedAt) { throw new DateExpirationException("An identity issuing request cannot have an issued at date in the future."); }
             base.Verify(keybox);
         }
 
@@ -180,7 +180,7 @@ namespace ShiftEverywhere.DiME
             this.CompleteCapabilities(allowedCapabilities, requiredCapabilities, isSelfSign);
             if (isSelfSign || issuerIdentity.HasCapability(Capability.Issue))
             {
-                DateTime now = DateTime.Now;
+                DateTime now = DateTime.UtcNow;
                 DateTime expires = now.AddSeconds(validFor);
                 Guid issuerId = issuerIdentity != null ? issuerIdentity.SubjectId : subjectId;
                 Identity identity = new Identity(systemName, subjectId, this.PublicKey, now, expires, issuerId, this._capabilities, this.Principles, ambit);

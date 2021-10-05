@@ -56,7 +56,7 @@ namespace ShiftEverywhere.DiMETest
             Assert.AreEqual(Profile.Uno, key.Profile);
             Assert.AreEqual(KeyType.Identity, key.Type);
             Assert.AreEqual(new Guid("3112601a-1eae-4db8-a73b-04747a38e87c"), key.UniqueId);
-            Assert.AreEqual(DateTime.Parse("2021-08-10T06:34:43.51723Z"), key.IssuedAt);
+            Assert.AreEqual(DateTime.Parse("2021-08-10T06:34:43.51723Z").ToUniversalTime(), key.IssuedAt);
             Assert.AreEqual("1hEiwR3BqLY2EuARXdZUFaHoiuh5RuX5vVY5n15egU5QxXnSeXmAc", key.Secret);
             Assert.AreEqual("1hPKynLmqiiCkTG7RHzwm9QWMrohWE25ym83A7YmopChHYavaADzg", key.Public);
         }

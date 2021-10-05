@@ -75,7 +75,7 @@ namespace ShiftEverywhere.DiMETest
             IdentityIssuingRequest iir = Item.Import<IdentityIssuingRequest>(exported);
             Assert.IsNotNull(iir);
             Assert.AreEqual(new Guid("0e204d42-094a-4954-8a67-345ba9eb6757"), iir.UniqueId);
-            Assert.AreEqual(DateTime.Parse("2021-08-10T06:30:27.419786Z"), iir.IssuedAt);
+            Assert.AreEqual(DateTime.Parse("2021-08-10T06:30:27.419786Z").ToUniversalTime(), iir.IssuedAt);
             Assert.IsTrue(iir.WantsCapability(Capability.Generic));
             Assert.AreEqual("1hPL1ZpnDS4xxLwEqWhimSu3xdnADTFpB3xU1J66i1Mykq6Z8H1YH", iir.PublicKey);
             iir.Verify();

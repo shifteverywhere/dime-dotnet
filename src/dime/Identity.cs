@@ -62,7 +62,7 @@ namespace ShiftEverywhere.DiME
         public void VerifyTrust()
         {
             if (Identity.TrustedIdentity == null) { throw new InvalidOperationException("Unable to verify trust, no trusted identity set."); }
-            DateTime now = DateTime.Now;
+            DateTime now = DateTime.UtcNow;
             if (this.IssuedAt > now) { throw new DateExpirationException("Identity is not yet valid, issued at date in the future."); }
             if (this.IssuedAt > this.ExpiresAt) { throw new DateExpirationException("Invalid expiration date, expires at before issued at."); }
             if (this.ExpiresAt < now) { throw new DateExpirationException("Identity has expired."); }

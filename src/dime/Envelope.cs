@@ -21,7 +21,6 @@ namespace ShiftEverywhere.DiME
         public const string HEADER = "Di";
         public Guid? IssuerId { get { return (this._claims.HasValue) ? this._claims.Value.iss : null; } }
         public DateTime? IssuedAt { get { return (this._claims.HasValue) ? Utility.FromTimestamp(this._claims.Value.iat) : null; } } 
-
         public String Context { get { return (this._claims.HasValue) ? this._claims.Value.ctx : null; } } 
         public IList<Item> Items { get { return (this._items != null) ? this._items.AsReadOnly() : null; } }
         public bool IsSigned { get { return (this._signature != null); } }
@@ -31,7 +30,7 @@ namespace ShiftEverywhere.DiME
 
         public Envelope(Guid issuerId, string context = null)
         {
-            string now = Utility.ToTimestamp(DateTime.Now);
+            string now = Utility.ToTimestamp(DateTime.UtcNow);
             if (context != null && context.Length > Envelope.MAX_CONTEXT_LENGTH) { throw new ArgumentException($"Context must not be longer than {Envelope.MAX_CONTEXT_LENGTH}.", nameof(context)); }
             this._claims = new DimeClaims(issuerId, now, context);
         }

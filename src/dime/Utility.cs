@@ -88,13 +88,12 @@ namespace ShiftEverywhere.DiME
 
         public static string ToTimestamp(DateTime date)
         {
-            DateTime UtcDateTime = TimeZoneInfo.ConvertTimeToUtc(date);
-            return XmlConvert.ToString(UtcDateTime, XmlDateTimeSerializationMode.Utc);
+            return XmlConvert.ToString(date, XmlDateTimeSerializationMode.Utc);
         }
 
         public static DateTime FromTimestamp(string timestamp)  
         {
-            return DateTime.Parse(timestamp);
+            return DateTime.Parse(timestamp).ToUniversalTime();
         } 
 
     }

@@ -59,7 +59,7 @@ namespace ShiftEverywhere.DiME
 
         public Message(Guid issuerId, double validFor = -1)
         {
-            DateTime iat = DateTime.Now;
+            DateTime iat = DateTime.UtcNow;
             DateTime? exp = (validFor != -1) ? iat.AddSeconds(validFor) : null; 
             this._claims = new MessageClaims(Guid.NewGuid(), 
                                              null, 
@@ -73,7 +73,7 @@ namespace ShiftEverywhere.DiME
 
         public Message(Guid audienceId, Guid issuerId, double validFor = -1)
         {
-            DateTime iat = DateTime.Now;
+            DateTime iat = DateTime.UtcNow;
             DateTime? exp = (validFor != -1) ? iat.AddSeconds(validFor) : null; 
             this._claims = new MessageClaims(Guid.NewGuid(), 
                                              audienceId, 
@@ -110,7 +110,7 @@ namespace ShiftEverywhere.DiME
         public override void Verify(Key keybox) { 
             if (this._payload == null || this._payload.Length == 0) { throw new InvalidOperationException("Unable to verify message, no payload added."); }
             // Verify IssuedAt and ExpiresAt
-            DateTime now = DateTime.Now;
+            DateTime now = DateTime.UtcNow;
             if (this.IssuedAt > now) { throw new DateExpirationException("Issuing date in the future."); }
             if (this.IssuedAt > this.ExpiresAt) { throw new DateExpirationException("Expiration before issuing date."); }
             if (this.ExpiresAt < now) { throw new DateExpirationException("Passed expiration date."); }

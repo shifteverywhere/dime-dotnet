@@ -21,7 +21,7 @@ namespace ShiftEverywhere.DiMETest
         public void MessageTest1()
         {
             Identity.SetTrustedIdentity(Commons.TrustedIdentity);
-            DateTime now = DateTime.Now;
+            DateTime now = DateTime.UtcNow;
             Message message = new Message(Commons.AudienceIdentity.SubjectId, Commons.IssuerIdentity.SubjectId, 10);
             message.SetPayload(Encoding.UTF8.GetBytes("Racecar is racecar backwards."));
             Assert.IsNotNull(message.UniqueId);
@@ -143,8 +143,8 @@ namespace ShiftEverywhere.DiMETest
             Assert.AreEqual(new Guid("2263a017-ee5a-4d2a-a3fe-e69f9262a601"), message.AudienceId);
             Assert.AreEqual(Commons.IssuerIdentity.SubjectId, message.IssuerId);
             Assert.AreEqual("Racecar is racecar backwards.", System.Text.Encoding.UTF8.GetString(message.GetPayload()));
-            Assert.AreEqual(DateTime.Parse("2021-09-22T18:12:17.219226Z"), message.IssuedAt);
-            Assert.AreEqual(DateTime.Parse("2021-09-22T18:12:27.219226Z"), message.ExpiresAt);
+            Assert.AreEqual(DateTime.Parse("2021-09-22T18:12:17.219226Z").ToUniversalTime(), message.IssuedAt);
+            Assert.AreEqual(DateTime.Parse("2021-09-22T18:12:27.219226Z").ToUniversalTime(), message.ExpiresAt);
             Assert.AreEqual(message.IssuerId, Commons.IssuerIdentity.SubjectId);
         }
 

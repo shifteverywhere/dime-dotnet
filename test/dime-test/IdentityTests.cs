@@ -183,8 +183,8 @@ namespace ShiftEverywhere.DiMETest
             Assert.AreEqual(Commons.SYSTEM_NAME, identity.SystemName);
             Assert.AreEqual(new Guid("88b1f2a0-56c6-416f-b49d-4f558c2712e4"), identity.UniqueId);
             Assert.AreEqual(new Guid("4def9851-1be7-4c2b-9c0d-2673e712c045"), identity.SubjectId);
-            Assert.AreEqual(DateTime.Parse("2021-09-22T18:17:11.303943Z"), identity.IssuedAt);
-            Assert.AreEqual(DateTime.Parse("2022-09-22T18:17:11.303943Z"), identity.ExpiresAt);
+            Assert.AreEqual(DateTime.Parse("2021-09-22T18:17:11.303943Z").ToUniversalTime(), identity.IssuedAt);
+            Assert.AreEqual(DateTime.Parse("2022-09-22T18:17:11.303943Z").ToUniversalTime(), identity.ExpiresAt);
             Assert.AreEqual(Commons.IntermediateIdentity.SubjectId, identity.IssuerId);
             Assert.AreEqual("1hPKJZYYAHUy9citPtUvEXdZ4A8J4rQS2HyRCfxdyavqtUx42tr4D", identity.PublicKey);
             Assert.IsTrue(identity.HasCapability(Capability.Generic));

@@ -135,7 +135,7 @@ namespace ShiftEverywhere.DiMETest
             Envelope envelope = Envelope.Import(exported);
             Assert.IsFalse(envelope.IsAnonymous);
             Assert.AreEqual(Commons.IssuerIdentity.SubjectId, envelope.IssuerId);  
-            Assert.AreEqual(DateTime.Parse("2021-09-22T18:27:28.792029Z"), envelope.IssuedAt);   
+            Assert.AreEqual(DateTime.Parse("2021-09-22T18:27:28.792029Z").ToUniversalTime(), envelope.IssuedAt);   
             Assert.IsNull(envelope.Context);       
             Assert.AreEqual(1, envelope.Items.Count);
             Assert.AreEqual(typeof(Identity), envelope.Items.ElementAt(0).GetType());
@@ -177,7 +177,7 @@ namespace ShiftEverywhere.DiMETest
             Envelope envelope = Envelope.Import(exported);
             Assert.IsFalse(envelope.IsAnonymous);
             Assert.AreEqual(Commons.IssuerIdentity.SubjectId, envelope.IssuerId);  
-            Assert.AreEqual(DateTime.Parse("2021-09-22T18:24:57.192314Z"), envelope.IssuedAt);    
+            Assert.AreEqual(DateTime.Parse("2021-09-22T18:24:57.192314Z").ToUniversalTime(), envelope.IssuedAt);    
             Assert.IsNull(envelope.Context);          
             Assert.AreEqual(1, envelope.Items.Count);
             Assert.AreEqual(typeof(Key), envelope.Items.ElementAt(0).GetType());
@@ -207,7 +207,7 @@ namespace ShiftEverywhere.DiMETest
             Envelope envelope = Envelope.Import(exported);
             Assert.IsFalse(envelope.IsAnonymous);
             Assert.AreEqual(Commons.IssuerIdentity.SubjectId, envelope.IssuerId);  
-            Assert.AreEqual(DateTime.Parse("2021-09-22T18:22:11.54927Z"), envelope.IssuedAt);
+            Assert.AreEqual(DateTime.Parse("2021-09-22T18:22:11.54927Z").ToUniversalTime(), envelope.IssuedAt);
             Assert.AreEqual("Di:ME", envelope.Context);              
             Assert.AreEqual(1, envelope.Items.Count);
             Assert.AreEqual(typeof(Message), envelope.Items.ElementAt(0).GetType());

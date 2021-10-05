@@ -76,7 +76,7 @@ namespace ShiftEverywhere.DiME
         internal Key(Guid id, KeyType type, byte[] key, byte[] publickey, Profile profile = Crypto.DEFUALT_PROFILE)
         {
             if (!Crypto.SupportedProfile(profile)) { throw new ArgumentException("Unsupported profile.", nameof(profile)); }
-            DateTime iat = DateTime.Now;
+            DateTime iat = DateTime.UtcNow;
             this._claims = new KeyClaims(null, 
                                          id, 
                                          Utility.ToTimestamp(iat),
