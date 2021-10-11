@@ -96,6 +96,10 @@ namespace ShiftEverywhere.DiME
 
         protected abstract string Encode();
 
+        protected void ThrowIfSigned() {
+            if (this.IsSigned) { throw new InvalidOperationException("Unable to complete operation, Di:ME item already signed."); }
+        }
+
         #endregion
 
     }

@@ -93,11 +93,11 @@ namespace ShiftEverywhere.DiME
             Verify(new Key(publicKey));
         }
         
-        public Envelope Verify(Key keybox)
+        public Envelope Verify(Key key)
         {
             if (this.IsAnonymous) { throw new InvalidOperationException("Unable to verify, envelope is anonymous."); }
             if (this._signature == null) { throw new InvalidOperationException("Unable to verify, envelope is not signed."); }
-            Crypto.VerifySignature(Encode(), this._signature, keybox);
+            Crypto.VerifySignature(Encode(), this._signature, key);
             return this;
         }
 

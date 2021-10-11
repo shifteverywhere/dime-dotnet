@@ -171,7 +171,7 @@ namespace ShiftEverywhere.DiMETest
         }
 
         [TestMethod]
-        public void SealTest1()
+        public void SignTest1()
         {  
             Identity.SetTrustedIdentity(Commons.TrustedIdentity);
             Message message = new Message(Commons.AudienceIdentity.SubjectId, Commons.IssuerIdentity.SubjectId, 10);
@@ -182,7 +182,21 @@ namespace ShiftEverywhere.DiMETest
         }
 
         [TestMethod]
-        public void IsSealedTest1()
+        public void SignTest2()
+        {  
+            Identity.SetTrustedIdentity(Commons.TrustedIdentity);
+            Message message = new Message(Commons.AudienceIdentity.SubjectId, Commons.IssuerIdentity.SubjectId, 10);
+            message.SetPayload(Encoding.UTF8.GetBytes("Racecar is racecar backwards."));
+            message.Sign(Commons.IssuerKey);
+            try {
+                message.KeyId = Guid.NewGuid();
+                message.PublicKey = Commons.IssuerKey.Public;
+            } catch (InvalidOperationException) { return; } // All is well
+            Assert.IsTrue(false, "Should not happen.");
+        }
+
+        [TestMethod]
+        public void IsSignedTest1()
         {
             Identity.SetTrustedIdentity(Commons.TrustedIdentity);
             Message message = new Message(Commons.AudienceIdentity.SubjectId, Commons.IssuerIdentity.SubjectId, 10);
@@ -214,45 +228,46 @@ namespace ShiftEverywhere.DiMETest
         [TestMethod]
         public void SetPayloadTest3()
         {
-            Key localAudienceKeyBox = Key.Generate(KeyType.Exchange);
-            Key remoteAudenceKeyBox = localAudienceKeyBox.PublicCopy();
+            Key localKey = Key.Generate(KeyType.Exchange);
+            Key remoteKey = Key.Generate(KeyType.Exchange).PublicCopy();
             Message message = new Message(Commons.AudienceIdentity.SubjectId, Commons.IssuerIdentity.SubjectId, 100);
-            message.SetPayload(Encoding.UTF8.GetBytes("Racecar is racecar backwards."), remoteAudenceKeyBox);
-            try {
-                byte[] payload = message.GetPayload();
-            } catch (ArgumentNullException) { return; } // All is well
-            Assert.IsTrue(false, "Should not happen.");
+            message.SetPayload(Encoding.UTF8.GetBytes("Racecar is racecar backwards."), localKey, remoteKey);
+            Assert.AreNotEqual("Racecar is racecar backwards.", System.Text.Encoding.UTF8.GetString(message.GetPayload()));
         }
 
         [TestMethod]
         public void SetPayloadTest4()
         {
-            Key localAudienceKeyBox = Key.Generate(KeyType.Exchange);
-            Key remoteAudenceKeyBox = localAudienceKeyBox.PublicCopy();
+            Key localKey = Key.Generate(KeyType.Exchange);
+            Key remoteKey = Key.Generate(KeyType.Exchange);
             Message message = new Message(Commons.AudienceIdentity.SubjectId, Commons.IssuerIdentity.SubjectId, 100);
-            message.SetPayload(Encoding.UTF8.GetBytes("Racecar is racecar backwards."), remoteAudenceKeyBox);
-            Assert.AreEqual("Racecar is racecar backwards.", System.Text.Encoding.UTF8.GetString(message.GetPayload(localAudienceKeyBox)));
+            message.KeyId = localKey.UniqueId;
+            message.PublicKey = remoteKey.Public;
+            message.SetPayload(Encoding.UTF8.GetBytes("Racecar is racecar backwards."), localKey, remoteKey.PublicCopy(), Encoding.UTF8.GetBytes(localKey.Public));
+            Assert.AreEqual(localKey.UniqueId, message.KeyId);
+            Assert.AreEqual(remoteKey.Public, message.PublicKey);
+            Assert.AreEqual("Racecar is racecar backwards.", System.Text.Encoding.UTF8.GetString(message.GetPayload(remoteKey, localKey.PublicCopy(), Encoding.UTF8.GetBytes(localKey.Public))));
         }
 
         [TestMethod]
         public void SetPayloadTest5()
         {
-            Key localAudienceKeyBox = Key.Generate(KeyType.Exchange);
-            Key remoteAudenceKeyBox = localAudienceKeyBox.PublicCopy();
+            Key localKey = Key.Generate(KeyType.Exchange);
+            Key remoteKey = Key.Generate(KeyType.Exchange);
             Message message1 = new Message(Commons.AudienceIdentity.SubjectId, Commons.IssuerIdentity.SubjectId, 100);
-            message1.SetPayload(Encoding.UTF8.GetBytes("Racecar is racecar backwards."), remoteAudenceKeyBox);
+            message1.SetPayload(Encoding.UTF8.GetBytes("Racecar is racecar backwards."), localKey, remoteKey, Encoding.UTF8.GetBytes(localKey.Public));
             message1.Sign(Commons.IssuerKey);
             Message message2 = Item.Import<Message>(message1.Export());
-            Assert.AreEqual("Racecar is racecar backwards.", System.Text.Encoding.UTF8.GetString(message2.GetPayload(localAudienceKeyBox)));
+            Assert.AreEqual("Racecar is racecar backwards.", System.Text.Encoding.UTF8.GetString(message2.GetPayload(remoteKey, localKey.PublicCopy(), Encoding.UTF8.GetBytes(localKey.Public))));
         }
 
         [TestMethod]
         public void SetPayloadTest6()
         {
-            Key keybox = Key.Generate(KeyType.Identity);
+            Key key = Key.Generate(KeyType.Identity);
             Message message = new Message(Commons.AudienceIdentity.SubjectId, Commons.IssuerIdentity.SubjectId, 100);
             try {
-                message.SetPayload(Encoding.UTF8.GetBytes("Racecar is racecar backwards."), keybox);
+                message.SetPayload(Encoding.UTF8.GetBytes("Racecar is racecar backwards."), key, key);
             } catch (ArgumentException) { return; } // All is well
             Assert.IsTrue(false, "Should not happen.");
         }

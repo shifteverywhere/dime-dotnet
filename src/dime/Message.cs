@@ -33,10 +33,12 @@ namespace ShiftEverywhere.DiME
         public DateTime IssuedAt { get { return Utility.FromTimestamp(this._claims.iat); } }
         /// <summary>The timestamp of when the message is expired and is no longer valid.</summary>
         public DateTime? ExpiresAt { get { return (this._claims.exp != null) ? Utility.FromTimestamp(this._claims.exp) : null; } }
-        /// <summary>Will be set to the unique identifier of a KeyBox used to derive a shared encryption
-        /// key for the attached payload. This will be a KeyBox with type 'Exchange' that has previously
-        /// been shared, in its public form, by the audience (receiver) of this message.
-        public Guid? KeyId { get { return this._claims.kid; }}
+        /// <summary>Normally used to specify a key that was used to encrypt the message. Used by the receiver to either complete
+        /// a key agreement for a shared encryption key, or fetch a pre-shared enctyption key.
+        public Guid? KeyId { get { return this._claims.kid; } set { ThrowIfSigned(); this._claims.kid = value; } }
+        /// <summary>Normally used to attach a public key to a message that is encrypted. Used by the receiver to generate the shared 
+        /// encryption key. Same as the "pub" field.</summary>
+        public string PublicKey { get { return this._claims.pub; } set { ThrowIfSigned(); this._claims.pub = value; } }
         /// <summary>If another Dime item has been linked to this message, then this will be set the the 
         /// unique identifier, UUID, of that linked item. Will be null, if no item is linked.</summary>
         public Guid? LinkedId 
@@ -138,45 +140,57 @@ namespace ShiftEverywhere.DiME
             }
         }
 
-        /// <summary>Will set a message payload. This may be any valid byte-array, at export this will be
-        /// encoded as a Base64 string. If a payload is already set, then the old will be overwritten.</summary>
+        /// <summary>Will attach a byte-array payload to the message. This may be any valid byte-array, at export this will be
+        /// encoded as a Base64 string. If a payload is already set, then the old will be overwritten. If the message is already signed, 
+        /// then InvalidOperationException will be thrown.</summary>
         /// <param name="payload">The payload to set.</param>
-        public void SetPayload(byte[] payload, Key audienceKeybox = null)
-        {
-            if (this.IsSigned) { throw new InvalidOperationException("Unable to set payload, message already signed."); }
-            if (audienceKeybox != null)
-            {
-                if (this.AudienceId == null) { throw new InvalidOperationException("AudienceId must be set in the message for encrypted payloads."); }
-                if (audienceKeybox.Type != KeyType.Exchange) { throw new ArgumentException("Unable to encrypt, invalid key type.", nameof(audienceKeybox)); }
-                if (audienceKeybox.Public == null) { throw new ArgumentNullException(nameof(audienceKeybox), "Unable to encrypt, public key must not be null."); }
-                this._claims.kid = audienceKeybox.UniqueId;
-                Key ephemeralKeyBox = Key.Generate(KeyType.Exchange, -1, audienceKeybox.Profile);
-                this._claims.pub = ephemeralKeyBox.Public;
-                byte[] info = Crypto.GenerateHash(audienceKeybox.Profile, Utility.Combine(this.IssuerId.ToByteArray(), this.AudienceId.Value.ToByteArray()));
-                var key = Crypto.GenerateSharedSecret(ephemeralKeyBox, audienceKeybox, audienceKeybox.UniqueId.ToByteArray(), info);
-                this._payload = Utility.ToBase64(Crypto.Encrypt(payload, key));
-            }
-            else 
-                this._payload = Utility.ToBase64(payload);
+        public void SetPayload(byte[] payload) {
+            ThrowIfSigned();
+            this._payload = Utility.ToBase64(payload);
         }
 
-        /// <summary>Returns the payload inside the message.</summary>
-        /// <returns>A byte-array.</returns>
-        public byte[] GetPayload(Key audienceKeybox = null)
+        /// <summary>Will encrypt and attach a byte-array payload to the message. This may be any valid byte-array, at export this will be
+        /// encoded as a Base64 string. If a payload is already set, then the old will be overwritten. If the message is already signed, 
+        /// then InvalidOperationException will be thrown.</summary>
+        /// <param name="payload">The payload to set.</param>
+        /// <param name="localKey">The key of the sender (issuer), must include a secret (private) key.</param>
+        /// <param name="remoteKey">The key of the receiver (audience), usually just the public key.</param>
+        /// <param name="salt">An optional byte-array that will be included in the key generation.</param>
+        public void SetPayload(byte[] payload, Key localKey, Key remoteKey, byte[] salt = null)
         {
-            if (this.KeyId.HasValue && audienceKeybox == null) { throw new ArgumentNullException(nameof(audienceKeybox), "Payload is encrypted, provide a valid keybox for decryption."); }
-            if (this.KeyId.HasValue && audienceKeybox != null)
-            {
-                if (this.AudienceId == null) { throw new FormatException("AudienceId (aud) missing in message, unable to dectrypt payload."); }
-                if (audienceKeybox.Type != KeyType.Exchange) { throw new ArgumentException("Unable to decrypt, invalid key type.", nameof(audienceKeybox)); }
-                if (audienceKeybox.Secret == null) { throw new ArgumentNullException(nameof(audienceKeybox), "Unable to decrypt, key must not be null."); }
-                if (audienceKeybox.UniqueId != this.KeyId) { throw new KeyMismatchException("Unable to decrypt, mismatching unique id of key provided."); }
-                byte[] info = Crypto.GenerateHash(audienceKeybox.Profile, Utility.Combine(this.IssuerId.ToByteArray(), this.AudienceId.Value.ToByteArray()));
-                var key = Crypto.GenerateSharedSecret(audienceKeybox, new Key(this._claims.pub), audienceKeybox.UniqueId.ToByteArray(), info);
-                return Crypto.Decrypt(Utility.FromBase64(this._payload), key);
-            }
-            else
-                return Utility.FromBase64(this._payload);
+            ThrowIfSigned();
+            if (localKey == null || localKey.Secret == null) { throw new ArgumentNullException(nameof(localKey), "Provided local key may not be null."); }
+            if (remoteKey == null || remoteKey.Public == null) { throw new ArgumentNullException(nameof(remoteKey), "Provided remote key may not be null."); }
+            if (this.AudienceId == null) { throw new InvalidOperationException("AudienceId must be set in the message for encrypted payloads."); }
+            if (localKey.Type != KeyType.Exchange) { throw new ArgumentException("Unable to encrypt, local key of invalid key type.", nameof(localKey)); }
+            if (remoteKey.Type != KeyType.Exchange) { throw new ArgumentException("Unable to encrypt, remote key invalid key type.", nameof(remoteKey)); }
+            byte[] info = Crypto.GenerateHash(remoteKey.Profile, Utility.Combine(this.IssuerId.ToByteArray(), this.AudienceId.Value.ToByteArray()));
+            var key = Crypto.GenerateSharedSecret(localKey, remoteKey, salt, info);
+            SetPayload(Crypto.Encrypt(payload, key));
+        }
+
+        /// <summary>Returns the payload attached to the message. This method will not decrypt any encrypted payloads, just return 
+        /// the byte-array as is.</summary>
+        /// <returns>A byte-array.</returns>
+        public byte[] GetPayload() {
+            return Utility.FromBase64(this._payload);
+        }
+
+        /// <summary>Decrypts and returns the payload attached to the message. This will decrypt the payload before returning it.</summary>
+        /// <param name="localKey">The key of the sender (audience), must include a secret (private) key.</param>
+        /// <param name="remoteKey">The key of the receiver (issuer), usually just the public key.</param>
+        /// <param name="salt">An optional byte-array that will be included in the key generation.</param>
+        /// <returns>A byte-array.</returns>
+        public byte[] GetPayload(Key localKey, Key remoteKey, byte[] salt = null)
+        {
+            if (localKey == null) { throw new ArgumentNullException(nameof(localKey), "Provided local key may not be null."); }
+            if (remoteKey == null || remoteKey.Public == null) { throw new ArgumentNullException(nameof(remoteKey), "Provided remote key may not be null."); }
+            if (this.AudienceId == null) { throw new FormatException("AudienceId (aud) missing in message, unable to dectrypt payload."); }
+            if (localKey.Type != KeyType.Exchange) { throw new ArgumentException("Unable to decrypt, invalid key type.", nameof(localKey)); }
+            if (localKey.Secret == null) { throw new ArgumentNullException(nameof(localKey), "Unable to decrypt, key must not be null."); }
+            byte[] info = Crypto.GenerateHash(localKey.Profile, Utility.Combine(this.IssuerId.ToByteArray(), this.AudienceId.Value.ToByteArray()));
+            var key = Crypto.GenerateSharedSecret(localKey, remoteKey, salt, info);
+            return Crypto.Decrypt(GetPayload(), key);
         }
 
         /// <summary>This will link another Dime item to this message. Used most often when responding to another message.

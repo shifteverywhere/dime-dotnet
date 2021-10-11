@@ -36,7 +36,7 @@ namespace ShiftEverywhere.DiME
         public DateTime ExpiresAt { get { return Utility.FromTimestamp(this._claims.exp); } } 
         /// <summary>A unique UUID (GUID) of the issuer of the identity. Same as the "iss" field. If same value as subjectId, then this is a self-issued identity.</summary>
         public Guid IssuerId { get { return this._claims.iss; } }
-        /// <summary>The public key associated with the identity. Same as the "iky" field.</summary>
+        /// <summary>The public key associated with the identity. Same as the "pub" claim.</summary>
         public string PublicKey { get { return this._claims.pub; } }
         /// <summary>The trust chain of signed public keys.</summary>
         public Identity TrustChain { get; internal set; }
