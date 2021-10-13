@@ -57,9 +57,13 @@ namespace ShiftEverywhere.DiME
             for (int index = 1; index < endIndex; index++)
                 items.Add(Item.FromEncoded(sections[index]));
             dime._items = items;
-            dime._encoded = exported.Substring(0, exported.LastIndexOf(Envelope._SECTION_DELIMITER));
-            if (!dime.IsAnonymous)
+            if (dime.IsAnonymous)
+               dime._encoded = exported;
+            else
+            {
+                dime._encoded = exported.Substring(0, exported.LastIndexOf(Envelope._SECTION_DELIMITER));
                 dime._signature = sections.Last(); 
+            }
             return dime;
         }
 
@@ -114,7 +118,17 @@ namespace ShiftEverywhere.DiME
 
         public string Thumbprint()
         {
-            return Utility.ToHex(Crypto.GenerateHash(Profile.Uno, this.Encode()));
+            string encoded;
+            if (this.IsAnonymous)
+                encoded = this.Encode();
+            else
+                encoded = $"{this.Encode()}{Envelope._SECTION_DELIMITER}{this._signature}";
+            return Envelope.Thumbprint(encoded);
+        }
+
+        public static string Thumbprint(string encoded)
+        {
+            return Utility.ToHex(Crypto.GenerateHash(Profile.Uno, encoded));
         }
 
         internal const char _COMPONENT_DELIMITER = '.';
