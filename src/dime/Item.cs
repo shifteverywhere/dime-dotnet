@@ -50,9 +50,14 @@ namespace ShiftEverywhere.DiME
             this._signature = Crypto.GenerateSignature(Encode(), key);
         }
 
-        public string Thumbprint(Profile profile = Profile.Uno)
+        public string Thumbprint()
         {
-            return Utility.ToHex(Crypto.GenerateHash(profile, this.Encode()));
+            return Item.Thumbprint(ToEncoded());
+        }
+
+        public static string Thumbprint(string encoded)
+        {
+            return Utility.ToHex(Crypto.GenerateHash(Profile.Uno, encoded));
         }
 
         public virtual string ToEncoded() {

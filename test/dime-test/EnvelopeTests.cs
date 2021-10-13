@@ -80,6 +80,63 @@ namespace ShiftEverywhere.DiMETest
         }
 
         [TestMethod]
+        public void ThumbprintTest1()
+        {
+            Envelope envelope = new Envelope();
+            envelope.AddItem(Commons.IssuerKey);
+            Assert.IsNotNull(envelope.Thumbprint());
+        }
+
+        [TestMethod]
+        public void ThumbprintTest2()
+        {
+            Envelope envelope = new Envelope(Commons.IssuerIdentity.SubjectId);
+            envelope.AddItem(Commons.IssuerKey);
+            envelope.Sign(Commons.IssuerKey);
+            Assert.IsNotNull(envelope.Thumbprint());
+        }
+
+        [TestMethod]
+        public void ThumbprintTest3()
+        {
+            Envelope envelope1 = new Envelope();
+            envelope1.AddItem(Commons.IssuerKey);
+            string exported = envelope1.Export();
+            Envelope envelope2 = Envelope.Import(exported);
+            Assert.AreEqual(envelope1.Thumbprint(), envelope2.Thumbprint());
+        }
+
+        [TestMethod]
+        public void ThumbprintTest4()
+        {
+            Envelope envelope1 = new Envelope(Commons.IssuerIdentity.SubjectId);
+            envelope1.AddItem(Commons.IssuerKey);
+            envelope1.Sign(Commons.IssuerKey);
+            string exported = envelope1.Export();
+            Envelope envelope2 = Envelope.Import(exported);
+            Assert.AreEqual(envelope1.Thumbprint(), envelope2.Thumbprint());
+        }
+
+        [TestMethod]
+        public void ThumbprintTest5()
+        {
+            Envelope envelope = new Envelope();
+            envelope.AddItem(Commons.IssuerKey);
+            string exported = envelope.Export();
+            Assert.AreEqual(envelope.Thumbprint(), Envelope.Thumbprint(exported));
+        }
+
+        [TestMethod]
+        public void ThumbprintTest6()
+        {
+            Envelope envelope = new Envelope(Commons.IssuerIdentity.SubjectId);
+            envelope.AddItem(Commons.IssuerKey);
+            envelope.Sign(Commons.IssuerKey);
+            string exported = envelope.Export();
+            Assert.AreEqual(envelope.Thumbprint(), Envelope.Thumbprint(exported));
+        }
+
+        [TestMethod]
         public void IIRExportTest1()
         {
             IdentityIssuingRequest iir = IdentityIssuingRequest.Generate(Key.Generate(KeyType.Identity));
