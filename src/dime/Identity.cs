@@ -122,7 +122,7 @@ namespace ShiftEverywhere.DiME
         {
             string[] components = encoded.Split(new char[] { Envelope._COMPONENT_DELIMITER });
             if (components.Length != Identity._NBR_EXPECTED_COMPONENTS_MIN &&
-                components.Length != Identity._NBR_EXPECTED_COMPONENTS_MAX) { throw new FormatException($"Unexpected number of components for identity issuing request, expected {Identity._NBR_EXPECTED_COMPONENTS_MIN} OR {Identity._NBR_EXPECTED_COMPONENTS_MAX}, got {components.Length}."); }
+                components.Length != Identity._NBR_EXPECTED_COMPONENTS_MAX) { throw new FormatException($"Unexpected number of components for identity issuing request, expected {Identity._NBR_EXPECTED_COMPONENTS_MIN} or {Identity._NBR_EXPECTED_COMPONENTS_MAX}, got {components.Length}."); }
             if (components[Identity._TAG_INDEX] != Identity.TAG) { throw new FormatException($"Unexpected item tag, expected: \"{Identity.TAG}\", got \"{components[Identity._TAG_INDEX]}\"."); }
             byte[] json = Utility.FromBase64(components[Identity._CLAIMS_INDEX]);
             this._claims = JsonSerializer.Deserialize<IdentityClaims>(json);
@@ -179,7 +179,6 @@ namespace ShiftEverywhere.DiME
 
         private struct IdentityClaims
         {
-            [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
             public string sys { get; set; }
             public Guid uid { get; set; }
             public Guid sub { get; set; }

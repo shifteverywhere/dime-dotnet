@@ -45,7 +45,7 @@ namespace ShiftEverywhere.DiMETest
             string thumbprint = iir.Thumbprint();
             Assert.IsNotNull(thumbprint);
             Assert.IsTrue(thumbprint.Length > 0, "Thumbprint should not be empty string");
-            Assert.IsTrue(thumbprint == iir.Thumbprint(), "Diffrent thumbprints produced from same claim");
+            Assert.IsTrue(thumbprint == iir.Thumbprint(), "Different thumbprints produced from same claim");
         }
 
         [TestMethod]
@@ -53,7 +53,7 @@ namespace ShiftEverywhere.DiMETest
         {
             IdentityIssuingRequest iir1 = IdentityIssuingRequest.Generate(Key.Generate(KeyType.Identity));
             IdentityIssuingRequest iir2 = IdentityIssuingRequest.Generate(Key.Generate(KeyType.Identity));
-            Assert.IsFalse(iir1.Thumbprint() == iir2.Thumbprint(), "Thumbprints of diffrent iirs should not be the same");
+            Assert.IsFalse(iir1.Thumbprint() == iir2.Thumbprint(), "Thumbprints of different iirs should not be the same");
         }
 
         [TestMethod]

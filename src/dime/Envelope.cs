@@ -50,9 +50,9 @@ namespace ShiftEverywhere.DiME
             else if (components.Length == 1) 
                 dime = new Envelope();
             else 
-                throw new FormatException($"Not a valid Dime envelope object, unexpected number of components in header, got: '{components.Length}', expexted: '1' or '2'");
+                throw new FormatException($"Not a valid Di:ME envelope object, unexpected number of components in header, got: '{components.Length}', expected: '1' or '2'");
             // 1 to LAST or LAST - 1 
-            int endIndex = (dime.IsAnonymous) ? sections.Length : sections.Length - 1; // end index dependent on anonymous Dime or not
+            int endIndex = (dime.IsAnonymous) ? sections.Length : sections.Length - 1; // end index dependent on anonymous Di:ME or not
             List<Item> items = new List<Item>(endIndex - 1);
             for (int index = 1; index < endIndex; index++)
                 items.Add(Item.FromEncoded(sections[index]));
@@ -78,7 +78,7 @@ namespace ShiftEverywhere.DiME
 
         public Envelope SetItems(List<Item> items)
         {
-            if (this._signature != null) { throw new InvalidOperationException("Uanle to set items, envelope is already signed."); }
+            if (this._signature != null) { throw new InvalidOperationException("Unable to set items, envelope is already signed."); }
             this._items = items.ToList();
             return this;
         }

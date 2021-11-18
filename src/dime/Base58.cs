@@ -65,10 +65,10 @@ namespace ShiftEverywhere.DiME
 				.SkipWhile(b => b == 0);//strip sign byte
 			var bytes = leadingZeros.Concat(bytesWithoutLeadingZeros).ToArray();
 
-            byte[] stipped = Utility.SubArray(bytes, 0, bytes.Length - CHECKSUM_SIZE);
+            byte[] stripped = Utility.SubArray(bytes, 0, bytes.Length - CHECKSUM_SIZE);
             byte[] checksum = Utility.SubArray(bytes, bytes.Length - CHECKSUM_SIZE);
-			if (!VerifyChecksum(stipped, checksum)) { throw new FormatException("Invalid checksum."); }
-			return stipped;
+			if (!VerifyChecksum(stripped, checksum)) { throw new FormatException("Invalid checksum."); }
+			return stripped;
 		}
 
         #endregion

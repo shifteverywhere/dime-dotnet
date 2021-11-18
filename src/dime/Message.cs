@@ -47,7 +47,7 @@ namespace ShiftEverywhere.DiME
             { 
                 if (this._claims.lnk != null)
                 {
-                    string uid = this._claims.lnk.Split(new char[] { Envelope._COMPONENT_DELIMITER })[_LINK_UID_INDEX];
+                    string uid = this._claims.lnk.Split(new char[] { Envelope._COMPONENT_DELIMITER })[Message._LINK_UID_INDEX];
                     return new Guid(uid);
                 }
                 return null; 
@@ -129,7 +129,7 @@ namespace ShiftEverywhere.DiME
             Verify(keybox);
             if (linkedItem != null)
             {
-                if (this._claims.lnk == null || this._claims.lnk.Length == 0) { throw new FormatException("No link to Dime item found, unable to verify."); }
+                if (this._claims.lnk == null || this._claims.lnk.Length == 0) { throw new InvalidOperationException("No link to Dime item found, unable to verify."); }
                 string[] components = this._claims.lnk.Split(new char[] { Envelope._COMPONENT_DELIMITER });
                 if (components == null || components.Length != 3) { throw new FormatException("Invalid data found in item link field."); }
                 string msgHash = linkedItem.Thumbprint();
@@ -187,7 +187,7 @@ namespace ShiftEverywhere.DiME
             if (remoteKey == null || remoteKey.Public == null) { throw new ArgumentNullException(nameof(remoteKey), "Provided remote key may not be null."); }
             if (this.AudienceId == null) { throw new FormatException("AudienceId (aud) missing in message, unable to dectrypt payload."); }
             if (localKey.Type != KeyType.Exchange) { throw new ArgumentException("Unable to decrypt, invalid key type.", nameof(localKey)); }
-            if (localKey.Secret == null) { throw new ArgumentNullException(nameof(localKey), "Unable to decrypt, key must not be null."); }
+            if (localKey.Secret == null) { throw new ArgumentNullException(nameof(localKey), "Unable to decrypt, key must not be null."); }
             byte[] info = Crypto.GenerateHash(localKey.Profile, Utility.Combine(this.IssuerId.ToByteArray(), this.AudienceId.Value.ToByteArray()));
             var key = Crypto.GenerateSharedSecret(localKey, remoteKey, salt, info);
             return Crypto.Decrypt(GetPayload(), key);
@@ -216,9 +216,9 @@ namespace ShiftEverywhere.DiME
         {
             string[] components = encoded.Split(new char[] { Envelope._COMPONENT_DELIMITER });
             if (components.Length != Message._NBR_EXPECTED_COMPONENTS_NO_SIGNATURE
-            || components.Length != Message._NBR_EXPECTED_COMPONENTS_SIGNATURE) 
-                { throw new FormatException($"Unexpected number of components for identity issuing request, expected '{Message._NBR_EXPECTED_COMPONENTS_NO_SIGNATURE}' or '{Message._NBR_EXPECTED_COMPONENTS_SIGNATURE}', got '{components.Length}'."); }
-            if (components[Message._TAG_INDEX] != Message.TAG) { throw new FormatException($"Unexpected item tag, expected: \"{Message.TAG}\", got \"{components[Message._TAG_INDEX]}\"."); }
+            || components.Length != Message._NBR_EXPECTED_COMPONENTS_SIGNATURE) 
+                { throw new FormatException($"Unexpected number of components for identity issuing request, expected: '{Message._NBR_EXPECTED_COMPONENTS_NO_SIGNATURE}' or '{Message._NBR_EXPECTED_COMPONENTS_SIGNATURE}', got: '{components.Length}'."); }
+            if (components[Message._TAG_INDEX] != Message.TAG) { throw new FormatException($"Unexpected item tag, expected: \"{Message.TAG}\", got: \"{components[Message._TAG_INDEX]}\"."); }
             this._claims = JsonSerializer.Deserialize<MessageClaims>(Utility.FromBase64(components[Message._CLAIMS_INDEX]));
             this._payload = components[Message._PAYLOAD_INDEX];
             if (components.Length == Message._NBR_EXPECTED_COMPONENTS_SIGNATURE)

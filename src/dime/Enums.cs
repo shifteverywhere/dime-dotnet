@@ -16,14 +16,14 @@ namespace ShiftEverywhere.DiME
         /// a root identity, the start of a trust chain.</summary>
         Self, 
         /// <summary>A generic capability, may have been set after a simple registration. Depending on the
-        /// applicaiton, the identity may have limited usage.</summary>
+        /// application, the identity may have limited usage.</summary>
         Generic, 
         /// <summary>A capability that indicates that the identity have been verified and is associated with
         /// a higher level of assurance. This may be done through more in-depth registration or secondary 
         ///verification.</summary>
         Identify, 
         /// <summary>This capability allows an identity to sign and issue other identities, thus creating leaf
-        /// identities in a trust chain. A root identity does often have this capability. However it may be
+        /// identities in a trust chain. A root identity does often have this capability. However, it may be
         /// assigned to other identities further down in a trust chain.</summary>
         Issue
     }
@@ -39,7 +39,7 @@ namespace ShiftEverywhere.DiME
         Uno = 0x01
     }
 
-    /// <summary>Defines diffrent types of cryptographic keys.</summary>
+    /// <summary>Defines different types of cryptographic keys.</summary>
     public enum KeyType : byte
     {
         Undefined = 0x00,

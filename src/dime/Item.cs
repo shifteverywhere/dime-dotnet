@@ -68,9 +68,9 @@ namespace ShiftEverywhere.DiME
             return Encode();
         }
 
-        internal static Type TypeFromTag(string iid)
+        internal static Type TypeFromTag(string tag)
         {
-            switch (iid) {
+            switch (tag) {
                 case Identity.TAG: return typeof(Identity);
                 case IdentityIssuingRequest.TAG: return typeof(IdentityIssuingRequest);
                 case Message.TAG: return typeof(Message);
