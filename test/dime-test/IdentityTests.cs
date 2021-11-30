@@ -21,9 +21,8 @@ namespace ShiftEverywhere.DiMETest
         public void IssueTest1()
         {
             Identity.SetTrustedIdentity(null);
-            Profile profile = Profile.Uno;
             Guid subjectId = Guid.NewGuid();
-            Key key = Key.Generate(KeyType.Identity, -1, profile);            
+            Key key = Key.Generate(KeyType.Identity, -1);            
             List<Capability> caps = new List<Capability> { Capability.Generic, Capability.Issue };
             Identity identity = IdentityIssuingRequest.Generate(key, caps).SelfIssue(subjectId, IdentityIssuingRequest.VALID_FOR_1_YEAR * 10, key, Commons.SYSTEM_NAME);
 //            string k = key.Export();
@@ -46,7 +45,7 @@ namespace ShiftEverywhere.DiMETest
         {
             Identity.SetTrustedIdentity(Commons.TrustedIdentity);
             Guid subjectId = Guid.NewGuid();
-            Key key = Key.Generate(KeyType.Identity, -1, Profile.Uno);
+            Key key = Key.Generate(KeyType.Identity, -1);
             List<Capability> caps = new List<Capability> { Capability.Generic, Capability.Identify };
             //List<Capability> caps = new List<Capability> { Capability.Generic, Capability.Identify, Capability.Issue };
             IdentityIssuingRequest iir = IdentityIssuingRequest.Generate(key, caps);
@@ -164,7 +163,7 @@ namespace ShiftEverywhere.DiMETest
         {
             Identity.SetTrustedIdentity(Commons.TrustedIdentity);
             List<Capability> caps = new List<Capability> { Capability.Generic, Capability.Identify };
-            Key key = Crypto.GenerateKeyBox(Profile.Uno, KeyType.Identity);
+            Key key = Crypto.GenerateKey(KeyType.Identity);
             Identity identity = IdentityIssuingRequest.Generate(key, caps).Issue(Guid.NewGuid(), IdentityIssuingRequest.VALID_FOR_1_YEAR, Commons.IntermediateKey, Commons.IntermediateIdentity, caps, null);
             string exported = identity.Export();
             Assert.IsNotNull(exported);

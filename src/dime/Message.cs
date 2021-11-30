@@ -164,7 +164,7 @@ namespace ShiftEverywhere.DiME
             if (this.AudienceId == null) { throw new InvalidOperationException("AudienceId must be set in the message for encrypted payloads."); }
             if (localKey.Type != KeyType.Exchange) { throw new ArgumentException("Unable to encrypt, local key of invalid key type.", nameof(localKey)); }
             if (remoteKey.Type != KeyType.Exchange) { throw new ArgumentException("Unable to encrypt, remote key invalid key type.", nameof(remoteKey)); }
-            byte[] info = Crypto.GenerateHash(remoteKey.Profile, Utility.Combine(this.IssuerId.ToByteArray(), this.AudienceId.Value.ToByteArray()));
+            byte[] info = Crypto.GenerateHash(Utility.Combine(this.IssuerId.ToByteArray(), this.AudienceId.Value.ToByteArray()));
             var key = Crypto.GenerateSharedSecret(localKey, remoteKey, salt, info);
             SetPayload(Crypto.Encrypt(payload, key));
         }
@@ -188,7 +188,7 @@ namespace ShiftEverywhere.DiME
             if (this.AudienceId == null) { throw new FormatException("AudienceId (aud) missing in message, unable to dectrypt payload."); }
             if (localKey.Type != KeyType.Exchange) { throw new ArgumentException("Unable to decrypt, invalid key type.", nameof(localKey)); }
             if (localKey.Secret == null) { throw new ArgumentNullException(nameof(localKey), "Unable to decrypt, key must not be null."); }
-            byte[] info = Crypto.GenerateHash(localKey.Profile, Utility.Combine(this.IssuerId.ToByteArray(), this.AudienceId.Value.ToByteArray()));
+            byte[] info = Crypto.GenerateHash(Utility.Combine(this.IssuerId.ToByteArray(), this.AudienceId.Value.ToByteArray()));
             var key = Crypto.GenerateSharedSecret(localKey, remoteKey, salt, info);
             return Crypto.Decrypt(GetPayload(), key);
         }

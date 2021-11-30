@@ -28,17 +28,6 @@ namespace ShiftEverywhere.DiME
         Issue
     }
 
-    /// <summary>The cryptographic profile used for a DiME object. Currently
-    /// only Uno (0x01) is supported.</summary>
-    public enum Profile : byte
-    {
-        /// <summary>Undefined profile, used when a profile wasn't set properly, for errors.</summary>
-        Undefined = 0x00,
-        /// <summary>First generation cryptographic profile. Ed25519 for identity keys, 
-        /// X25519 for key exchange (agreement), Blake2b-256 for hashes, and XYZ for encryption.</summary>
-        Uno = 0x01
-    }
-
     /// <summary>Defines different types of cryptographic keys.</summary>
     public enum KeyType : byte
     {

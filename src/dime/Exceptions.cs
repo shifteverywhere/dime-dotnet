@@ -13,15 +13,6 @@ namespace ShiftEverywhere.DiME
 {
 
     [Serializable]
-    public class UnsupportedProfileException : Exception
-    {
-        public UnsupportedProfileException() : base() { }
-        public UnsupportedProfileException(string message) : base(message) { }
-        public UnsupportedProfileException(string message, Exception innerException) : base(message, innerException) { }
-        protected UnsupportedProfileException(SerializationInfo info, StreamingContext context) : base(info, context) { }
-    }
-
-    [Serializable]
     public class UntrustedIdentityException : Exception
     {
         public UntrustedIdentityException() : base() { }

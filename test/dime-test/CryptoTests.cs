@@ -34,7 +34,7 @@ namespace ShiftEverywhere.DiMETest
         public void GenerateHashTest1() {
             string expected = "b9f050dd8bfbf027ea9fc729e9e764fda64c2bca20030a5d25264c35c486d892";
             byte[] data = Encoding.UTF8.GetBytes("Racecar is racecar backwards.");
-            byte[] hash = Crypto.GenerateHash(Profile.Uno, data);
+            byte[] hash = Crypto.GenerateHash(data);
             Assert.IsNotNull(hash);
             String hex = Utility.ToHex(hash);
             Assert.AreEqual(expected, hex);

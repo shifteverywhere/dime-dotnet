@@ -20,7 +20,6 @@ namespace ShiftEverywhere.DiMETest
         public void KeyTest1()
         {
             Key key = Key.Generate(KeyType.Identity);
-            Assert.IsTrue(key.Profile == Profile.Uno);
             Assert.IsTrue(key.Type == KeyType.Identity);
             Assert.IsNotNull(key.UniqueId);
             Assert.IsNotNull(key.Public);
@@ -31,7 +30,6 @@ namespace ShiftEverywhere.DiMETest
         public void KeyTest2()
         {
             Key key = Key.Generate(KeyType.Exchange);
-            Assert.IsTrue(key.Profile == Profile.Uno);
             Assert.IsTrue(key.Type == KeyType.Exchange);
             Assert.IsNotNull(key.UniqueId);
             Assert.IsNotNull(key.Public);
@@ -53,7 +51,6 @@ namespace ShiftEverywhere.DiMETest
         {
             string encoded = "Di:KEY.eyJ1aWQiOiIzMTEyNjAxYS0xZWFlLTRkYjgtYTczYi0wNDc0N2EzOGU4N2MiLCJpYXQiOiIyMDIxLTA4LTEwVDA2OjM0OjQzLjUxNzIzWiIsImtleSI6IjFoRWl3UjNCcUxZMkV1QVJYZFpVRmFIb2l1aDVSdVg1dlZZNW4xNWVnVTVReFhuU2VYbUFjIiwicHViIjoiMWhQS3luTG1xaWlDa1RHN1JIendtOVFXTXJvaFdFMjV5bTgzQTdZbW9wQ2hIWWF2YUFEemcifQ";
             Key key = Item.Import<Key>(encoded);
-            Assert.AreEqual(Profile.Uno, key.Profile);
             Assert.AreEqual(KeyType.Identity, key.Type);
             Assert.AreEqual(new Guid("3112601a-1eae-4db8-a73b-04747a38e87c"), key.UniqueId);
             Assert.AreEqual(DateTime.Parse("2021-08-10T06:34:43.51723Z").ToUniversalTime(), key.IssuedAt);
@@ -62,18 +59,9 @@ namespace ShiftEverywhere.DiMETest
         }
 
         [TestMethod]
-        public void KeypairTest3()
-        {
-            try {
-                Key key = Key.Generate(KeyType.Identity, -1, Profile.Undefined);
-            } catch (UnsupportedProfileException) { return; } // All is well
-            Assert.IsTrue(false, "This should not happen.");
-        }
-
-        [TestMethod]
         public void PublicOnlyTest1()
         {
-            Key key = Key.Generate(KeyType.Identity, -1, Profile.Uno);
+            Key key = Key.Generate(KeyType.Identity, -1);
             Assert.IsNotNull(key.Secret);
             Key pubOnly = key.PublicCopy();
             Assert.IsNull(pubOnly.Secret);
@@ -83,7 +71,7 @@ namespace ShiftEverywhere.DiMETest
         [TestMethod]
         public void PublicOnlyTest2()
         {
-            Key key = Key.Generate(KeyType.Identity, -1, Profile.Uno);
+            Key key = Key.Generate(KeyType.Identity, -1);
             Message message = new Message(Commons.AudienceIdentity.SubjectId, Commons.IssuerIdentity.SubjectId, 100);
             message.SetPayload(Encoding.UTF8.GetBytes("Racecar is racecar backwards."));
             message.Sign(Commons.IssuerKey);

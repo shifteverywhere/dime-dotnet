@@ -17,8 +17,9 @@ namespace ShiftEverywhere.DiME
 {
     public class Envelope
     {
-        public const int MAX_CONTEXT_LENGTH = 84; 
-        public const string HEADER = "Di";
+        public static readonly int MAX_CONTEXT_LENGTH = 84; 
+        public static readonly string HEADER = "Di";
+        public static readonly int DIME_VERSION = 0x01;
         public Guid? IssuerId { get { return (this._claims.HasValue) ? this._claims.Value.iss : null; } }
         public DateTime? IssuedAt { get { return (this._claims.HasValue) ? Utility.FromTimestamp(this._claims.Value.iat) : null; } } 
         public String Context { get { return (this._claims.HasValue) ? this._claims.Value.ctx : null; } } 
@@ -128,7 +129,7 @@ namespace ShiftEverywhere.DiME
 
         public static string Thumbprint(string encoded)
         {
-            return Utility.ToHex(Crypto.GenerateHash(Profile.Uno, encoded));
+            return Utility.ToHex(Crypto.GenerateHash(encoded));
         }
 
         internal const char _COMPONENT_DELIMITER = '.';

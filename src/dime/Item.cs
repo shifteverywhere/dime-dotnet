@@ -57,7 +57,7 @@ namespace ShiftEverywhere.DiME
 
         public static string Thumbprint(string encoded)
         {
-            return Utility.ToHex(Crypto.GenerateHash(Profile.Uno, encoded));
+            return Utility.ToHex(Crypto.GenerateHash(encoded));
         }
 
         public virtual string ToEncoded() {

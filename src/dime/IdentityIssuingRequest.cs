@@ -34,7 +34,6 @@ namespace ShiftEverywhere.DiME
 
         public static IdentityIssuingRequest Generate(Key key, List<Capability> capabilities = null, Dictionary<string, dynamic> principles = null) 
         {
-            if (!Crypto.SupportedProfile(key.Profile)) { throw new ArgumentException("Unsupported profile version.", nameof(key)); }
             if (key.Type != KeyType.Identity) { throw new ArgumentException("Key of invalid type.", nameof(key)); }
             if (key.Secret == null) { throw new ArgumentNullException(nameof(key), "Private key must not be null"); }
             IdentityIssuingRequest iir = new IdentityIssuingRequest();

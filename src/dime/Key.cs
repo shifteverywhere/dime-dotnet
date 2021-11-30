@@ -19,7 +19,6 @@ namespace ShiftEverywhere.DiME
 
         public const string TAG = "KEY";
         public override string Tag { get { return DiME.Key.TAG; } }
-        public Profile Profile { get; private set; }
          public Guid? IssuerId { get { return this._claims.iss; } }
         /// <summary></summary>
         public override Guid UniqueId { get { return this._claims.uid; } }
@@ -36,9 +35,9 @@ namespace ShiftEverywhere.DiME
         public Key() { }
 
         /// <summary></summary>
-        public static Key Generate(KeyType type, double validFor = -1, Profile profile = Crypto.DEFUALT_PROFILE)
+        public static Key Generate(KeyType type, double validFor = -1)
         {
-            Key key = Crypto.GenerateKeyBox(profile, type);
+            Key key = Crypto.GenerateKey(type);
             if (validFor != -1)
             {
                 DateTime exp = key.IssuedAt.AddSeconds(validFor);
@@ -56,7 +55,7 @@ namespace ShiftEverywhere.DiME
 
         public Key PublicCopy()
         {
-            return new Key(this.UniqueId, this.Type, null, this.RawPublicKey, this.Profile);
+            return new Key(this.UniqueId, this.Type, null, this.RawPublicKey);
         }
 
         internal new static Key FromEncoded(string encoded)
@@ -73,18 +72,16 @@ namespace ShiftEverywhere.DiME
         internal byte[] RawKey { get; private set; }
         internal byte[] RawPublicKey { get; private set; }
 
-        internal Key(Guid id, KeyType type, byte[] key, byte[] publickey, Profile profile = Crypto.DEFUALT_PROFILE)
+        internal Key(Guid id, KeyType type, byte[] key, byte[] publickey)
         {
-            if (!Crypto.SupportedProfile(profile)) { throw new ArgumentException("Unsupported profile.", nameof(profile)); }
             DateTime iat = DateTime.UtcNow;
             this._claims = new KeyClaims(null, 
                                          id, 
                                          Utility.ToTimestamp(iat),
                                          null,
-                                         DiME.Key.EncodeKey(key, (byte)type, (byte)KeyVariant.Private, (byte)profile),
-                                         DiME.Key.EncodeKey(publickey, (byte)type, (byte)KeyVariant.Public, (byte)profile));
+                                         DiME.Key.EncodeKey(key, (byte)type, (byte)KeyVariant.Private),
+                                         DiME.Key.EncodeKey(publickey, (byte)type, (byte)KeyVariant.Public));
             this.Type = type;
-            this.Profile = profile;
             this.RawKey = key;
             this.RawPublicKey = publickey;
         }
@@ -159,11 +156,11 @@ namespace ShiftEverywhere.DiME
 
         }
         
-        private static string EncodeKey(byte[] key, byte type, byte variant, byte profile)
+        private static string EncodeKey(byte[] key, byte type, byte variant)
         {
             if (key == null) return null;
             byte combinedType = (byte)((uint)type | (uint)variant);
-            byte[] prefix = { 0x00, profile, combinedType, 0x00 };
+            byte[] prefix = { 0x00, 0x00, combinedType, 0x00 };
             return Base58.Encode(key, prefix);
         }
 
@@ -172,9 +169,6 @@ namespace ShiftEverywhere.DiME
             if (encodedKey != null)
             {
                 byte[] bytes = Base58.Decode(encodedKey);
-                Profile profile = (Profile)bytes[1];
-                if (this.Profile != Profile.Undefined && profile != this.Profile) { throw new FormatException($"Cryptographic profile version mismatch, got: '{profile}', expected: '{this.Profile}'."); }
-                this.Profile = profile;
                 KeyType type = (KeyType)((byte)((uint)bytes[2] & 0xFE));
                 if (this.Type != KeyType.Undefined && type != this.Type) { throw new FormatException($"Key type mismatch, got: '{type}', expected: '{this.Type}'."); }
                 this.Type = type;

@@ -14,44 +14,34 @@ namespace ShiftEverywhere.DiME
 {
     public static class Crypto
     {
-        public const Profile DEFUALT_PROFILE = Profile.Uno;
         
-        public static bool SupportedProfile(Profile profile)
+        public static string GenerateSignature(string data, Key key)
         {
-            return profile == Crypto.DEFUALT_PROFILE;
-        }
-        
-        public static string GenerateSignature(string data, Key keybox)
-        {
-            if (keybox == null) { throw new ArgumentNullException(nameof(keybox), "Unable to sign, keybox must not be null."); }
-            if (!Crypto.SupportedProfile(keybox.Profile)) { throw new NotSupportedException(); }
-            if (keybox.RawKey == null) { throw new ArgumentNullException(nameof(keybox), "Unable to sign, key in keybox must not be null."); }
-            if (keybox.Type != KeyType.Identity) { throw new ArgumentException($"Unable to sign, wrong key type provided, got: {keybox.Type}, expected: KeyType.Identity."); }
-            NSec.Cryptography.Key key = NSec.Cryptography.Key.Import(SignatureAlgorithm.Ed25519, keybox.RawKey, KeyBlobFormat.RawPrivateKey);
-            byte[] rawSignature = SignatureAlgorithm.Ed25519.Sign(key, Encoding.UTF8.GetBytes(data));
-            return System.Convert.ToBase64String(Utility.Prefix((byte)keybox.Profile, rawSignature)).Trim('=');
+            if (key == null) { throw new ArgumentNullException(nameof(key), "Unable to sign, keybox must not be null."); }
+            if (key.RawKey == null) { throw new ArgumentNullException(nameof(key), "Unable to sign, key in keybox must not be null."); }
+            if (key.Type != KeyType.Identity) { throw new ArgumentException($"Unable to sign, wrong key type provided, got: {key.Type}, expected: KeyType.Identity."); }
+            NSec.Cryptography.Key secretKey = NSec.Cryptography.Key.Import(SignatureAlgorithm.Ed25519, key.RawKey, KeyBlobFormat.RawPrivateKey);
+            byte[] signature = SignatureAlgorithm.Ed25519.Sign(secretKey, Encoding.UTF8.GetBytes(data));
+            return Utility.ToBase64(signature);
         }
 
-        public static void VerifySignature(string data, string signature, Key keybox)
+        public static void VerifySignature(string data, string signature, Key key)
         {
-            if (keybox == null) { throw new ArgumentNullException(nameof(keybox), "Unable to verify signature, keybox must not be null."); }
-            if (!Crypto.SupportedProfile(keybox.Profile)) { throw new UnsupportedProfileException(); }
+            if (key == null) { throw new ArgumentNullException(nameof(key), "Unable to verify signature, keybox must not be null."); }
             if (data == null) { throw new ArgumentNullException(nameof(data), "Data must not be null."); }
             if (signature == null) { throw new ArgumentNullException(nameof(signature), "Signature must not be null."); }
-            if (keybox.RawPublicKey == null) { throw new ArgumentNullException(nameof(keybox), "Unable to sign, public key in keybox must not be null."); }
-            if (keybox.Type != KeyType.Identity) { throw new ArgumentException($"Unable to sign, wrong key type provided, got: {keybox.Type}, expected: KeyType.Identity."); }
+            if (key.RawPublicKey == null) { throw new ArgumentNullException(nameof(key), "Unable to sign, public key in keybox must not be null."); }
+            if (key.Type != KeyType.Identity) { throw new ArgumentException($"Unable to sign, wrong key type provided, got: {key.Type}, expected: KeyType.Identity."); }
             byte[] rawSignature = Utility.FromBase64(signature);
-            if ((Profile)rawSignature[0] != keybox.Profile) { throw new KeyMismatchException("Signature profile does not match key profile version."); }
-            PublicKey verifyKey = PublicKey.Import(SignatureAlgorithm.Ed25519, keybox.RawPublicKey, KeyBlobFormat.RawPublicKey);
+            PublicKey verifyKey = PublicKey.Import(SignatureAlgorithm.Ed25519, key.RawPublicKey, KeyBlobFormat.RawPublicKey);
             if (!SignatureAlgorithm.Ed25519.Verify(verifyKey, Encoding.UTF8.GetBytes(data), Utility.SubArray(rawSignature, 1)))
             {
                 throw new IntegrityException();
             }
         }
 
-        public static Key GenerateKeyBox(Profile profile, KeyType type)
+        public static Key GenerateKey(KeyType type)
         {
-            if (!Crypto.SupportedProfile(profile)) { throw new UnsupportedProfileException(); }
             NSec.Cryptography.Key key;
             KeyCreationParameters parameters = new KeyCreationParameters();
             parameters.ExportPolicy = KeyExportPolicies.AllowPlaintextExport;
@@ -69,19 +59,16 @@ namespace ShiftEverywhere.DiME
             return new Key(Guid.NewGuid(), 
                                type, 
                                Crypto.ExportKey(key, KeyBlobFormat.RawPrivateKey),
-                               Crypto.ExportKey(key, KeyBlobFormat.RawPublicKey),
-                               profile);
+                               Crypto.ExportKey(key, KeyBlobFormat.RawPublicKey));
         }
 
         #region -- KEY AGREEMENT --
 
-        public static NSec.Cryptography.Key GenerateSharedSecret(Key localKeybox, Key remoteKeybox, byte[] salt, byte[] info)
+        public static NSec.Cryptography.Key GenerateSharedSecret(Key localKey, Key remoteKey, byte[] salt, byte[] info)
         {  
-            if (localKeybox.Profile != remoteKeybox.Profile) { throw new KeyMismatchException("Unable to generate shared key, source keys from diffrent profiles."); }
-            if (!SupportedProfile(localKeybox.Profile)) { throw new UnsupportedProfileException(); }
-            if (localKeybox.Type != KeyType.Exchange || remoteKeybox.Type != KeyType.Exchange) { throw new KeyMismatchException("Keys must be of type 'Exchange'."); }
-            NSec.Cryptography.Key privateKey = NSec.Cryptography.Key.Import(KeyAgreementAlgorithm.X25519, localKeybox.RawKey, KeyBlobFormat.RawPrivateKey);
-            PublicKey publicKey = PublicKey.Import(KeyAgreementAlgorithm.X25519, remoteKeybox.RawPublicKey, KeyBlobFormat.RawPublicKey);
+            if (localKey.Type != KeyType.Exchange || remoteKey.Type != KeyType.Exchange) { throw new KeyMismatchException("Keys must be of type 'Exchange'."); }
+            NSec.Cryptography.Key privateKey = NSec.Cryptography.Key.Import(KeyAgreementAlgorithm.X25519, localKey.RawKey, KeyBlobFormat.RawPrivateKey);
+            PublicKey publicKey = PublicKey.Import(KeyAgreementAlgorithm.X25519, remoteKey.RawPublicKey, KeyBlobFormat.RawPublicKey);
             SharedSecret shared = KeyAgreementAlgorithm.X25519.Agree(privateKey, publicKey);
             return KeyDerivationAlgorithm.HkdfSha256.DeriveKey(shared, salt, info, AeadAlgorithm.ChaCha20Poly1305);  
         }
@@ -96,15 +83,13 @@ namespace ShiftEverywhere.DiME
             if (key == null) { throw new ArgumentNullException(nameof(key), "Key must not be null."); }
             byte[] nonce = Utility.RandomBytes(12);
             byte[] cipherText = AeadAlgorithm.ChaCha20Poly1305.Encrypt(key, nonce, null, plainText);
-            byte[] attached = Utility.Combine(nonce, cipherText);
-            return Utility.Prefix((byte)Crypto.DEFUALT_PROFILE, attached);
+            return Utility.Combine(nonce, cipherText);
         }
 
         public static byte[] Decrypt(byte[] cipherText, NSec.Cryptography.Key key)
         {
             if (cipherText == null ||cipherText.Length == 0) { throw new ArgumentNullException(nameof(cipherText), "Cipher text to decrypt must not be null and not have a length of 0."); }
             if (key == null) { throw new ArgumentNullException(nameof(key), "Key must not be null."); }
-            if (!Crypto.SupportedProfile((Profile)cipherText[0])) { throw new UnsupportedProfileException(); }
             byte[] nonce = Utility.SubArray(cipherText, 1, 12);
             byte[] data = Utility.SubArray(cipherText, 13);
             return AeadAlgorithm.ChaCha20Poly1305.Decrypt(key, nonce, null, data);
@@ -114,14 +99,13 @@ namespace ShiftEverywhere.DiME
 
         #region -- HASHING --
 
-        public static byte[] GenerateHash(Profile profile, string data)
+        public static byte[] GenerateHash(string data)
         {
-            return Crypto.GenerateHash(profile, Encoding.UTF8.GetBytes(data));
+            return Crypto.GenerateHash(Encoding.UTF8.GetBytes(data));
         }
 
-        public static byte[] GenerateHash(Profile profile, byte[] data)
+        public static byte[] GenerateHash(byte[] data)
         {
-            if (!Crypto.SupportedProfile(profile)) { throw new UnsupportedProfileException(); }
             return HashAlgorithm.Blake2b_256.Hash(data);
         }
 
