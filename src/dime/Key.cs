@@ -164,7 +164,7 @@ namespace ShiftEverywhere.DiME
             if (key == null) return null;
             byte combinedType = (byte)((uint)type | (uint)variant);
             byte[] prefix = { 0x00, profile, combinedType, 0x00 };
-            return Base58.Encode(Utility.Combine(prefix, key));
+            return Base58.Encode(key, prefix);
         }
 
         private void DecodeKey(string encodedKey)

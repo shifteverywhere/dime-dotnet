@@ -17,7 +17,7 @@ namespace ShiftEverywhere.DiMETest
     public class CryptoTests
     {
 
-        [TestMethod]
+        /*[TestMethod]
         public void EncryptTest1() {
 
             
@@ -27,9 +27,7 @@ namespace ShiftEverywhere.DiMETest
 
             Crypto.Decrypt()
 
-
-
-        }
+        }*/
 
 
         [TestMethod]
