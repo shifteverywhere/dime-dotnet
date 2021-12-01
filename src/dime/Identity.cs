@@ -40,8 +40,10 @@ namespace ShiftEverywhere.DiME
         public string PublicKey { get { return this._claims.pub; } }
         /// <summary>The trust chain of signed public keys.</summary>
         public Identity TrustChain { get; internal set; }
-        public ReadOnlyDictionary<string, dynamic> Principles { get; private set; }
-        public IList<string> Ambit { get; private set; }
+        public IList<Capability> Capabilities { get { return (this._claims.cap != null) ? new List<string>(this._claims.cap).ConvertAll(str => { Capability cap; Enum.TryParse<Capability>(str, true, out cap); return cap; }) : null; } }
+        public ReadOnlyDictionary<string, object> Principles { get { return (this._claims.pri != null) ? new ReadOnlyDictionary<string, object>(this._claims.pri) : null; } }
+        public IList<string> Ambits { get { return (this._claims.amb != null) ? new List<string>(this._claims.amb).AsReadOnly() : null; } }
+        public IList<string> Methods { get { return (this._claims.mtd != null) ? new List<string>(this._claims.mtd).AsReadOnly() : null; } }
 
         public bool IsSelfSigned { get { return (this.SubjectId == this.IssuerId && this.HasCapability(Capability.Self)); } }
 
@@ -85,8 +87,16 @@ namespace ShiftEverywhere.DiME
         /// <returns>Boolean to indicate if the identity has the capability or not.</returns>
         public bool HasCapability(Capability capability)
         {
-            return this._capabilities.Any(cap => cap == capability);
+            return this.Capabilities.Any(cap => cap == capability);
         }
+
+        public bool HasAmbit(string ambit) {
+            return this._claims.amb != null && this.Ambits.Any(cap => cap == ambit);
+        }
+
+        #endregion
+
+        #region -- INTERNAL --
 
         internal new static Identity FromEncoded(string encoded)
         {
@@ -95,15 +105,12 @@ namespace ShiftEverywhere.DiME
             return identity;
         }
 
-        #endregion
-
-        #region -- INTERNAL --
-
-        internal Identity(string systemName, Guid subjectId, string publicKey, DateTime issuedAt, DateTime expiresAt, Guid issuerId, List<Capability> capabilities, Dictionary<string, dynamic> principles, string[] ambit) 
+        internal Identity(string systemName, Guid subjectId, string publicKey, DateTime issuedAt, DateTime expiresAt, Guid issuerId, List<Capability> capabilities, Dictionary<string, object> principles, List<string> ambits, List<string> methods) 
         {
             if (systemName == null || systemName.Length == 0) { throw new ArgumentNullException(nameof(systemName), "System name must not be null or empty."); }
-            this._capabilities = capabilities;
             string[] cap = capabilities.ConvertAll(c => c.ToString().ToLower()).ToArray();
+            string[] amb = (ambits != null && ambits.Count > 0) ? ambits.ConvertAll(c => c.ToString().ToLower()).ToArray() : null;
+            string[] mtd = (methods != null && methods.Count > 0) ? methods.ConvertAll(c => c.ToString().ToLower()).ToArray() : null;
             this._claims = new IdentityClaims(systemName,
                                               Guid.NewGuid(), 
                                               subjectId, 
@@ -113,9 +120,8 @@ namespace ShiftEverywhere.DiME
                                               publicKey, 
                                               cap, 
                                               principles, 
-                                              ambit);
-            if (ambit != null)
-                this.Ambit = new List<string>(ambit).AsReadOnly();
+                                              amb,
+                                              mtd);
         }
 
         protected override void Decode(string encoded) 
@@ -127,11 +133,6 @@ namespace ShiftEverywhere.DiME
             byte[] json = Utility.FromBase64(components[Identity._CLAIMS_INDEX]);
             this._claims = JsonSerializer.Deserialize<IdentityClaims>(json);
             if (this._claims.sys == null || this._claims.sys.Length == 0) { throw new FormatException("System name missing from identity."); } 
-            if (this._claims.pri != null)
-                this.Principles = new ReadOnlyDictionary<string, dynamic>(this._claims.pri);
-            if (this._claims.amb != null)
-                this.Ambit = new List<string>(this._claims.amb);
-            this._capabilities = new List<string>(this._claims.cap).ConvertAll(str => { Capability cap; Enum.TryParse<Capability>(str, true, out cap); return cap; });
             if (components.Length == Identity._NBR_EXPECTED_COMPONENTS_MAX) // There is also a trust chain identity 
             {
                 byte[] issIdentity = Utility.FromBase64(components[Identity._CHAIN_INDEX]);
@@ -173,7 +174,6 @@ namespace ShiftEverywhere.DiME
         private const int _CLAIMS_INDEX = 1;
         private const int _CHAIN_INDEX = 2;
         private IdentityClaims _claims;
-        private List<Capability> _capabilities { get; set; }
         private static readonly object _lock = new object();
         private static Identity _trustedIdentity;
 
@@ -188,13 +188,15 @@ namespace ShiftEverywhere.DiME
             public string pub { get; set; }
             [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
             public string[] cap { get; set; }
-            [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-            public Dictionary<string, dynamic> pri { get; set; }
+            [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)][JsonConverter(typeof(DictionaryStringObjectJsonConverter))]
+            public Dictionary<string, object> pri { get; set; }
             [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
             public string[] amb { get; set; }
+            [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+            public string[] mtd { get; set; }
 
             [JsonConstructor]
-            public IdentityClaims(string sys, Guid uid, Guid sub, Guid iss, string iat, string exp, string pub, string[] cap, Dictionary<string, dynamic> pri, string[] amb)
+            public IdentityClaims(string sys, Guid uid, Guid sub, Guid iss, string iat, string exp, string pub, string[] cap, Dictionary<string, object> pri, string[] amb, string[] mtd)
             {
                 this.sys = sys;
                 this.uid = uid;
@@ -206,10 +208,105 @@ namespace ShiftEverywhere.DiME
                 this.cap = cap;
                 this.pri = pri;
                 this.amb = amb;
+                this.mtd = mtd;
             }
+
         }
-        
+
+        private static Object GetValueFromElement(System.Text.Json.JsonElement element) {
+            switch (element.ValueKind) 
+            {
+                case JsonValueKind.Number: return element.GetDouble();
+                case JsonValueKind.String: return element.GetString();
+                case JsonValueKind.False: return false;
+                case JsonValueKind.True: return true;
+                case JsonValueKind.Null: return null;
+                case JsonValueKind.Undefined: return null;
+            }
+            return element;
+        }
+
         #endregion
 
     }
+
+    class DictionaryStringObjectJsonConverter : JsonConverter<Dictionary<string, object>>
+    {
+        public override Dictionary<string, object> Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+        {
+            if (reader.TokenType != JsonTokenType.StartObject)
+            {
+                throw new JsonException($"JsonTokenType was of type {reader.TokenType}, only objects are supported");
+            }
+
+            var dictionary = new Dictionary<string, object>();
+            while (reader.Read())
+            {
+                if (reader.TokenType == JsonTokenType.EndObject)
+                {
+                    return dictionary;
+                }
+
+                if (reader.TokenType != JsonTokenType.PropertyName)
+                {
+                    throw new JsonException("JsonTokenType was not PropertyName");
+                }
+
+                var propertyName = reader.GetString();
+
+                if (string.IsNullOrWhiteSpace(propertyName))
+                {
+                    throw new JsonException("Failed to get property name");
+                }
+
+                reader.Read();
+
+                dictionary.Add(propertyName, ExtractValue(ref reader, options));
+            }
+
+            return dictionary;
+        }
+
+        public override void Write(Utf8JsonWriter writer, Dictionary<string, object> value, JsonSerializerOptions options)
+        {
+            JsonSerializer.Serialize(writer, value, options);
+        }
+
+        private object ExtractValue(ref Utf8JsonReader reader, JsonSerializerOptions options)
+        {
+            switch (reader.TokenType)
+            {
+                case JsonTokenType.String:
+                    if (reader.TryGetDateTime(out var date))
+                    {
+                        return date;
+                    }
+                    return reader.GetString();
+                case JsonTokenType.False:
+                    return false;
+                case JsonTokenType.True:
+                    return true;
+                case JsonTokenType.Null:
+                    return null;
+                case JsonTokenType.Number:
+                    if (reader.TryGetInt64(out var result))
+                    {
+                        return result;
+                    }
+                    return reader.GetDecimal();
+                case JsonTokenType.StartObject:
+                    return Read(ref reader, null, options);
+                case JsonTokenType.StartArray:
+                    var list = new List<object>();
+                    while (reader.Read() && reader.TokenType != JsonTokenType.EndArray)
+                    {
+                        list.Add(ExtractValue(ref reader, options));
+                    }
+                    return list.ToArray();
+                default:
+                    throw new JsonException($"'{reader.TokenType}' is not supported");
+            }
+        }
+    }
+
 }

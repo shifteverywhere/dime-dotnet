@@ -192,6 +192,68 @@ namespace ShiftEverywhere.DiMETest
             identity.VerifyTrust();
         }
 
+        [TestMethod]
+        public void ambitTest1() {
+            List<string> ambits = new List<string>() { "global", "administrator" };
+            Key key = Key.Generate(KeyType.Identity);
+            
+            Identity identity1 = IdentityIssuingRequest.Generate(key).SelfIssue(Guid.NewGuid(), 100, key, Commons.SYSTEM_NAME, ambits, null);
+            Assert.AreEqual(2, identity1.Ambits.Count);
+            Assert.IsTrue(identity1.HasAmbit(ambits[0]));
+            Assert.IsTrue(identity1.HasAmbit(ambits[1]));
+
+            Identity identity2 = Item.Import<Identity>(identity1.Export());
+            Assert.AreEqual(2, identity2.Ambits.Count);
+            Assert.IsTrue(identity2.HasAmbit(ambits[0]));
+            Assert.IsTrue(identity2.HasAmbit(ambits[1]));
+        }
+
+        [TestMethod]
+        public void methodsTest1() {
+            List<string> methods = new List<string> { "dime", "sov" };
+            Key key = Key.Generate(KeyType.Identity);
+
+            Identity identity1 = IdentityIssuingRequest.Generate(key).SelfIssue(Guid.NewGuid(), 100, key, Commons.SYSTEM_NAME, null, methods);
+            Assert.IsNotNull(identity1.Methods);
+            Assert.AreEqual(2, identity1.Methods.Count);
+            Assert.IsTrue(identity1.Methods.Contains(methods[0]));
+            Assert.IsTrue(identity1.Methods.Contains(methods[1]));
+
+            Identity identity2 = Item.Import<Identity>(identity1.Export());
+            Assert.IsNotNull(identity2.Methods);
+            Assert.AreEqual(2, identity2.Methods.Count);
+            Assert.IsTrue(identity2.Methods.Contains(methods[0]));
+            Assert.IsTrue(identity2.Methods.Contains(methods[1]));
+        }
+
+        [TestMethod]
+        public void principlesTest1() {
+            Key key = Key.Generate(KeyType.Identity);
+            Dictionary<string, dynamic> principles = new Dictionary<string, dynamic>();
+            principles["tag"] = "Racecar is racecar backwards.";
+            principles["nbr"] = new String[] { "one" , "two", "three" };
+            Identity identity =  IdentityIssuingRequest.Generate(key, new List<Capability>() { Capability.Generic }, principles).SelfIssue(Guid.NewGuid(), 100, key, Commons.SYSTEM_NAME);
+            Assert.AreEqual("Racecar is racecar backwards.", identity.Principles["tag"]);
+            string[] nbr = (string[])identity.Principles["nbr"];
+            Assert.AreEqual(3, nbr.Length);
+            Assert.AreEqual("two", nbr[1]);
+        }
+
+        [TestMethod]
+        public void principlesTest2() {
+            Key key = Key.Generate(KeyType.Identity);
+            Dictionary<string, dynamic> principles = new Dictionary<string, dynamic>();
+            principles["tag"] = "Racecar is racecar backwards.";
+            principles["nbr"] = new String[] { "one" , "two", "three" };
+            Identity identity1 =  IdentityIssuingRequest.Generate(key, new List<Capability>() { Capability.Generic }, principles).SelfIssue(Guid.NewGuid(), 100, key, Commons.SYSTEM_NAME);
+            Identity identity2 = Item.Import<Identity>(identity1.Export());
+            string str = (String)identity2.Principles["tag"];
+            Assert.AreEqual("Racecar is racecar backwards.", identity2.Principles["tag"]);
+            object[] nbr = (object[])identity2.Principles["nbr"];
+            Assert.AreEqual(3, nbr.Length);
+            Assert.AreEqual("three", nbr[2]);
+        }
+
     }
 
 }

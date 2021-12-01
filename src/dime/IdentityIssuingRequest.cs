@@ -28,11 +28,11 @@ namespace ShiftEverywhere.DiME
         public DateTime IssuedAt { get { return Utility.FromTimestamp(this._claims.iat); } }
         /// <summary></summary>
         public string PublicKey { get { return this._claims.pub; } }
-        public Dictionary<string, dynamic> Principles { get { return this._claims.pri; } }
+        public Dictionary<string, object> Principles { get { return this._claims.pri; } }
 
         public IdentityIssuingRequest() { }
 
-        public static IdentityIssuingRequest Generate(Key key, List<Capability> capabilities = null, Dictionary<string, dynamic> principles = null) 
+        public static IdentityIssuingRequest Generate(Key key, List<Capability> capabilities = null, Dictionary<string, object> principles = null) 
         {
             if (key.Type != KeyType.Identity) { throw new ArgumentException("Key of invalid type.", nameof(key)); }
             if (key.Secret == null) { throw new ArgumentNullException(nameof(key), "Private key must not be null"); }
@@ -78,12 +78,13 @@ namespace ShiftEverywhere.DiME
         /// <param name="issuerIdentity">The identity of the issuer (optional).</param>
         /// <param name="allowedCapabilities">The capabilities that are allowed to be requested in the IIR, must not be null.</param>
         /// <param name="requiredCapabilities">The capabilities that must be asked for in the IIR, may be null.</param>
-        /// <param name="ambit">The areas or regions where the identity is valid.</param>
+        /// <param name="ambits">The areas or regions where the identity is valid.</param>
+        /// <param name="methods">A list of methods that will apply to the issued identity.</param>
         /// <returns>Returns an imutable Identity instance.</returns>
-        public Identity Issue(Guid subjectId, double validFor, Key issuerKey, Identity issuerIdentity, List<Capability> allowedCapabilities, List<Capability> requiredCapabilities = null, string[] ambit = null) 
+        public Identity Issue(Guid subjectId, double validFor, Key issuerKey, Identity issuerIdentity, List<Capability> allowedCapabilities, List<Capability> requiredCapabilities = null, List<string> ambits = null, List<string> methods = null) 
         {    
             if (issuerIdentity == null) { throw new ArgumentNullException(nameof(issuerIdentity), "Issuer identity must not be null."); }
-            return this.IssueIdentity(issuerIdentity.SystemName, subjectId, validFor, issuerKey, issuerIdentity, allowedCapabilities, requiredCapabilities, ambit);
+            return this.IssueNewIdentity(issuerIdentity.SystemName, subjectId, validFor, issuerKey, issuerIdentity, allowedCapabilities, requiredCapabilities, ambits, methods);
         }
 
         /// <summary>Issues a new self signed identity from an identity issuing request (IIR). The new identity
@@ -92,12 +93,13 @@ namespace ShiftEverywhere.DiME
         /// <param name="validFor">The number of seconds the identity should be valid, from issued at date, which is set automatically.</param>
         /// <param name="issuerKey">The key pair of the issuer.</param>
         /// <param name="systemName">An unique name of the system where the identity is deployed (system, infrastructure, application, etc.).</param>
-        /// <param name="ambit">The areas or regions where the identity is valid.</param>
+        /// <param name="ambits">The areas or regions where the identity is valid.</param>
+        /// <param name="methods">A list of methods that will apply to the issued identity.</param>
         /// <returns>Returns an imutable self-issued Identity instance.</returns>
-        public Identity SelfIssue(Guid subjectId, double validFor, Key issuerKey, string systemName, string[] ambit = null)
+        public Identity SelfIssue(Guid subjectId, double validFor, Key issuerKey, string systemName, List<string> ambits = null, List<string> methods = null)
         {
             if (systemName == null || systemName.Length == 0) { throw new ArgumentNullException(nameof(systemName), "System name must not be null or empty."); }
-            return this.IssueIdentity(systemName, subjectId, validFor, issuerKey, null, null, null, ambit);
+            return this.IssueNewIdentity(systemName, subjectId, validFor, issuerKey, null, null, null, ambits, methods);
         }
 
         internal new static IdentityIssuingRequest FromEncoded(string encoded)
@@ -160,10 +162,10 @@ namespace ShiftEverywhere.DiME
             [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
             public string[] cap { get; set; }
             [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-            public Dictionary<string, dynamic> pri {get; set; }
+            public Dictionary<string, object> pri {get; set; }
 
             [JsonConstructor]
-            public IirClaims(Guid uid, string iat, string pub, string[] cap, Dictionary<string, dynamic>pri)
+            public IirClaims(Guid uid, string iat, string pub, string[] cap, Dictionary<string, object>pri)
             {
                 this.uid = uid;
                 this.iat = iat;
@@ -173,7 +175,7 @@ namespace ShiftEverywhere.DiME
             }
         }
         
-        private Identity IssueIdentity(string systemName, Guid subjectId, double validFor, Key issuerKey, Identity issuerIdentity, List<Capability> allowedCapabilities, List<Capability> requiredCapabilities = null, string[] ambit = null)
+        private Identity IssueNewIdentity(string systemName, Guid subjectId, double validFor, Key issuerKey, Identity issuerIdentity, List<Capability> allowedCapabilities, List<Capability> requiredCapabilities = null, List<string> ambits = null, List<string> methods = null)
         {
             bool isSelfSign = (issuerIdentity == null || this.PublicKey == issuerKey.Public);
             this.CompleteCapabilities(allowedCapabilities, requiredCapabilities, isSelfSign);
@@ -182,7 +184,7 @@ namespace ShiftEverywhere.DiME
                 DateTime now = DateTime.UtcNow;
                 DateTime expires = now.AddSeconds(validFor);
                 Guid issuerId = issuerIdentity != null ? issuerIdentity.SubjectId : subjectId;
-                Identity identity = new Identity(systemName, subjectId, this.PublicKey, now, expires, issuerId, this._capabilities, this.Principles, ambit);
+                Identity identity = new Identity(systemName, subjectId, this.PublicKey, now, expires, issuerId, this._capabilities, this.Principles, ambits, methods);
                 if (Identity.TrustedIdentity != null && issuerIdentity != null && issuerIdentity.SubjectId != Identity.TrustedIdentity.SubjectId)
                 {
                     issuerIdentity.VerifyTrust();
