@@ -19,6 +19,12 @@ namespace ShiftEverywhere.DiME
 
         public const string TAG = "KEY";
         public override string Tag { get { return DiME.Key.TAG; } }
+        public int Version { 
+            get {
+                byte[] key = (this._claims.key != null) ? this._claims.key : this._claims.pub;
+                return key[0];
+            }
+        }
          public Guid? IssuerId { get { return this._claims.iss; } }
         /// <summary></summary>
         public override Guid UniqueId { get { return this._claims.uid; } }
@@ -26,16 +32,30 @@ namespace ShiftEverywhere.DiME
         /// <summary></summary>
         public DateTime ExpiresAt { get { return Utility.FromTimestamp(this._claims.exp); } }
         /// <summary></summary>
-        public KeyType Type { get; private set; }
+
+        public KeyType Type { 
+            get 
+            {  
+                byte[] key = (this._claims.key != null) ? this._claims.key : this._claims.pub;
+                switch(Key.GetAlgorithmFamily(key))
+                {
+                    case AlgorithmFamily.Aead: return KeyType.Encryption;
+                    case AlgorithmFamily.Ecdh: return KeyType.Exchange;
+                    case AlgorithmFamily.Eddsa: return KeyType.Identity;
+                    case AlgorithmFamily.Hash: return KeyType.Authentication;
+                    default: return KeyType.Undefined;
+                }
+            }
+        }
         /// <summary></summary>
-        public string Secret { get { return this._claims.key; } }
+        public string Secret { get { return this._claims.b58Key; } }
         /// <summary></summary>
-        public string Public { get { return this._claims.pub; } }
+        public string Public { get { return this._claims.b58Pub; } }
 
         public Key() { }
 
         /// <summary></summary>
-        public static Key Generate(KeyType type, double validFor = -1)
+        public static Key Generate(KeyType type, double validFor = -1, Guid? issuerId = null)
         {
             Key key = Crypto.GenerateKey(type);
             if (validFor != -1)
@@ -43,19 +63,18 @@ namespace ShiftEverywhere.DiME
                 DateTime exp = key.IssuedAt.AddSeconds(validFor);
                 key._claims.exp = Utility.ToTimestamp(exp);
             }
+            key._claims.iss = issuerId;
             return key;
         }
 
         public static Key FromBase58Key(string encodedKey)
         {
-            Key keybox = new Key();
-            keybox.DecodeKey(encodedKey);
-            return keybox;
+            return new Key(encodedKey);
         }
 
         public Key PublicCopy()
         {
-            return new Key(this.UniqueId, this.Type, null, this.RawPublicKey);
+            return new Key(this.UniqueId, this.Type, null, this.RawPublic);
         }
 
         internal new static Key FromEncoded(string encoded)
@@ -69,26 +88,38 @@ namespace ShiftEverywhere.DiME
 
         #region -- INTERNAL --
 
-        internal byte[] RawKey { get; private set; }
-        internal byte[] RawPublicKey { get; private set; }
+        internal byte[] RawSecret { get { return (this._claims.key != null ) ? Utility.SubArray(this._claims.key, Key._HEADER_SIZE, this._claims.key.Length - Key._HEADER_SIZE) : null; } }
+        internal byte[] RawPublic { get { return (this._claims.pub != null ) ? Utility.SubArray(this._claims.pub, Key._HEADER_SIZE, this._claims.pub.Length - Key._HEADER_SIZE) : null; } }
 
-        internal Key(Guid id, KeyType type, byte[] key, byte[] publickey)
+        internal Key(Guid id, KeyType type, byte[] key, byte[] pub)
         {
             DateTime iat = DateTime.UtcNow;
             this._claims = new KeyClaims(null, 
                                          id, 
                                          Utility.ToTimestamp(iat),
                                          null,
-                                         DiME.Key.EncodeKey(key, (byte)type, (byte)KeyVariant.Private),
-                                         DiME.Key.EncodeKey(publickey, (byte)type, (byte)KeyVariant.Public));
-            this.Type = type;
-            this.RawKey = key;
-            this.RawPublicKey = publickey;
+                                         (key != null) ? Utility.Combine(Key.headerFrom(type, KeyVariant.Secret), key) : null,
+                                         (pub != null) ? Utility.Combine(Key.headerFrom(type, KeyVariant.Public), pub) : null);
         }
 
         internal Key(string base58key)
         {
-            DecodeKey(base58key);
+            if (base58key != null && base58key.Length > 0) {
+                byte[] bytes = Base58.Decode(base58key);
+                if (bytes != null && bytes.Length > 0) {
+                    switch (Key.GetKeyVariant(bytes)) {
+                        case KeyVariant.Secret: 
+                            this._claims = new KeyClaims(null, Guid.Empty, null, null, bytes, null); 
+                            break;
+                        case KeyVariant.Public: 
+                            this._claims = new KeyClaims(null, Guid.Empty, null, null, null, bytes);
+                            break;
+                        default:
+                            throw new FormatException("Invalid key. (K1010)");
+                    }
+                }
+            }
+            
         }
 
         #endregion
@@ -102,8 +133,6 @@ namespace ShiftEverywhere.DiME
             if (components[DiME.Key._TAG_INDEX] != DiME.Key.TAG) { throw new FormatException($"Unexpected item tag, expected: \"{DiME.Key.TAG}\", got \"{components[DiME.Key._TAG_INDEX]}\"."); }
             byte[] json = Utility.FromBase64(components[DiME.Key._CLAIMS_INDEX]);
             this._claims = JsonSerializer.Deserialize<KeyClaims>(json);
-            DecodeKey(this._claims.key);
-            DecodeKey(this._claims.pub);
             this._encoded = encoded;
         }
 
@@ -124,9 +153,10 @@ namespace ShiftEverywhere.DiME
 
         #region -- PRIVATE --
 
-        private const int _NBR_EXPECTED_COMPONENTS = 2;
-        private const int _TAG_INDEX = 0;
-        private const int _CLAIMS_INDEX = 1;
+        private static readonly int _NBR_EXPECTED_COMPONENTS = 2;
+        private static readonly int _TAG_INDEX = 0;
+        private static readonly int _CLAIMS_INDEX = 1;
+        private static readonly int _HEADER_SIZE = 6;
         private KeyClaims _claims;
 
         private struct KeyClaims
@@ -138,13 +168,18 @@ namespace ShiftEverywhere.DiME
             public string iat { get; set; }
             [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
             public string exp { get; set; }
-            [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-            public string key { get; set; }
-            [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-            public string pub { get; set; }
+            [JsonIgnore(Condition = JsonIgnoreCondition.Always)]
+            public byte[] key { get; set; }
+            [JsonIgnore(Condition = JsonIgnoreCondition.Always)]
+            public byte[] pub { get; set; }
 
-            [JsonConstructor]
-            public KeyClaims(Guid? iss, Guid uid, string iat, string exp, string key, string pub)
+            [JsonPropertyName("key")][JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+            public string b58Key { get { return (this.key != null) ? Base58.Encode(this.key, null) : null; } }
+
+            [JsonPropertyName("pub")][JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+            public string b58Pub { get { return (this.pub != null) ? Base58.Encode(this.pub, null) : null; } }
+
+            public KeyClaims(Guid? iss, Guid uid, string iat, string exp, byte[] key, byte[] pub)
             {
                 this.iss = iss;
                 this.uid = uid;
@@ -154,35 +189,64 @@ namespace ShiftEverywhere.DiME
                 this.pub = pub;
             }
 
-        }
-        
-        private static string EncodeKey(byte[] key, byte type, byte variant)
-        {
-            if (key == null) return null;
-            byte combinedType = (byte)((uint)type | (uint)variant);
-            byte[] prefix = { 0x00, 0x00, combinedType, 0x00 };
-            return Base58.Encode(key, prefix);
+            [JsonConstructor]
+            public KeyClaims(Guid? iss, Guid uid, string iat, string exp, string b58Key, string b58Pub) {
+                this.iss = iss;
+                this.uid = uid;
+                this.iat = iat;
+                this.exp = exp;
+                this.key = (b58Key != null) ? Base58.Decode(b58Key) : null;
+                this.pub = (b58Pub != null) ? Base58.Decode(b58Pub) : null;
+            }
         }
 
-        private void DecodeKey(string encodedKey)
-        {
-            if (encodedKey != null)
-            {
-                byte[] bytes = Base58.Decode(encodedKey);
-                KeyType type = (KeyType)((byte)((uint)bytes[2] & 0xFE));
-                if (this.Type != KeyType.Undefined && type != this.Type) { throw new FormatException($"Key type mismatch, got: '{type}', expected: '{this.Type}'."); }
-                this.Type = type;
-                KeyVariant variant = (KeyVariant)((byte)((uint)bytes[2] & 0x01));
-                switch (variant)
-                {
-                    case KeyVariant.Public:
-                        this.RawPublicKey = Utility.SubArray(bytes, 4);
-                        break;
-                    case KeyVariant.Private:
-                        this.RawKey = Utility.SubArray(bytes, 4);
-                        break;
-                }
+        private static byte[] headerFrom(KeyType type, KeyVariant variant) {
+            AlgorithmFamily algorithmFamily = Key.GetAlgorithmFamilyFromType(type);
+            byte[] header = new byte[Key._HEADER_SIZE];
+            header[0] = (byte)Envelope.DIME_VERSION;
+            header[1] = (byte)algorithmFamily;
+            switch (algorithmFamily) {
+                case AlgorithmFamily.Aead:
+                    header[2] = (byte) 0x01; // 0x01 == XChaCha20-Poly1305
+                    header[3] = (byte) 0x02; // 0x02 == 256-bit key size
+                    break;
+                case AlgorithmFamily.Ecdh:
+                    header[2] = (byte) 0x02; // 0x02 == X25519
+                    header[3] = (byte)variant;
+                    break;
+                case AlgorithmFamily.Eddsa:
+                    header[2] = (byte) 0x01; // 0x01 == Ed25519
+                    header[3] = (byte)variant;
+                    break;
+                case AlgorithmFamily.Hash:
+                    header[2] = (byte) 0x01; // 0x01 == Blake2b
+                    header[3] = (byte) 0x02; // 0x02 == 256-bit key size
+                    break;
             }
+            return header;
+        }    
+
+        private static AlgorithmFamily GetAlgorithmFamilyFromType(KeyType type) {
+            switch(type)
+            {
+                case KeyType.Encryption: return AlgorithmFamily.Aead;
+                case KeyType.Exchange: return AlgorithmFamily.Ecdh;
+                case KeyType.Identity: return AlgorithmFamily.Eddsa;
+                case KeyType.Authentication: return AlgorithmFamily.Hash;
+                default: throw new InvalidOperationException($"Unexpected value: {type}");
+            }
+        }
+
+        private static AlgorithmFamily GetAlgorithmFamily(byte[] key) {
+            return (AlgorithmFamily)Enum.ToObject(typeof(AlgorithmFamily), key[1]);
+        }
+
+        private static KeyVariant GetKeyVariant(byte[] key) {
+            AlgorithmFamily family = Key.GetAlgorithmFamily(key);
+            if (family == AlgorithmFamily.Ecdh || family == AlgorithmFamily.Eddsa) {
+                return (KeyVariant)Enum.ToObject(typeof(KeyVariant), key[3]);
+            }
+            return KeyVariant.Secret;
         }
 
         #endregion

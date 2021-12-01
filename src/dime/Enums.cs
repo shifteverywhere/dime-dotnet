@@ -8,6 +8,16 @@
 //
 namespace ShiftEverywhere.DiME
 {
+
+    public enum AlgorithmFamily
+    {
+        Undefined = 0x00,
+        Aead = 0x10,
+        Ecdh = 0x40,
+        Eddsa = 0x80,
+        Hash = 0xE0
+    }
+
     /// <summary>List capabilities that can be associated with a DiME identity object. These define
     /// what an identity can be used for.</summary>
     public enum Capability
@@ -37,13 +47,13 @@ namespace ShiftEverywhere.DiME
         /// <summary>Key type for asymmetric keys used for key exchange (agreement).</summary>
         Exchange = 0x20,
         /// <summary>Key type for secret (symmetric) keys, used for encryption.
-        Secret = 0xE0,
-        Shared = 0xF0
+        Encryption = 0xE0,
+        Authentication = 0xF0
     }
 
     public enum KeyVariant: byte
     {
-        Private = 0x00,
+        Secret = 0x00,
         Public = 0x01
     }
 

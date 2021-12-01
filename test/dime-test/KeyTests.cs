@@ -9,6 +9,7 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.Text;
+using System.Linq;
 using ShiftEverywhere.DiME;
 
 namespace ShiftEverywhere.DiMETest
@@ -49,13 +50,13 @@ namespace ShiftEverywhere.DiMETest
         [TestMethod]
         public void ImportTest1()
         {
-            string encoded = "Di:KEY.eyJ1aWQiOiIzMTEyNjAxYS0xZWFlLTRkYjgtYTczYi0wNDc0N2EzOGU4N2MiLCJpYXQiOiIyMDIxLTA4LTEwVDA2OjM0OjQzLjUxNzIzWiIsImtleSI6IjFoRWl3UjNCcUxZMkV1QVJYZFpVRmFIb2l1aDVSdVg1dlZZNW4xNWVnVTVReFhuU2VYbUFjIiwicHViIjoiMWhQS3luTG1xaWlDa1RHN1JIendtOVFXTXJvaFdFMjV5bTgzQTdZbW9wQ2hIWWF2YUFEemcifQ";
+            string encoded = "Di:KEY.eyJ1aWQiOiI3ZmE2OGU4OC02ZDVjLTQwMmItOThkOC1mZDg2NjQwY2Y0ZjIiLCJpYXQiOiIyMDIxLTEyLTAxVDIwOjUzOjIzLjM4MzczM1oiLCJrZXkiOiIyVERYZDlXVXR3dVliaTROaFNRRUhmTjg5QmhLVkNTQWVqUFpmRlFRZ1BxaVJadXNUTkdtcll0ZVEiLCJwdWIiOiIyVERYZG9OdXNiNXlWQXB6WTIzYXR1UTNzbUdiOExuZ0o0QVpYRWhpck1mQ0t5OHFkNEZwM1c5OHMifQ";
             Key key = Item.Import<Key>(encoded);
             Assert.AreEqual(KeyType.Identity, key.Type);
-            Assert.AreEqual(new Guid("3112601a-1eae-4db8-a73b-04747a38e87c"), key.UniqueId);
-            Assert.AreEqual(DateTime.Parse("2021-08-10T06:34:43.51723Z").ToUniversalTime(), key.IssuedAt);
-            Assert.AreEqual("1hEiwR3BqLY2EuARXdZUFaHoiuh5RuX5vVY5n15egU5QxXnSeXmAc", key.Secret);
-            Assert.AreEqual("1hPKynLmqiiCkTG7RHzwm9QWMrohWE25ym83A7YmopChHYavaADzg", key.Public);
+            Assert.AreEqual(new Guid("7fa68e88-6d5c-402b-98d8-fd86640cf4f2"), key.UniqueId);
+            Assert.AreEqual(DateTime.Parse("2021-12-01T20:53:23.383733Z").ToUniversalTime(), key.IssuedAt);
+            Assert.AreEqual("2TDXd9WUtwuYbi4NhSQEHfN89BhKVCSAejPZfFQQgPqiRZusTNGmrYteQ", key.Secret);
+            Assert.AreEqual("2TDXdoNusb5yVApzY23atuQ3smGb8LngJ4AZXEhirMfCKy8qd4Fp3W98s", key.Public);
         }
 
         [TestMethod]
@@ -77,6 +78,58 @@ namespace ShiftEverywhere.DiMETest
             message.Sign(Commons.IssuerKey);
             Key pubOnly = Commons.IssuerKey.PublicCopy();
             message.Verify(pubOnly);            
+        }
+
+        [TestMethod]
+        public void KeyHeaderTest1() {
+            byte[] aeadHeader = new byte[] { (byte)Envelope.DIME_VERSION, (byte)0x10, (byte)0x01, (byte)0x02, (byte)0x00, (byte)0x00 }; // version 1, AEAD, XChaCha20-Poly1305, 256-bit, extension, extension
+            Key aead = Key.Generate(KeyType.Encryption);
+            Assert.IsNull(aead.Public);
+            byte[] bytes = Base58.Decode(aead.Secret);
+            Assert.IsNotNull(bytes);
+            byte[] header = Utility.SubArray(bytes, 0, 6);
+            Assert.IsTrue(aeadHeader.SequenceEqual(header));
+        }
+
+        [TestMethod]
+        public void KeyHeaderTest2() {
+            byte[] ecdhHeaderSecret = new byte[] { (byte)Envelope.DIME_VERSION, (byte)0x40, (byte)0x02, (byte)0x00, (byte)0x00, (byte)0x00 }; // version 1, ECDH, X25519, public, extension, extension
+            byte[] ecdhHeaderPublic = new byte[] { (byte)Envelope.DIME_VERSION, (byte)0x40, (byte)0x02, (byte)0x01, (byte)0x00, (byte)0x00 }; // version 1, ECDH, X25519, private, extension, extension
+            Key ecdh = Key.Generate(KeyType.Exchange);
+            byte[] bytesSecret = Base58.Decode(ecdh.Secret);
+            byte[] bytesPublic = Base58.Decode(ecdh.Public);
+            Assert.IsNotNull(bytesSecret);
+            Assert.IsNotNull(bytesPublic);
+            byte[] headerSecret = Utility.SubArray(bytesSecret, 0, 6);
+            byte[] headerPublic = Utility.SubArray(bytesPublic, 0, 6);
+            Assert.IsTrue(ecdhHeaderSecret.SequenceEqual(headerSecret));
+            Assert.IsTrue(ecdhHeaderPublic.SequenceEqual(headerPublic));
+        }
+
+        [TestMethod]
+        public void KeyHeaderTest3() {
+            byte[] eddsaHeaderSecret = new byte[] { (byte)Envelope.DIME_VERSION, (byte)0x80, (byte)0x01, (byte)0x00, (byte)0x00, (byte)0x00 }; // version 1, EdDSA, Ed25519, public, extension, extension
+            byte[] eddsaHeaderPublic = new byte[] { (byte)Envelope.DIME_VERSION, (byte)0x80, (byte)0x01, (byte)0x01, (byte)0x00, (byte)0x00 }; // version 1, EdDSA, Ed25519, private, extension, extension
+            Key eddsa = Key.Generate(KeyType.Identity);
+            byte[] bytesSecret = Base58.Decode(eddsa.Secret);
+            byte[] bytesPublic = Base58.Decode(eddsa.Public);
+            Assert.IsNotNull(bytesSecret);
+            Assert.IsNotNull(bytesPublic);
+            byte[] headerSecret = Utility.SubArray(bytesSecret, 0, 6);
+            byte[] headerPublic = Utility.SubArray(bytesPublic, 0, 6);
+            Assert.IsTrue(eddsaHeaderSecret.SequenceEqual(headerSecret));
+            Assert.IsTrue(eddsaHeaderPublic.SequenceEqual(headerPublic));
+        }
+
+        [TestMethod]
+        public void KeyHeaderTest4() {
+            byte[] hashHeader = new byte[] { (byte)Envelope.DIME_VERSION, (byte)0xE0, (byte)0x01, (byte)0x02, (byte)0x00, (byte)0x00 }; // version 1, Secure Hashing, Blake2b, 256-bit, extension, extension
+            Key hash = Key.Generate(KeyType.Authentication);
+            Assert.IsNull(hash.Public);
+            byte[] bytes = Base58.Decode(hash.Secret);
+            Assert.IsNotNull(bytes);
+            byte[] header = Utility.SubArray(bytes, 0, 6);
+            Assert.IsTrue(hashHeader.SequenceEqual(header));
         }
 
     }

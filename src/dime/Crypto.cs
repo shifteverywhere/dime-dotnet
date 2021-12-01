@@ -18,9 +18,9 @@ namespace ShiftEverywhere.DiME
         public static string GenerateSignature(string data, Key key)
         {
             if (key == null) { throw new ArgumentNullException(nameof(key), "Unable to sign, keybox must not be null."); }
-            if (key.RawKey == null) { throw new ArgumentNullException(nameof(key), "Unable to sign, key in keybox must not be null."); }
+            if (key.RawSecret == null) { throw new ArgumentNullException(nameof(key), "Unable to sign, key in keybox must not be null."); }
             if (key.Type != KeyType.Identity) { throw new ArgumentException($"Unable to sign, wrong key type provided, got: {key.Type}, expected: KeyType.Identity."); }
-            NSec.Cryptography.Key secretKey = NSec.Cryptography.Key.Import(SignatureAlgorithm.Ed25519, key.RawKey, KeyBlobFormat.RawPrivateKey);
+            NSec.Cryptography.Key secretKey = NSec.Cryptography.Key.Import(SignatureAlgorithm.Ed25519, key.RawSecret, KeyBlobFormat.RawPrivateKey);
             byte[] signature = SignatureAlgorithm.Ed25519.Sign(secretKey, Encoding.UTF8.GetBytes(data));
             return Utility.ToBase64(signature);
         }
@@ -30,11 +30,11 @@ namespace ShiftEverywhere.DiME
             if (key == null) { throw new ArgumentNullException(nameof(key), "Unable to verify signature, keybox must not be null."); }
             if (data == null) { throw new ArgumentNullException(nameof(data), "Data must not be null."); }
             if (signature == null) { throw new ArgumentNullException(nameof(signature), "Signature must not be null."); }
-            if (key.RawPublicKey == null) { throw new ArgumentNullException(nameof(key), "Unable to sign, public key in keybox must not be null."); }
+            if (key.RawPublic == null) { throw new ArgumentNullException(nameof(key), "Unable to sign, public key in keybox must not be null."); }
             if (key.Type != KeyType.Identity) { throw new ArgumentException($"Unable to sign, wrong key type provided, got: {key.Type}, expected: KeyType.Identity."); }
             byte[] rawSignature = Utility.FromBase64(signature);
-            PublicKey verifyKey = PublicKey.Import(SignatureAlgorithm.Ed25519, key.RawPublicKey, KeyBlobFormat.RawPublicKey);
-            if (!SignatureAlgorithm.Ed25519.Verify(verifyKey, Encoding.UTF8.GetBytes(data), Utility.SubArray(rawSignature, 1)))
+            PublicKey verifyKey = PublicKey.Import(SignatureAlgorithm.Ed25519, key.RawPublic, KeyBlobFormat.RawPublicKey);
+            if (!SignatureAlgorithm.Ed25519.Verify(verifyKey, Encoding.UTF8.GetBytes(data), rawSignature))
             {
                 throw new IntegrityException();
             }
@@ -42,24 +42,29 @@ namespace ShiftEverywhere.DiME
 
         public static Key GenerateKey(KeyType type)
         {
-            NSec.Cryptography.Key key;
-            KeyCreationParameters parameters = new KeyCreationParameters();
-            parameters.ExportPolicy = KeyExportPolicies.AllowPlaintextExport;
-            switch (type)
-            {
-                case KeyType.Identity:
-                    key = new NSec.Cryptography.Key(SignatureAlgorithm.Ed25519, parameters);
-                    break;
-                case KeyType.Exchange:
-                    key = new NSec.Cryptography.Key(KeyAgreementAlgorithm.X25519, parameters);
-                    break;
-                default:
-                    throw new ArgumentException("Unkown key type.", nameof(type));
+            if (type == KeyType.Encryption || type == KeyType.Authentication) {
+                byte[] secretKey = Utility.RandomBytes(Crypto._NBR_S_KEY_BYTES);
+                return new Key(Guid.NewGuid(), type, secretKey, null);
+            } else {
+                NSec.Cryptography.Key key;
+                KeyCreationParameters parameters = new KeyCreationParameters();
+                parameters.ExportPolicy = KeyExportPolicies.AllowPlaintextExport;
+                switch (type)
+                {
+                    case KeyType.Identity:
+                        key = new NSec.Cryptography.Key(SignatureAlgorithm.Ed25519, parameters);
+                        break;
+                    case KeyType.Exchange:
+                        key = new NSec.Cryptography.Key(KeyAgreementAlgorithm.X25519, parameters);
+                        break;
+                    default:
+                        throw new ArgumentException("Unkown key type.", nameof(type));
+                }
+                return new Key(Guid.NewGuid(), 
+                                type, 
+                                Crypto.ExportKey(key, KeyBlobFormat.RawPrivateKey),
+                                Crypto.ExportKey(key, KeyBlobFormat.RawPublicKey));
             }
-            return new Key(Guid.NewGuid(), 
-                               type, 
-                               Crypto.ExportKey(key, KeyBlobFormat.RawPrivateKey),
-                               Crypto.ExportKey(key, KeyBlobFormat.RawPublicKey));
         }
 
         #region -- KEY AGREEMENT --
@@ -67,8 +72,8 @@ namespace ShiftEverywhere.DiME
         public static NSec.Cryptography.Key GenerateSharedSecret(Key localKey, Key remoteKey, byte[] salt, byte[] info)
         {  
             if (localKey.Type != KeyType.Exchange || remoteKey.Type != KeyType.Exchange) { throw new KeyMismatchException("Keys must be of type 'Exchange'."); }
-            NSec.Cryptography.Key privateKey = NSec.Cryptography.Key.Import(KeyAgreementAlgorithm.X25519, localKey.RawKey, KeyBlobFormat.RawPrivateKey);
-            PublicKey publicKey = PublicKey.Import(KeyAgreementAlgorithm.X25519, remoteKey.RawPublicKey, KeyBlobFormat.RawPublicKey);
+            NSec.Cryptography.Key privateKey = NSec.Cryptography.Key.Import(KeyAgreementAlgorithm.X25519, localKey.RawSecret, KeyBlobFormat.RawPrivateKey);
+            PublicKey publicKey = PublicKey.Import(KeyAgreementAlgorithm.X25519, remoteKey.RawPublic, KeyBlobFormat.RawPublicKey);
             SharedSecret shared = KeyAgreementAlgorithm.X25519.Agree(privateKey, publicKey);
             return KeyDerivationAlgorithm.HkdfSha256.DeriveKey(shared, salt, info, AeadAlgorithm.ChaCha20Poly1305);  
         }
@@ -90,8 +95,8 @@ namespace ShiftEverywhere.DiME
         {
             if (cipherText == null ||cipherText.Length == 0) { throw new ArgumentNullException(nameof(cipherText), "Cipher text to decrypt must not be null and not have a length of 0."); }
             if (key == null) { throw new ArgumentNullException(nameof(key), "Key must not be null."); }
-            byte[] nonce = Utility.SubArray(cipherText, 1, 12);
-            byte[] data = Utility.SubArray(cipherText, 13);
+            byte[] nonce = Utility.SubArray(cipherText, 0, 12);
+            byte[] data = Utility.SubArray(cipherText, 12);
             return AeadAlgorithm.ChaCha20Poly1305.Decrypt(key, nonce, null, data);
         }
 
@@ -111,6 +116,10 @@ namespace ShiftEverywhere.DiME
 
         #endregion
 
+        #region -- PRIVATE --
+
+        private static readonly int _NBR_S_KEY_BYTES = 32;
+
         private static byte[] ExportKey(NSec.Cryptography.Key key, KeyBlobFormat keyBlobFormat)
         {
             var blob = new byte[key.GetExportBlobSize(keyBlobFormat)];
@@ -119,6 +128,8 @@ namespace ShiftEverywhere.DiME
             key.TryExport(keyBlobFormat, blobSpan, out blobSize);
             return blob;
         }
+
+        #endregion
 
     }
 

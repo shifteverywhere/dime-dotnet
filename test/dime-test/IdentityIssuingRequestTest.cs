@@ -71,13 +71,13 @@ namespace ShiftEverywhere.DiMETest
         [TestMethod]
         public void ImportTest1()
         {
-            string exported = "Di:IIR.eyJ1aWQiOiIwZTIwNGQ0Mi0wOTRhLTQ5NTQtOGE2Ny0zNDViYTllYjY3NTciLCJpYXQiOiIyMDIxLTA4LTEwVDA2OjMwOjI3LjQxOTc4NloiLCJwdWIiOiIxaFBMMVpwbkRTNHh4THdFcVdoaW1TdTN4ZG5BRFRGcEIzeFUxSjY2aTFNeWtxNlo4SDFZSCIsImNhcCI6WyJnZW5lcmljIl19.AbtQgZuFmW+vwPe2DPVxXxLAI0VdjS2D6KhEO20ZC+Cu+iBTpbV/50uNpMOsjyei/sDM0CmBgXWtr3ueAgAEmgo";
+            string exported = "Di:IIR.eyJ1aWQiOiJkNWRkNzEyZC1hM2U3LTQ3YjAtYjRmNi0yMjU2NzJlYzZkMjMiLCJpYXQiOiIyMDIxLTEyLTAxVDIxOjA4OjQ0LjQxMzMyNloiLCJwdWIiOiIyVERYZG9Odk0xVmhNWjhpRzVZNFVlZkVBQzVFQWZiR1NacGt6OUVoWkVGNEw1a1p5RzhuVDRTSkoiLCJjYXAiOlsiZ2VuZXJpYyJdfQ.eduHuVrUY/Q9xpZVApuPjBnbG4Oo29PeTPSQIRW6xJVRYZiH0h5jEL1MgZrIFxQRPyiBQlK6BMVTc6e7OwFVDw";
             IdentityIssuingRequest iir = Item.Import<IdentityIssuingRequest>(exported);
             Assert.IsNotNull(iir);
-            Assert.AreEqual(new Guid("0e204d42-094a-4954-8a67-345ba9eb6757"), iir.UniqueId);
-            Assert.AreEqual(DateTime.Parse("2021-08-10T06:30:27.419786Z").ToUniversalTime(), iir.IssuedAt);
+            Assert.AreEqual(new Guid("d5dd712d-a3e7-47b0-b4f6-225672ec6d23"), iir.UniqueId);
+            Assert.AreEqual(DateTime.Parse("2021-12-01T21:08:44.413326Z").ToUniversalTime(), iir.IssuedAt);
             Assert.IsTrue(iir.WantsCapability(Capability.Generic));
-            Assert.AreEqual("1hPL1ZpnDS4xxLwEqWhimSu3xdnADTFpB3xU1J66i1Mykq6Z8H1YH", iir.PublicKey);
+            Assert.AreEqual("2TDXdoNvM1VhMZ8iG5Y4UefEAC5EAfbGSZpkz9EhZEF4L5kZyG8nT4SJJ", iir.PublicKey);
             iir.Verify();
         }
 
