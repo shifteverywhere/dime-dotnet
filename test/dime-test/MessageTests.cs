@@ -348,6 +348,36 @@ namespace ShiftEverywhere.DiMETest
             Assert.AreNotEqual(issuerMessage1.Thumbprint(), issuerMessage2.Thumbprint());
         }
  
+
+        [TestMethod]
+        public void ContextTest1() 
+        {
+            String context = "123456789012345678901234567890123456789012345678901234567890123456789012345678901234";
+            Message message = new Message(Commons.IssuerIdentity.IssuerId, -1, context);
+            Assert.AreEqual(context, message.Context);
+        }
+
+        [TestMethod]
+        public void ContextTest2() 
+        {
+            string context = "123456789012345678901234567890123456789012345678901234567890123456789012345678901234";
+            Message message1 = new Message(Commons.IssuerIdentity.IssuerId, -1, context);
+            message1.SetPayload(Encoding.UTF8.GetBytes("Racecar is racecar backwards."));
+            message1.Sign(Commons.IssuerKey);
+            Message message2 = Item.Import<Message>(message1.Export());
+            Assert.AreEqual(context, message2.Context);
+        }
+
+        [TestMethod]
+        public void ContextTest3() 
+        {
+            String context = "123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890";
+            try {
+                new Message(Commons.IssuerIdentity.IssuerId, -1, context);
+            } catch (ArgumentException) { return; } // All is well
+            Assert.IsTrue(false, "Should not happen.");
+        }
+
     }
 
 }

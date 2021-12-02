@@ -53,28 +53,18 @@ namespace ShiftEverywhere.DiME
                 return null; 
             } 
         }
+        public string Context { get { return this._claims.ctx; } }
 
         #endregion
         #region -- PUBLIC CONSTRUCTORS --
 
         public Message() { }
 
-        public Message(Guid issuerId, double validFor = -1)
-        {
-            DateTime iat = DateTime.UtcNow;
-            DateTime? exp = (validFor != -1) ? iat.AddSeconds(validFor) : null; 
-            this._claims = new MessageClaims(Guid.NewGuid(), 
-                                             null, 
-                                             issuerId, 
-                                             Utility.ToTimestamp(iat), 
-                                             (exp.HasValue) ? Utility.ToTimestamp(exp.Value) : null, 
-                                             null, 
-                                             null, 
-                                             null);
-        }
+        public Message(Guid issuerId, double validFor = -1, string context = null): this(null, issuerId, validFor, context) { }
 
-        public Message(Guid audienceId, Guid issuerId, double validFor = -1)
+        public Message(Guid? audienceId, Guid issuerId, double validFor = -1, string context = null)
         {
+            if (context != null && context.Length > Envelope.MAX_CONTEXT_LENGTH) { throw new ArgumentException("Context must not be longer than " + Envelope.MAX_CONTEXT_LENGTH + "."); }
             DateTime iat = DateTime.UtcNow;
             DateTime? exp = (validFor != -1) ? iat.AddSeconds(validFor) : null; 
             this._claims = new MessageClaims(Guid.NewGuid(), 
@@ -84,7 +74,8 @@ namespace ShiftEverywhere.DiME
                                              (exp.HasValue) ? Utility.ToTimestamp(exp.Value) : null, 
                                              null, 
                                              null, 
-                                             null);
+                                             null,
+                                             context);
         }
 
         #endregion
@@ -272,9 +263,11 @@ namespace ShiftEverywhere.DiME
             public string pub { get; set; }
             [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
             public string lnk { get; set; }
+            [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+            public string ctx { get; set; }
 
             [JsonConstructor]
-            public MessageClaims(Guid uid, Guid? aud, Guid iss, string iat, string exp, Guid? kid, string pub, string lnk)
+            public MessageClaims(Guid uid, Guid? aud, Guid iss, string iat, string exp, Guid? kid, string pub, string lnk, string ctx)
             {
                 this.uid = uid;
                 this.aud = aud;
@@ -284,6 +277,7 @@ namespace ShiftEverywhere.DiME
                 this.kid = kid;
                 this.pub = pub;
                 this.lnk = lnk;
+                this.ctx = ctx;
             }
         }
 
