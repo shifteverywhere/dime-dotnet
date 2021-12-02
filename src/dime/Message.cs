@@ -105,8 +105,10 @@ namespace ShiftEverywhere.DiME
             // Verify IssuedAt and ExpiresAt
             DateTime now = DateTime.UtcNow;
             if (this.IssuedAt > now) { throw new DateExpirationException("Issuing date in the future."); }
-            if (this.IssuedAt > this.ExpiresAt) { throw new DateExpirationException("Expiration before issuing date."); }
-            if (this.ExpiresAt < now) { throw new DateExpirationException("Passed expiration date."); }
+            if (this.ExpiresAt != null) {
+                if (this.IssuedAt > this.ExpiresAt) { throw new DateExpirationException("Expiration before issuing date."); }
+                if (this.ExpiresAt < now) { throw new DateExpirationException("Passed expiration date."); }
+            }
             base.Verify(keybox);
         }
 
