@@ -176,16 +176,16 @@ namespace ShiftEverywhere.DiMETest
         public void ImportTest1()
         {
             Identity.SetTrustedIdentity(Commons.TrustedIdentity);
-            string exported = "Di:ID.eyJzeXMiOiJkaW1lIiwidWlkIjoiY2FiOTgxNmYtYWYzZi00Yjg0LTlmNzktZGNlNWU2M2U5MzI2Iiwic3ViIjoiNmRlZTVlOTEtOTJhOS00ZGVjLWI5ZjgtMWNlZTc0NjBiODY3IiwiaXNzIjoiNTk4NjZjYWQtMTU1MS00NGM5LWJiNjMtMDAyNmU3ODJjMGZmIiwiaWF0IjoiMjAyMS0xMi0wMVQyMToxMDowOS45MTQ5MTVaIiwiZXhwIjoiMjAyMi0xMi0wMVQyMToxMDowOS45MTQ5MTVaIiwicHViIjoiMlREWGRvTnZOWno2clZzN21hMjdtSjhCUmdBblY2UHB3U25EZmpBQVpkR3JlNzExQzIxcVRhNWRhIiwiY2FwIjpbImdlbmVyaWMiLCJpZGVudGlmeSJdfQ.SUQuZXlKemVYTWlPaUprYVcxbElpd2lkV2xrSWpvaU1qWTVZVFF6TURJdE1tWm1aaTAwTjJKbExXSTFabVl0TkRGa01XSTFNbU0wTlRneUlpd2ljM1ZpSWpvaU5UazROalpqWVdRdE1UVTFNUzAwTkdNNUxXSmlOak10TURBeU5tVTNPREpqTUdabUlpd2lhWE56SWpvaVlUTmtZV1poWXpZdFlqRXdPUzAwT1dReUxXRmhaR0V0Tkdaa01ERTBZalZsTlRabUlpd2lhV0YwSWpvaU1qQXlNUzB4TWkwd01WUXlNRG8xT0Rvd01DNHdOVFkyTXpKYUlpd2laWGh3SWpvaU1qQXlOaTB4TVMwek1GUXlNRG8xT0Rvd01DNHdOVFkyTXpKYUlpd2ljSFZpSWpvaU1sUkVXR1J2VG5aS1MxWTJTRGw1WlVjell6STNhMDQ1UVV4UWRIQTVOblZMYWxGRVNsSm5WRUp2V21kMlVWTlpZVVJ2YTFOdk5IQlhJaXdpWTJGd0lqcGJJbWRsYm1WeWFXTWlMQ0pwWkdWdWRHbG1lU0lzSW1semMzVmxJbDE5Lkp1N3hwTHg1R1dlN3dIb3doK0phOWl3bDNsb0Vob1JUR0RNTUJINFNjMUhYQWp1N1FvUXk5THlSOEIxV3lSOTBFczVmajhKa2E2T0UvSzRzN25Fb0NB.KkBWZ9oMkIUAln6xXOYeEgLa0iyUkw5omv1644tVWDlZ8NVpNTAdPmm8RrYoHix7vCWZPzmhsrCYJCl8zpdnBA";
+            string exported = "Di:ID.eyJzeXMiOiJkaW1lLWRvdG5ldC1yZWYiLCJ1aWQiOiIxNDRiMDZkZS1jM2U5LTRjMTYtYmZiZS00NjAxMTc2YzhkYzYiLCJzdWIiOiIzZGVjZjlkNC1kNDM0LTRlNTQtYmI3Mi00NzY3Nzg0ZDgwMzAiLCJpc3MiOiJlODQ5YWQ5OS05YWM4LTQ2ZTktYjUyNS1lZWNiMWEwNjE3NDUiLCJpYXQiOiIyMDIxLTEyLTAyVDIyOjMxOjQwLjI1Njk4OFoiLCJleHAiOiIyMDIyLTEyLTAyVDIyOjMxOjQwLjI1Njk4OFoiLCJwdWIiOiIyVERYZG9OdmlSNFJlTVR6OEFEUTM2NVhGRkh2amNLOWp1dGF5bTNnM2VZeWJSTDhZYXgxWENTY1kiLCJjYXAiOlsiZ2VuZXJpYyIsImlkZW50aWZ5Il19.SUQuZXlKemVYTWlPaUprYVcxbExXUnZkRzVsZEMxeVpXWWlMQ0oxYVdRaU9pSTNNV1k1TkdGa055MDNaakF6TFRRMk5EVXRPVEl3WWkwd1pEaGtPV0V5WVRGa01XSWlMQ0p6ZFdJaU9pSmxPRFE1WVdRNU9TMDVZV000TFRRMlpUa3RZalV5TlMxbFpXTmlNV0V3TmpFM05EVWlMQ0pwYzNNaU9pSTRNVGN4TjJWa09DMDNOMkZsTFRRMk16TXRZVEE1WVMwMllXTTFaRGswWldZeU9HUWlMQ0pwWVhRaU9pSXlNREl4TFRFeUxUQXlWREl5T2pJMU9qQTRMakE0TnpNeU1Wb2lMQ0psZUhBaU9pSXlNREkyTFRFeUxUQXhWREl5T2pJMU9qQTRMakE0TnpNeU1Wb2lMQ0p3ZFdJaU9pSXlWRVJZWkc5T2RsWnpSMVpJT0VNNVZWcDFaSEJpUW5aV1Uwc3hSbVZwTlhJMFdWUmFUWGhoUW1GNmIzTnZNbkJNY0ZCWFZFMW1ZMDRpTENKallYQWlPbHNpWjJWdVpYSnBZeUlzSW1sa1pXNTBhV1o1SWl3aWFYTnpkV1VpWFgwLjc5SjlldTNxZXJqMW4xdEpSaUJQenNURHNBNWlqWG41REs3ZlVuNEpRcmhzZUJXN0lrYWRBekNFRGtQcktoUG1lMGtzanVhMjhUQitVTGh4bGEybkNB.mlVe0Wj6H3vlVjc4rrhzqSEGwLY4w6FrLrL8kDagEx+bmRsTwlheUJtQY0TDPlqIFL62ZQxsbdFbUDKyXDq7Dw";
             Identity identity = Item.Import<Identity>(exported);
             Assert.IsNotNull(identity);
             Assert.AreEqual(Commons.SYSTEM_NAME, identity.SystemName);
-            Assert.AreEqual(new Guid("cab9816f-af3f-4b84-9f79-dce5e63e9326"), identity.UniqueId);
-            Assert.AreEqual(new Guid("6dee5e91-92a9-4dec-b9f8-1cee7460b867"), identity.SubjectId);
-            Assert.AreEqual(DateTime.Parse("2021-12-01T21:10:09.914915Z").ToUniversalTime(), identity.IssuedAt);
-            Assert.AreEqual(DateTime.Parse("2022-12-01T21:10:09.914915Z").ToUniversalTime(), identity.ExpiresAt);
+            Assert.AreEqual(new Guid("144b06de-c3e9-4c16-bfbe-4601176c8dc6"), identity.UniqueId);
+            Assert.AreEqual(new Guid("3decf9d4-d434-4e54-bb72-4767784d8030"), identity.SubjectId);
+            Assert.AreEqual(DateTime.Parse("2021-12-02T22:31:40.256988Z").ToUniversalTime(), identity.IssuedAt);
+            Assert.AreEqual(DateTime.Parse("2022-12-02T22:31:40.256988Z").ToUniversalTime(), identity.ExpiresAt);
             Assert.AreEqual(Commons.IntermediateIdentity.SubjectId, identity.IssuerId);
-            Assert.AreEqual("2TDXdoNvNZz6rVs7ma27mJ8BRgAnV6PpwSnDfjAAZdGre711C21qTa5da", identity.PublicKey);
+            Assert.AreEqual("2TDXdoNviR4ReMTz8ADQ365XFFHvjcK9jutaym3g3eYybRL8Yax1XCScY", identity.PublicKey);
             Assert.IsTrue(identity.HasCapability(Capability.Generic));
             Assert.IsTrue(identity.HasCapability(Capability.Identify));
             Assert.IsNotNull(identity.TrustChain);

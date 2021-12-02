@@ -8,7 +8,7 @@
 //
 using System;
 using System.Text;
-using NSec.Cryptography;
+using ASodium;
 
 namespace ShiftEverywhere.DiME
 {
@@ -20,8 +20,7 @@ namespace ShiftEverywhere.DiME
             if (key == null) { throw new ArgumentNullException(nameof(key), "Unable to sign, keybox must not be null."); }
             if (key.RawSecret == null) { throw new ArgumentNullException(nameof(key), "Unable to sign, key in keybox must not be null."); }
             if (key.Type != KeyType.Identity) { throw new ArgumentException($"Unable to sign, wrong key type provided, got: {key.Type}, expected: KeyType.Identity."); }
-            NSec.Cryptography.Key secretKey = NSec.Cryptography.Key.Import(SignatureAlgorithm.Ed25519, key.RawSecret, KeyBlobFormat.RawPrivateKey);
-            byte[] signature = SignatureAlgorithm.Ed25519.Sign(secretKey, Encoding.UTF8.GetBytes(data));
+            byte[] signature = SodiumPublicKeyAuth.SignDetached(Encoding.UTF8.GetBytes(data), key.RawSecret);
             return Utility.ToBase64(signature);
         }
 
@@ -33,9 +32,8 @@ namespace ShiftEverywhere.DiME
             if (key.RawPublic == null) { throw new ArgumentNullException(nameof(key), "Unable to sign, public key in keybox must not be null."); }
             if (key.Type != KeyType.Identity) { throw new ArgumentException($"Unable to sign, wrong key type provided, got: {key.Type}, expected: KeyType.Identity."); }
             byte[] rawSignature = Utility.FromBase64(signature);
-            PublicKey verifyKey = PublicKey.Import(SignatureAlgorithm.Ed25519, key.RawPublic, KeyBlobFormat.RawPublicKey);
-            if (!SignatureAlgorithm.Ed25519.Verify(verifyKey, Encoding.UTF8.GetBytes(data), rawSignature))
-            {
+
+            if (!SodiumPublicKeyAuth.VerifyDetached(rawSignature, Encoding.UTF8.GetBytes(data), key.RawPublic)) {
                 throw new IntegrityException();
             }
         }
@@ -46,58 +44,67 @@ namespace ShiftEverywhere.DiME
                 byte[] secretKey = Utility.RandomBytes(Crypto._NBR_S_KEY_BYTES);
                 return new Key(Guid.NewGuid(), type, secretKey, null);
             } else {
-                NSec.Cryptography.Key key;
-                KeyCreationParameters parameters = new KeyCreationParameters();
-                parameters.ExportPolicy = KeyExportPolicies.AllowPlaintextExport;
+                RevampedKeyPair keypair = null;
                 switch (type)
                 {
                     case KeyType.Identity:
-                        key = new NSec.Cryptography.Key(SignatureAlgorithm.Ed25519, parameters);
+                        keypair = SodiumPublicKeyAuth.GenerateRevampedKeyPair();
                         break;
                     case KeyType.Exchange:
-                        key = new NSec.Cryptography.Key(KeyAgreementAlgorithm.X25519, parameters);
+                        keypair = SodiumKeyExchange.GenerateRevampedKeyPair();
                         break;
                     default:
                         throw new ArgumentException("Unkown key type.", nameof(type));
                 }
                 return new Key(Guid.NewGuid(), 
                                 type, 
-                                Crypto.ExportKey(key, KeyBlobFormat.RawPrivateKey),
-                                Crypto.ExportKey(key, KeyBlobFormat.RawPublicKey));
+                                keypair.PrivateKey,
+                                keypair.PublicKey);
             }
         }
 
         #region -- KEY AGREEMENT --
 
-        public static NSec.Cryptography.Key GenerateSharedSecret(Key localKey, Key remoteKey, byte[] salt, byte[] info)
+        public static Key GenerateSharedSecret(Key clientKey, Key serverKey)
         {  
-            if (localKey.Type != KeyType.Exchange || remoteKey.Type != KeyType.Exchange) { throw new KeyMismatchException("Keys must be of type 'Exchange'."); }
-            NSec.Cryptography.Key privateKey = NSec.Cryptography.Key.Import(KeyAgreementAlgorithm.X25519, localKey.RawSecret, KeyBlobFormat.RawPrivateKey);
-            PublicKey publicKey = PublicKey.Import(KeyAgreementAlgorithm.X25519, remoteKey.RawPublic, KeyBlobFormat.RawPublicKey);
-            SharedSecret shared = KeyAgreementAlgorithm.X25519.Agree(privateKey, publicKey);
-            return KeyDerivationAlgorithm.HkdfSha256.DeriveKey(shared, salt, info, AeadAlgorithm.ChaCha20Poly1305);  
+            if (clientKey.Version != serverKey.Version) { throw new KeyMismatchException("Unable to generate shared key, source keys from different versions."); }
+            if (clientKey.Type != KeyType.Exchange || serverKey.Type != KeyType.Exchange) { throw new KeyMismatchException("Keys must be of type 'Exchange'."); }
+            byte[] shared;
+            if (clientKey.RawSecret != null) 
+            {
+                SodiumKeyExchangeSharedSecretBox ClientSharedSecretBox = SodiumKeyExchange.CalculateClientSharedSecret(clientKey.RawPublic, clientKey.RawSecret, serverKey.RawPublic);
+                shared = ClientSharedSecretBox.TransferSharedSecret;
+            } 
+            else if (serverKey.RawSecret != null)
+            {
+                SodiumKeyExchangeSharedSecretBox ServerSharedSecretBox = SodiumKeyExchange.CalculateServerSharedSecret(serverKey.RawPublic, serverKey.RawSecret, clientKey.RawPublic);
+                shared = ServerSharedSecretBox.ReadSharedSecret;
+            }
+            else
+                throw new KeyMismatchException("Invalid keys provided.");
+            return new Key(Guid.NewGuid(), KeyType.Encryption, shared, null);
         }
 
         #endregion
 
         #region -- ENCRYPTION/DECRYPTION --
 
-        public static byte[] Encrypt(byte[] plainText, NSec.Cryptography.Key key)     
+        public static byte[] Encrypt(byte[] plainText, Key key)
         {
             if (plainText == null || plainText.Length == 0) { throw new ArgumentNullException(nameof(plainText), "Plain text to encrypt must not be null and not have a length of 0."); }
-            if (key == null) { throw new ArgumentNullException(nameof(key), "Key must not be null."); }
-            byte[] nonce = Utility.RandomBytes(12);
-            byte[] cipherText = AeadAlgorithm.ChaCha20Poly1305.Encrypt(key, nonce, null, plainText);
+            if (key == null || key.RawSecret == null) { throw new ArgumentNullException(nameof(key), "Key must not be null."); }
+            byte[] nonce = Utility.RandomBytes(Crypto._NBR_NONCE_BYTES);
+            byte[] cipherText = SodiumSecretBox.Create(plainText, nonce, key.RawSecret);
             return Utility.Combine(nonce, cipherText);
         }
 
-        public static byte[] Decrypt(byte[] cipherText, NSec.Cryptography.Key key)
+        public static byte[] Decrypt(byte[] cipherText, Key key)
         {
             if (cipherText == null ||cipherText.Length == 0) { throw new ArgumentNullException(nameof(cipherText), "Cipher text to decrypt must not be null and not have a length of 0."); }
-            if (key == null) { throw new ArgumentNullException(nameof(key), "Key must not be null."); }
-            byte[] nonce = Utility.SubArray(cipherText, 0, 12);
-            byte[] data = Utility.SubArray(cipherText, 12);
-            return AeadAlgorithm.ChaCha20Poly1305.Decrypt(key, nonce, null, data);
+            if (key == null || key.RawSecret == null) { throw new ArgumentNullException(nameof(key), "Key must not be null."); }
+            byte[] nonce = Utility.SubArray(cipherText, 0, Crypto._NBR_NONCE_BYTES);
+            byte[] data = Utility.SubArray(cipherText, Crypto._NBR_NONCE_BYTES);
+            return SodiumSecretBox.Open(data, nonce, key.RawSecret);
         }
 
         #endregion
@@ -111,7 +118,7 @@ namespace ShiftEverywhere.DiME
 
         public static byte[] GenerateHash(byte[] data)
         {
-            return HashAlgorithm.Blake2b_256.Hash(data);
+            return SodiumGenericHash.ComputeHash((byte)Crypto._NBR_HASH_BYTES, data);
         }
 
         #endregion
@@ -119,15 +126,8 @@ namespace ShiftEverywhere.DiME
         #region -- PRIVATE --
 
         private static readonly int _NBR_S_KEY_BYTES = 32;
-
-        private static byte[] ExportKey(NSec.Cryptography.Key key, KeyBlobFormat keyBlobFormat)
-        {
-            var blob = new byte[key.GetExportBlobSize(keyBlobFormat)];
-            var blobSpan = new Span<byte>(blob);
-            int blobSize = 0;
-            key.TryExport(keyBlobFormat, blobSpan, out blobSize);
-            return blob;
-        }
+        private static readonly int _NBR_HASH_BYTES = 32;
+        private static readonly int _NBR_NONCE_BYTES = 24;
 
         #endregion
 

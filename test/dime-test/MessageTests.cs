@@ -137,14 +137,14 @@ namespace ShiftEverywhere.DiMETest
         public void ImportTest1()
         {   
             Identity.SetTrustedIdentity(Commons.TrustedIdentity);
-            string exported = "Di:MSG.eyJ1aWQiOiJmNjJlNzRmYS0xZjk5LTQ4MGMtYjBiZC1mNWRhODFhZTg1NmQiLCJhdWQiOiIxNjBjNDVkNy01NDA1LTRkMmQtODJjOS0yMjc3MDI2ZTVmMjMiLCJpc3MiOiIzZjgxMzg2My1lYzJjLTQ5YTctOTMyMC00MzkzZDkxMTYzNTciLCJpYXQiOiIyMDIxLTEyLTAxVDIxOjEyOjEyLjU3NTU1OFoiLCJleHAiOiIyMDIxLTEyLTAxVDIxOjEyOjIyLjU3NTU1OFoifQ.UmFjZWNhciBpcyByYWNlY2FyIGJhY2t3YXJkcy4.9PgBVr52TVZEIdiEeKMJlL/AEwFeHlMSB5DRDoZzbaoH6RzV0HGy/HAcRdoloHvitN4tWafj8Dk9u3t3+7dZDg";
+            string exported = "Di:MSG.eyJ1aWQiOiJjNjE1ZGI3MS01N2QxLTRhM2MtOGY1Mi00NmQxYWI1MDUxYzUiLCJhdWQiOiIxODUwNjYyYi05NjQxLTQyNjYtYTI5OC0zN2FiZWRlZmI1NjciLCJpc3MiOiI1YzhmODBiNS0wNjA2LTRhZjctOGZlMi03MjcxM2VkZDcwMGYiLCJpYXQiOiIyMDIxLTEyLTAyVDIyOjMzOjQ2LjQ3MDY2NFoiLCJleHAiOiIyMDIxLTEyLTAyVDIyOjMzOjU2LjQ3MDY2NFoifQ.UmFjZWNhciBpcyByYWNlY2FyIGJhY2t3YXJkcy4.U4vWusRf7EgF+ptI0KN2yP1aJaMl5wdKfpLlWO2VZZ6c5s6TpKP6vgnZOepUhnqsnjsh3ppBu+GDHn2bQExADw";
             Message message = Item.Import<Message>(exported);
-            Assert.AreEqual(new Guid("f62e74fa-1f99-480c-b0bd-f5da81ae856d"), message.UniqueId);
-            Assert.AreEqual(new Guid("160c45d7-5405-4d2d-82c9-2277026e5f23"), message.AudienceId);
+            Assert.AreEqual(new Guid("c615db71-57d1-4a3c-8f52-46d1ab5051c5"), message.UniqueId);
+            Assert.AreEqual(new Guid("1850662b-9641-4266-a298-37abedefb567"), message.AudienceId);
             Assert.AreEqual(Commons.IssuerIdentity.SubjectId, message.IssuerId);
             Assert.AreEqual("Racecar is racecar backwards.", System.Text.Encoding.UTF8.GetString(message.GetPayload()));
-            Assert.AreEqual(DateTime.Parse("2021-12-01T21:12:12.575558Z").ToUniversalTime(), message.IssuedAt);
-            Assert.AreEqual(DateTime.Parse("2021-12-01T21:12:22.575558Z").ToUniversalTime(), message.ExpiresAt);
+            Assert.AreEqual(DateTime.Parse("2021-12-02T22:33:46.470664Z").ToUniversalTime(), message.IssuedAt);
+            Assert.AreEqual(DateTime.Parse("2021-12-02T22:33:56.470664Z").ToUniversalTime(), message.ExpiresAt);
             Assert.AreEqual(message.IssuerId, Commons.IssuerIdentity.SubjectId);
         }
 
@@ -238,27 +238,27 @@ namespace ShiftEverywhere.DiMETest
         [TestMethod]
         public void SetPayloadTest4()
         {
-            Key localKey = Key.Generate(KeyType.Exchange);
-            Key remoteKey = Key.Generate(KeyType.Exchange);
+            Key issuerKey = Key.Generate(KeyType.Exchange);
+            Key audienceKey = Key.Generate(KeyType.Exchange);
             Message message = new Message(Commons.AudienceIdentity.SubjectId, Commons.IssuerIdentity.SubjectId, 100);
-            message.KeyId = localKey.UniqueId;
-            message.PublicKey = remoteKey.Public;
-            message.SetPayload(Encoding.UTF8.GetBytes("Racecar is racecar backwards."), localKey, remoteKey.PublicCopy(), Encoding.UTF8.GetBytes(localKey.Public));
-            Assert.AreEqual(localKey.UniqueId, message.KeyId);
-            Assert.AreEqual(remoteKey.Public, message.PublicKey);
-            Assert.AreEqual("Racecar is racecar backwards.", System.Text.Encoding.UTF8.GetString(message.GetPayload(remoteKey, localKey.PublicCopy(), Encoding.UTF8.GetBytes(localKey.Public))));
+            message.KeyId = issuerKey.UniqueId;
+            message.PublicKey = audienceKey.Public;
+            message.SetPayload(Encoding.UTF8.GetBytes("Racecar is racecar backwards."), issuerKey, audienceKey.PublicCopy());
+            Assert.AreEqual(issuerKey.UniqueId, message.KeyId);
+            Assert.AreEqual(audienceKey.Public, message.PublicKey);
+            Assert.AreEqual("Racecar is racecar backwards.", System.Text.Encoding.UTF8.GetString(message.GetPayload(issuerKey.PublicCopy(), audienceKey)));
         }
 
         [TestMethod]
         public void SetPayloadTest5()
         {
-            Key localKey = Key.Generate(KeyType.Exchange);
-            Key remoteKey = Key.Generate(KeyType.Exchange);
+            Key issuerKey = Key.Generate(KeyType.Exchange);
+            Key audienceKey = Key.Generate(KeyType.Exchange);
             Message message1 = new Message(Commons.AudienceIdentity.SubjectId, Commons.IssuerIdentity.SubjectId, 100);
-            message1.SetPayload(Encoding.UTF8.GetBytes("Racecar is racecar backwards."), localKey, remoteKey, Encoding.UTF8.GetBytes(localKey.Public));
+            message1.SetPayload(Encoding.UTF8.GetBytes("Racecar is racecar backwards."), issuerKey, audienceKey.PublicCopy());
             message1.Sign(Commons.IssuerKey);
             Message message2 = Item.Import<Message>(message1.Export());
-            Assert.AreEqual("Racecar is racecar backwards.", System.Text.Encoding.UTF8.GetString(message2.GetPayload(remoteKey, localKey.PublicCopy(), Encoding.UTF8.GetBytes(localKey.Public))));
+            Assert.AreEqual("Racecar is racecar backwards.", System.Text.Encoding.UTF8.GetString(message2.GetPayload(issuerKey.PublicCopy(), audienceKey)));
         }
 
         [TestMethod]

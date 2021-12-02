@@ -144,19 +144,16 @@ namespace ShiftEverywhere.DiME
         /// encoded as a Base64 string. If a payload is already set, then the old will be overwritten. If the message is already signed, 
         /// then InvalidOperationException will be thrown.</summary>
         /// <param name="payload">The payload to set.</param>
-        /// <param name="localKey">The key of the sender (issuer), must include a secret (private) key.</param>
-        /// <param name="remoteKey">The key of the receiver (audience), usually just the public key.</param>
-        /// <param name="salt">An optional byte-array that will be included in the key generation.</param>
-        public void SetPayload(byte[] payload, Key localKey, Key remoteKey, byte[] salt = null)
+        /// <param name="issuerKey">This is the key of the issuer of the message, must be of type EXCHANGE, must not be null.</param>
+        /// <param name="audienceKey">This is the key of the audience of the message, must be of type EXCHANGE, must not be null.</param>
+        public void SetPayload(byte[] payload, Key issuerKey, Key audienceKey)
         {
             ThrowIfSigned();
-            if (localKey == null || localKey.Secret == null) { throw new ArgumentNullException(nameof(localKey), "Provided local key may not be null."); }
-            if (remoteKey == null || remoteKey.Public == null) { throw new ArgumentNullException(nameof(remoteKey), "Provided remote key may not be null."); }
-            if (this.AudienceId == null) { throw new InvalidOperationException("AudienceId must be set in the message for encrypted payloads."); }
-            if (localKey.Type != KeyType.Exchange) { throw new ArgumentException("Unable to encrypt, local key of invalid key type.", nameof(localKey)); }
-            if (remoteKey.Type != KeyType.Exchange) { throw new ArgumentException("Unable to encrypt, remote key invalid key type.", nameof(remoteKey)); }
-            byte[] info = Crypto.GenerateHash(Utility.Combine(this.IssuerId.ToByteArray(), this.AudienceId.Value.ToByteArray()));
-            var key = Crypto.GenerateSharedSecret(localKey, remoteKey, salt, info);
+            if (issuerKey == null) { throw new ArgumentNullException(nameof(issuerKey), "Provided local key may not be null."); }
+            if (audienceKey == null) { throw new ArgumentNullException(nameof(audienceKey), "Provided remote key may not be null."); }
+            if (issuerKey.Type != KeyType.Exchange) { throw new ArgumentException("Unable to encrypt, local key of invalid key type.", nameof(issuerKey)); }
+            if (audienceKey.Type != KeyType.Exchange) { throw new ArgumentException("Unable to encrypt, remote key invalid key type.", nameof(audienceKey)); }
+            var key = Crypto.GenerateSharedSecret(issuerKey, audienceKey);
             SetPayload(Crypto.Encrypt(payload, key));
         }
 
@@ -168,19 +165,15 @@ namespace ShiftEverywhere.DiME
         }
 
         /// <summary>Decrypts and returns the payload attached to the message. This will decrypt the payload before returning it.</summary>
-        /// <param name="localKey">The key of the sender (audience), must include a secret (private) key.</param>
-        /// <param name="remoteKey">The key of the receiver (issuer), usually just the public key.</param>
-        /// <param name="salt">An optional byte-array that will be included in the key generation.</param>
+        /// <param name="issuerKey">This is the key of the issuer of the message, must be of type EXCHANGE, must not be null.</param>
+        /// <param name="audienceKey">This is the key of the audience of the message, must be of type EXCHANGE, must not be null.</param>
         /// <returns>A byte-array.</returns>
-        public byte[] GetPayload(Key localKey, Key remoteKey, byte[] salt = null)
+        public byte[] GetPayload(Key issuerKey, Key audienceKey)
         {
-            if (localKey == null) { throw new ArgumentNullException(nameof(localKey), "Provided local key may not be null."); }
-            if (remoteKey == null || remoteKey.Public == null) { throw new ArgumentNullException(nameof(remoteKey), "Provided remote key may not be null."); }
-            if (this.AudienceId == null) { throw new FormatException("AudienceId (aud) missing in message, unable to dectrypt payload."); }
-            if (localKey.Type != KeyType.Exchange) { throw new ArgumentException("Unable to decrypt, invalid key type.", nameof(localKey)); }
-            if (localKey.Secret == null) { throw new ArgumentNullException(nameof(localKey), "Unable to decrypt, key must not be null."); }
-            byte[] info = Crypto.GenerateHash(Utility.Combine(this.IssuerId.ToByteArray(), this.AudienceId.Value.ToByteArray()));
-            var key = Crypto.GenerateSharedSecret(localKey, remoteKey, salt, info);
+            if (issuerKey == null) { throw new ArgumentNullException(nameof(issuerKey), "Provided local key may not be null."); }
+            if (audienceKey == null || audienceKey.Public == null) { throw new ArgumentNullException(nameof(audienceKey), "Provided remote key may not be null."); }
+            if (issuerKey.Type != KeyType.Exchange) { throw new ArgumentException("Unable to decrypt, invalid key type.", nameof(issuerKey)); }
+            var key = Crypto.GenerateSharedSecret(issuerKey, audienceKey);
             return Crypto.Decrypt(GetPayload(), key);
         }
 
