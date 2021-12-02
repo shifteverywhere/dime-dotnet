@@ -177,6 +177,7 @@ namespace ShiftEverywhere.DiME
         
         private Identity IssueNewIdentity(string systemName, Guid subjectId, double validFor, Key issuerKey, Identity issuerIdentity, List<Capability> allowedCapabilities, List<Capability> requiredCapabilities = null, List<string> ambits = null, List<string> methods = null)
         {
+            Verify();
             bool isSelfSign = (issuerIdentity == null || this.PublicKey == issuerKey.Public);
             this.CompleteCapabilities(allowedCapabilities, requiredCapabilities, isSelfSign);
             if (isSelfSign || issuerIdentity.HasCapability(Capability.Issue))
