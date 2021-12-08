@@ -132,5 +132,30 @@ namespace ShiftEverywhere.DiMETest
             Assert.IsTrue(hashHeader.SequenceEqual(header));
         }
 
+        [TestMethod]
+        public void contextTest1() {
+            string context = "123456789012345678901234567890123456789012345678901234567890123456789012345678901234";
+            Key key = Key.Generate(KeyType.Identity, context);
+            Assert.AreEqual(context, key.Context);
+        }
+
+        [TestMethod]
+        public void contextTest2() {
+            string context = "123456789012345678901234567890123456789012345678901234567890123456789012345678901234";
+            Key key1 = Key.Generate(KeyType.Identity, context);
+            String exported = key1.Export();
+            Key key2 = Item.Import<Key>(exported);
+            Assert.AreEqual(context, key2.Context);
+        }
+
+        [TestMethod]
+        public void contextTest3() {
+            string context = "123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890";
+            try {
+                Key.Generate(KeyType.Identity, context);
+            } catch (ArgumentException) { return; } // All is well
+            Assert.IsTrue(false, "Should not happen.");
+        }
+
     }
 }

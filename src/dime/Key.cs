@@ -51,12 +51,20 @@ namespace ShiftEverywhere.DiME
         public string Secret { get { return this._claims.b58Key; } }
         /// <summary></summary>
         public string Public { get { return this._claims.b58Pub; } }
+        /// <summary></summary>
+        public string Context { get { return this._claims.ctx; } }
 
         public Key() { }
 
         /// <summary></summary>
-        public static Key Generate(KeyType type, double validFor = -1, Guid? issuerId = null)
+        public static Key Generate(KeyType type, String context) {
+            return Key.Generate(type, -1, null, context);
+        }
+
+        /// <summary></summary>
+        public static Key Generate(KeyType type, double validFor = -1, Guid? issuerId = null, String context = null)
         {
+            if (context != null && context.Length > Envelope.MAX_CONTEXT_LENGTH) { throw new ArgumentException("Context must not be longer than " + Envelope.MAX_CONTEXT_LENGTH + "."); }
             Key key = Crypto.GenerateKey(type);
             if (validFor != -1)
             {
@@ -64,6 +72,7 @@ namespace ShiftEverywhere.DiME
                 key._claims.exp = Utility.ToTimestamp(exp);
             }
             key._claims.iss = issuerId;
+            key._claims.ctx = context;
             return key;
         }
 
@@ -99,7 +108,8 @@ namespace ShiftEverywhere.DiME
                                          Utility.ToTimestamp(iat),
                                          null,
                                          (key != null) ? Utility.Combine(Key.headerFrom(type, KeyVariant.Secret), key) : null,
-                                         (pub != null) ? Utility.Combine(Key.headerFrom(type, KeyVariant.Public), pub) : null);
+                                         (pub != null) ? Utility.Combine(Key.headerFrom(type, KeyVariant.Public), pub) : null,
+                                         null);
         }
 
         internal Key(string base58key)
@@ -109,10 +119,10 @@ namespace ShiftEverywhere.DiME
                 if (bytes != null && bytes.Length > 0) {
                     switch (Key.GetKeyVariant(bytes)) {
                         case KeyVariant.Secret: 
-                            this._claims = new KeyClaims(null, Guid.Empty, null, null, bytes, null); 
+                            this._claims = new KeyClaims(null, Guid.Empty, null, null, bytes, null, null); 
                             break;
                         case KeyVariant.Public: 
-                            this._claims = new KeyClaims(null, Guid.Empty, null, null, null, bytes);
+                            this._claims = new KeyClaims(null, Guid.Empty, null, null, null, bytes, null);
                             break;
                         default:
                             throw new FormatException("Invalid key. (K1010)");
@@ -178,8 +188,10 @@ namespace ShiftEverywhere.DiME
 
             [JsonPropertyName("pub")][JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
             public string b58Pub { get { return (this.pub != null) ? Base58.Encode(this.pub, null) : null; } }
+            [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+            public string ctx { get; set; }
 
-            public KeyClaims(Guid? iss, Guid uid, string iat, string exp, byte[] key, byte[] pub)
+            public KeyClaims(Guid? iss, Guid uid, string iat, string exp, byte[] key, byte[] pub, string ctx)
             {
                 this.iss = iss;
                 this.uid = uid;
@@ -187,16 +199,18 @@ namespace ShiftEverywhere.DiME
                 this.exp = exp;
                 this.key = key;
                 this.pub = pub;
+                this.ctx = ctx;
             }
 
             [JsonConstructor]
-            public KeyClaims(Guid? iss, Guid uid, string iat, string exp, string b58Key, string b58Pub) {
+            public KeyClaims(Guid? iss, Guid uid, string iat, string exp, string b58Key, string b58Pub, string ctx) {
                 this.iss = iss;
                 this.uid = uid;
                 this.iat = iat;
                 this.exp = exp;
                 this.key = (b58Key != null) ? Base58.Decode(b58Key) : null;
                 this.pub = (b58Pub != null) ? Base58.Decode(b58Pub) : null;
+                this.ctx = ctx;
             }
         }
 
