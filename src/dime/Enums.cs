@@ -46,7 +46,7 @@ namespace ShiftEverywhere.DiME
         Identity = 0x10,
         /// <summary>Key type for asymmetric keys used for key exchange (agreement).</summary>
         Exchange = 0x20,
-        /// <summary>Key type for secret (symmetric) keys, used for encryption.
+        /// <summary>Key type for secret (symmetric) keys, used for encryption.</summary>
         Encryption = 0xE0,
         Authentication = 0xF0
     }

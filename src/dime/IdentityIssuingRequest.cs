@@ -19,53 +19,53 @@ namespace ShiftEverywhere.DiME
     {
         #region -- PUBLIC --
 
-        public const long VALID_FOR_1_YEAR = 365 * 24 * 60 * 60; 
-        public const string TAG = "IIR";
-        public override string Tag { get { return IdentityIssuingRequest.TAG; } }
+        public const long _VALID_FOR_1_YEAR = 365 * 24 * 60 * 60; 
+        public const string _TAG = "IIR";
+        public override string Tag => _TAG;
         /// <summary></summary>
-        public override Guid UniqueId { get { return this._claims.uid; } }
+        public override Guid UniqueId => _claims.uid;
         /// <summary></summary>
-        public DateTime IssuedAt { get { return Utility.FromTimestamp(this._claims.iat); } }
+        public DateTime IssuedAt => Utility.FromTimestamp(_claims.iat);
         /// <summary></summary>
-        public string PublicKey { get { return this._claims.pub; } }
-        public Dictionary<string, object> Principles { get { return this._claims.pri; } }
-
+        public string PublicKey => _claims.pub;
+        public Dictionary<string, object> Principles => _claims.pri;
+        
         public IdentityIssuingRequest() { }
 
         public static IdentityIssuingRequest Generate(Key key, List<Capability> capabilities = null, Dictionary<string, object> principles = null) 
         {
             if (key.Type != KeyType.Identity) { throw new ArgumentException("Key of invalid type.", nameof(key)); }
             if (key.Secret == null) { throw new ArgumentNullException(nameof(key), "Private key must not be null"); }
-            IdentityIssuingRequest iir = new IdentityIssuingRequest();
+            var iir = new IdentityIssuingRequest();
             if (capabilities == null || capabilities.Count == 0) 
                 iir._capabilities = new List<Capability>() { Capability.Generic }; 
             else 
                 iir._capabilities = capabilities; 
-            DateTime now = DateTime.UtcNow;
+            var now = DateTime.UtcNow;
             string[] cap;
-            if (capabilities != null && capabilities.Count > 0)
+            if (capabilities is {Count: > 0})
                 cap = capabilities.ConvertAll(c => c.ToString().ToLower()).ToArray();
             else
-                cap = new string[1] { Capability.Generic.ToString().ToLower() };
+                cap = new[] { Capability.Generic.ToString().ToLower() };
             iir._claims = new IirClaims(Guid.NewGuid(), Utility.ToTimestamp(now), key.Public, cap, principles);
-            iir._signature = Crypto.GenerateSignature(iir.Encode(), key);
+            iir.Signature = Crypto.GenerateSignature(iir.Encode(), key);
             return iir;
         }
 
         public void Verify()
         {
-            Verify(Key.FromBase58Key(this.PublicKey));
+            Verify(Key.FromBase58Key(PublicKey));
         }
 
-        public override void Verify(Key keybox)
+        public override void Verify(Key key)
         {
-            if (DateTime.UtcNow < this.IssuedAt) { throw new DateExpirationException("An identity issuing request cannot have an issued at date in the future."); }
-            base.Verify(keybox);
+            if (DateTime.UtcNow < IssuedAt) { throw new DateExpirationException("An identity issuing request cannot have an issued at date in the future."); }
+            base.Verify(key);
         }
 
         public bool WantsCapability(Capability capability)
         {
-            return this._capabilities.Any(cap => cap == capability);
+            return _capabilities.Any(cap => cap == capability);
         }
 
         /// <summary>Issues a new signed identity from an identity issuing request (IIR). The new identity
@@ -84,7 +84,7 @@ namespace ShiftEverywhere.DiME
         public Identity Issue(Guid subjectId, double validFor, Key issuerKey, Identity issuerIdentity, List<Capability> allowedCapabilities, List<Capability> requiredCapabilities = null, List<string> ambits = null, List<string> methods = null) 
         {    
             if (issuerIdentity == null) { throw new ArgumentNullException(nameof(issuerIdentity), "Issuer identity must not be null."); }
-            return this.IssueNewIdentity(issuerIdentity.SystemName, subjectId, validFor, issuerKey, issuerIdentity, allowedCapabilities, requiredCapabilities, ambits, methods);
+            return IssueNewIdentity(issuerIdentity.SystemName, subjectId, validFor, issuerKey, issuerIdentity, allowedCapabilities, requiredCapabilities, ambits, methods);
         }
 
         /// <summary>Issues a new self signed identity from an identity issuing request (IIR). The new identity
@@ -98,13 +98,13 @@ namespace ShiftEverywhere.DiME
         /// <returns>Returns an imutable self-issued Identity instance.</returns>
         public Identity SelfIssue(Guid subjectId, double validFor, Key issuerKey, string systemName, List<string> ambits = null, List<string> methods = null)
         {
-            if (systemName == null || systemName.Length == 0) { throw new ArgumentNullException(nameof(systemName), "System name must not be null or empty."); }
-            return this.IssueNewIdentity(systemName, subjectId, validFor, issuerKey, null, null, null, ambits, methods);
+            if (string.IsNullOrEmpty(systemName)) { throw new ArgumentNullException(nameof(systemName), "System name must not be null or empty."); }
+            return IssueNewIdentity(systemName, subjectId, validFor, issuerKey, null, null, null, ambits, methods);
         }
 
         internal new static IdentityIssuingRequest FromEncoded(string encoded)
         {
-            IdentityIssuingRequest iir = new IdentityIssuingRequest();
+            var iir = new IdentityIssuingRequest();
             iir.Decode(encoded);
             return iir;
         }
@@ -115,48 +115,47 @@ namespace ShiftEverywhere.DiME
 
         protected override void Decode(string encoded) 
         {
-            string[] components = encoded.Split(new char[] { Envelope._COMPONENT_DELIMITER });
-            if (components.Length != IdentityIssuingRequest._NBR_COMPONENTS_WITHOUT_SIGNATURE && components.Length != IdentityIssuingRequest._NBR_COMPONENTS_WITH_SIGNATURE) { throw new FormatException($"Unexpected number of components for identity issuing request, expected {IdentityIssuingRequest._NBR_COMPONENTS_WITHOUT_SIGNATURE} or  {IdentityIssuingRequest._NBR_COMPONENTS_WITH_SIGNATURE}, got {components.Length}."); }
-            if (components[IdentityIssuingRequest._TAG_INDEX] != IdentityIssuingRequest.TAG) { throw new FormatException($"Unexpected item tag, expected: \"{IdentityIssuingRequest.TAG}\", got \"{components[IdentityIssuingRequest._TAG_INDEX]}\"."); }
-            byte[] json = Utility.FromBase64(components[IdentityIssuingRequest._CLAIMS_INDEX]);
-            this._claims = JsonSerializer.Deserialize<IirClaims>(json);
-            this._capabilities = new List<string>(this._claims.cap).ConvertAll(str => { Capability cap; Enum.TryParse<Capability>(str, true, out cap); return cap; });
-            if (components.Length == _NBR_COMPONENTS_WITH_SIGNATURE)
+            var components = encoded.Split(new[] { Envelope._COMPONENT_DELIMITER });
+            if (components.Length != NbrComponentsWithoutSignature && components.Length != NbrComponentsWithSignature) { throw new FormatException($"Unexpected number of components for identity issuing request, expected {NbrComponentsWithoutSignature} or  {NbrComponentsWithSignature}, got {components.Length}."); }
+            if (components[TagIndex] != _TAG) { throw new FormatException($"Unexpected item tag, expected: \"{_TAG}\", got \"{components[TagIndex]}\"."); }
+            var json = Utility.FromBase64(components[ClaimsIndex]);
+            _claims = JsonSerializer.Deserialize<IirClaims>(json);
+            _capabilities = new List<string>(_claims.cap).ConvertAll(str => {
+                Enum.TryParse<Capability>(str, true, out var cap); return cap; });
+            if (components.Length == NbrComponentsWithSignature)
             {
-                this._encoded = encoded.Substring(0, encoded.LastIndexOf(Envelope._COMPONENT_DELIMITER));
-                this._signature = components[IdentityIssuingRequest._SIGNATURE_INDEX];
+                Encoded = encoded.Substring(0, encoded.LastIndexOf(Envelope._COMPONENT_DELIMITER));
+                Signature = components[SignatureIndex];
             }
         }
 
         protected override string Encode()
         {
-            if (this._encoded == null)
-            {
-                StringBuilder builder = new StringBuilder();
-                builder.Append(IdentityIssuingRequest.TAG);
-                builder.Append(Envelope._COMPONENT_DELIMITER);
-                builder.Append(Utility.ToBase64(JsonSerializer.Serialize(this._claims)));
-                this._encoded = builder.ToString();
-            }
-            return this._encoded;
+            if (Encoded != null) return Encoded;
+            StringBuilder builder = new StringBuilder();
+            builder.Append(_TAG);
+            builder.Append(Envelope._COMPONENT_DELIMITER);
+            builder.Append(Utility.ToBase64(JsonSerializer.Serialize(_claims)));
+            Encoded = builder.ToString();
+            return Encoded;
         }
 
         #endregion
 
         #region -- PRIVATE --
         
-        private const int _NBR_COMPONENTS_WITHOUT_SIGNATURE = 2;
-        private const int _NBR_COMPONENTS_WITH_SIGNATURE = 3;
-        private const int _TAG_INDEX = 0;
-        private const int _CLAIMS_INDEX = 1;
-        private const int _SIGNATURE_INDEX = 2;
+        private const int NbrComponentsWithoutSignature = 2;
+        private const int NbrComponentsWithSignature = 3;
+        private const int TagIndex = 0;
+        private const int ClaimsIndex = 1;
+        private const int SignatureIndex = 2;
 
         private IirClaims _claims;
         private List<Capability> _capabilities { get; set; }
 
         private struct IirClaims
         {
-            public Guid uid { get; set; }
+            public Guid uid { get; set; }
             public string iat { get; set; }
             public string pub { get; set; }
             [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
@@ -178,43 +177,40 @@ namespace ShiftEverywhere.DiME
         private Identity IssueNewIdentity(string systemName, Guid subjectId, double validFor, Key issuerKey, Identity issuerIdentity, List<Capability> allowedCapabilities, List<Capability> requiredCapabilities = null, List<string> ambits = null, List<string> methods = null)
         {
             Verify();
-            bool isSelfSign = (issuerIdentity == null || this.PublicKey == issuerKey.Public);
-            this.CompleteCapabilities(allowedCapabilities, requiredCapabilities, isSelfSign);
-            if (isSelfSign || issuerIdentity.HasCapability(Capability.Issue))
+            var isSelfSign = (issuerIdentity == null || PublicKey == issuerKey.Public);
+            CompleteCapabilities(allowedCapabilities, requiredCapabilities, isSelfSign);
+            if (!isSelfSign && !issuerIdentity.HasCapability(Capability.Issue))
+                throw new IdentityCapabilityException("Issuing identity missing 'issue' capability.");
+            var now = DateTime.UtcNow;
+            var expires = now.AddSeconds(validFor);
+            var issuerId = issuerIdentity?.SubjectId ?? subjectId;
+            var identity = new Identity(systemName, subjectId, PublicKey, now, expires, issuerId, _capabilities, Principles, ambits, methods);
+            if (Identity.TrustedIdentity != null && issuerIdentity != null && issuerIdentity.SubjectId != Identity.TrustedIdentity.SubjectId)
             {
-                DateTime now = DateTime.UtcNow;
-                DateTime expires = now.AddSeconds(validFor);
-                Guid issuerId = issuerIdentity != null ? issuerIdentity.SubjectId : subjectId;
-                Identity identity = new Identity(systemName, subjectId, this.PublicKey, now, expires, issuerId, this._capabilities, this.Principles, ambits, methods);
-                if (Identity.TrustedIdentity != null && issuerIdentity != null && issuerIdentity.SubjectId != Identity.TrustedIdentity.SubjectId)
-                {
-                    issuerIdentity.VerifyTrust();
-                    // The chain will only be set if this is not the trusted identity (and as long as one is set)
-                    identity.TrustChain = issuerIdentity;
-                }
-                identity.Sign(issuerKey);
-                return identity;
+                issuerIdentity.VerifyTrust();
+                // The chain will only be set if this is not the trusted identity (and as long as one is set)
+                identity.TrustChain = issuerIdentity;
             }
-            throw new IdentityCapabilityException("Issuing identity missing 'issue' capability.");
-
+            identity.Sign(issuerKey);
+            return identity;
         }
 
-        private void CompleteCapabilities(List<Capability> allowedCapabilities, List<Capability> requiredCapabilities, bool isSelfSign)
+        private void CompleteCapabilities(List<Capability> allowedCapabilities, IReadOnlyCollection<Capability> requiredCapabilities, bool isSelfSign)
         {
-            if (this._capabilities == null) { this._capabilities = new List<Capability> { Capability.Generic }; }
-            if (this._capabilities.Count == 0) { this._capabilities.Add(Capability.Generic); }
+            _capabilities ??= new List<Capability> {Capability.Generic};
+            if (_capabilities.Count == 0) { _capabilities.Add(Capability.Generic); }
             if (isSelfSign)
             {
-                if (!this.WantsCapability(Capability.Self))
+                if (!WantsCapability(Capability.Self))
                 {
-                    this._capabilities.Add(Capability.Self);
+                    _capabilities.Add(Capability.Self);
                 }
             }
             else 
             {
                 if (allowedCapabilities == null || allowedCapabilities.Count == 0) { throw new ArgumentException("Allowed capabilities must be defined to issue identity.", nameof(allowedCapabilities)); }
-                if (this._capabilities.Except(allowedCapabilities).Count() > 0) { throw new IdentityCapabilityException("IIR contains one or more disallowed capabilities."); }
-                if (requiredCapabilities != null && requiredCapabilities.Except(this._capabilities).Count() > 0) { throw new IdentityCapabilityException("IIR is missing one or more required capabilities."); }
+                if (_capabilities.Except(allowedCapabilities).Any()) { throw new IdentityCapabilityException("IIR contains one or more disallowed capabilities."); }
+                if (requiredCapabilities != null && requiredCapabilities.Except(_capabilities).Any()) { throw new IdentityCapabilityException("IIR is missing one or more required capabilities."); }
             }
         }
 

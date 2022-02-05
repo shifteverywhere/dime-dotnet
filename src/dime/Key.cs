@@ -7,6 +7,7 @@
 //  Copyright © 2021 Shift Everywhere AB. All rights reserved.
 //
 using System;
+using System.Collections.Generic;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -17,58 +18,58 @@ namespace ShiftEverywhere.DiME
     {
         #region -- PUBLIC --
 
-        public const string TAG = "KEY";
-        public override string Tag { get { return DiME.Key.TAG; } }
+        public const string _TAG = "KEY";
+        public override string Tag => _TAG;
+
         public int Version { 
             get {
-                byte[] key = (this._claims.key != null) ? this._claims.key : this._claims.pub;
+                var key = _claims.key ?? _claims.pub;
                 return key[0];
             }
         }
-         public Guid? IssuerId { get { return this._claims.iss; } }
-        /// <summary></summary>
-        public override Guid UniqueId { get { return this._claims.uid; } }
-        public DateTime IssuedAt { get { return Utility.FromTimestamp(this._claims.iat); } }
-        /// <summary></summary>
-        public DateTime ExpiresAt { get { return Utility.FromTimestamp(this._claims.exp); } }
-        /// <summary></summary>
-
-        public KeyType Type { 
-            get 
-            {  
-                byte[] key = (this._claims.key != null) ? this._claims.key : this._claims.pub;
-                switch(Key.GetAlgorithmFamily(key))
+         public Guid? IssuerId => _claims.iss;
+         /// <summary></summary>
+        public override Guid UniqueId => _claims.uid;
+         public DateTime IssuedAt => Utility.FromTimestamp(_claims.iat);
+         /// <summary></summary>
+        public DateTime ExpiresAt => Utility.FromTimestamp(_claims.exp);
+         /// <summary></summary>
+         public KeyType Type { 
+            get
+            {
+                var key = _claims.key ?? _claims.pub;
+                return GetAlgorithmFamily(key) switch
                 {
-                    case AlgorithmFamily.Aead: return KeyType.Encryption;
-                    case AlgorithmFamily.Ecdh: return KeyType.Exchange;
-                    case AlgorithmFamily.Eddsa: return KeyType.Identity;
-                    case AlgorithmFamily.Hash: return KeyType.Authentication;
-                    default: return KeyType.Undefined;
-                }
+                    AlgorithmFamily.Aead => KeyType.Encryption,
+                    AlgorithmFamily.Ecdh => KeyType.Exchange,
+                    AlgorithmFamily.Eddsa => KeyType.Identity,
+                    AlgorithmFamily.Hash => KeyType.Authentication,
+                    _ => KeyType.Undefined
+                };
             }
         }
         /// <summary></summary>
-        public string Secret { get { return this._claims.b58Key; } }
+        public string Secret => _claims.B58Key;
         /// <summary></summary>
-        public string Public { get { return this._claims.b58Pub; } }
+        public string Public => _claims.B58Pub;
         /// <summary></summary>
-        public string Context { get { return this._claims.ctx; } }
+        public string Context => _claims.ctx;
 
         public Key() { }
 
         /// <summary></summary>
-        public static Key Generate(KeyType type, String context) {
-            return Key.Generate(type, -1, null, context);
+        public static Key Generate(KeyType type, string context) {
+            return Generate(type, -1, null, context);
         }
 
         /// <summary></summary>
-        public static Key Generate(KeyType type, double validFor = -1, Guid? issuerId = null, String context = null)
+        public static Key Generate(KeyType type, double validFor = -1, Guid? issuerId = null, string context = null)
         {
-            if (context != null && context.Length > Envelope.MAX_CONTEXT_LENGTH) { throw new ArgumentException("Context must not be longer than " + Envelope.MAX_CONTEXT_LENGTH + "."); }
-            Key key = Crypto.GenerateKey(type);
+            if (context is {Length: > Envelope._MAX_CONTEXT_LENGTH}) { throw new ArgumentException("Context must not be longer than " + Envelope._MAX_CONTEXT_LENGTH + "."); }
+            var key = Crypto.GenerateKey(type);
             if (validFor != -1)
             {
-                DateTime exp = key.IssuedAt.AddSeconds(validFor);
+                var exp = key.IssuedAt.AddSeconds(validFor);
                 key._claims.exp = Utility.ToTimestamp(exp);
             }
             key._claims.iss = issuerId;
@@ -83,53 +84,49 @@ namespace ShiftEverywhere.DiME
 
         public Key PublicCopy()
         {
-            return new Key(this.UniqueId, this.Type, null, this.RawPublic);
+            return new Key(UniqueId, Type, null, RawPublic);
         }
 
         internal new static Key FromEncoded(string encoded)
         {
-            Key keybox = new Key();
-            keybox.Decode(encoded);
-            return keybox;
+            var key = new Key();
+            key.Decode(encoded);
+            return key;
         }
 
         #endregion
 
         #region -- INTERNAL --
 
-        internal byte[] RawSecret { get { return (this._claims.key != null ) ? Utility.SubArray(this._claims.key, Key._HEADER_SIZE, this._claims.key.Length - Key._HEADER_SIZE) : null; } }
-        internal byte[] RawPublic { get { return (this._claims.pub != null ) ? Utility.SubArray(this._claims.pub, Key._HEADER_SIZE, this._claims.pub.Length - Key._HEADER_SIZE) : null; } }
+        internal byte[] RawSecret => (_claims.key != null ) ? Utility.SubArray(_claims.key, HeaderSize, _claims.key.Length - HeaderSize) : null;
+        internal byte[] RawPublic => (_claims.pub != null ) ? Utility.SubArray(_claims.pub, HeaderSize, _claims.pub.Length - HeaderSize) : null;
 
         internal Key(Guid id, KeyType type, byte[] key, byte[] pub)
         {
             DateTime iat = DateTime.UtcNow;
-            this._claims = new KeyClaims(null, 
-                                         id, 
-                                         Utility.ToTimestamp(iat),
-                                         null,
-                                         (key != null) ? Utility.Combine(Key.headerFrom(type, KeyVariant.Secret), key) : null,
-                                         (pub != null) ? Utility.Combine(Key.headerFrom(type, KeyVariant.Public), pub) : null,
-                                         null);
+            _claims = new KeyClaims(null, 
+                id, 
+                Utility.ToTimestamp(iat),
+                null,
+                (key != null) ? Utility.Combine(HeaderFrom(type, KeyVariant.Secret), key) : null,
+                (pub != null) ? Utility.Combine(HeaderFrom(type, KeyVariant.Public), pub) : null,
+                null);
         }
 
-        internal Key(string base58key)
+        internal Key(string base58Key)
         {
-            if (base58key != null && base58key.Length > 0) {
-                byte[] bytes = Base58.Decode(base58key);
-                if (bytes != null && bytes.Length > 0) {
-                    switch (Key.GetKeyVariant(bytes)) {
-                        case KeyVariant.Secret: 
-                            this._claims = new KeyClaims(null, Guid.Empty, null, null, bytes, null, null); 
-                            break;
-                        case KeyVariant.Public: 
-                            this._claims = new KeyClaims(null, Guid.Empty, null, null, null, bytes, null);
-                            break;
-                        default:
-                            throw new FormatException("Invalid key. (K1010)");
-                    }
-                }
+            if (base58Key is not {Length: > 0}) return;
+            var bytes = Base58.Decode(base58Key);
+            if (bytes is {Length: > 0})
+            {
+                _claims = GetKeyVariant(bytes) switch
+                {
+                    KeyVariant.Secret => new KeyClaims(null, Guid.Empty, null, null, bytes, null, null),
+                    KeyVariant.Public => new KeyClaims(null, Guid.Empty, null, null, null, bytes, null),
+                    _ => throw new FormatException("Invalid key. (K1010)")
+                };
             }
-            
+
         }
 
         #endregion
@@ -138,35 +135,33 @@ namespace ShiftEverywhere.DiME
 
         protected override void Decode(string encoded)
         {
-            string[] components = encoded.Split(new char[] { Envelope._COMPONENT_DELIMITER });
-            if (components.Length != DiME.Key._NBR_EXPECTED_COMPONENTS) { throw new FormatException($"Unexpected number of components for identity issuing request, expected {DiME.Key._NBR_EXPECTED_COMPONENTS}, got {components.Length}."); }
-            if (components[DiME.Key._TAG_INDEX] != DiME.Key.TAG) { throw new FormatException($"Unexpected item tag, expected: \"{DiME.Key.TAG}\", got \"{components[DiME.Key._TAG_INDEX]}\"."); }
-            byte[] json = Utility.FromBase64(components[DiME.Key._CLAIMS_INDEX]);
-            this._claims = JsonSerializer.Deserialize<KeyClaims>(json);
-            this._encoded = encoded;
+            var components = encoded.Split(new[] { Envelope._COMPONENT_DELIMITER });
+            if (components.Length != NbrExpectedComponents) { throw new FormatException($"Unexpected number of components for identity issuing request, expected {NbrExpectedComponents}, got {components.Length}."); }
+            if (components[TagIndex] != _TAG) { throw new FormatException($"Unexpected item tag, expected: \"{_TAG}\", got \"{components[TagIndex]}\"."); }
+            var json = Utility.FromBase64(components[ClaimsIndex]);
+            _claims = JsonSerializer.Deserialize<KeyClaims>(json);
+            Encoded = encoded;
         }
 
         protected override string Encode()
         {
-            if (this._encoded == null)
-            {
-                StringBuilder builder = new StringBuilder();
-                builder.Append(DiME.Key.TAG);
-                builder.Append(Envelope._COMPONENT_DELIMITER);
-                builder.Append(Utility.ToBase64(JsonSerializer.Serialize(this._claims)));
-                this._encoded = builder.ToString();
-            }
-            return this._encoded;
+            if (Encoded != null) return Encoded;
+            var builder = new StringBuilder();
+            builder.Append(_TAG);
+            builder.Append(Envelope._COMPONENT_DELIMITER);
+            builder.Append(Utility.ToBase64(JsonSerializer.Serialize(_claims)));
+            Encoded = builder.ToString();
+            return Encoded;
         }
 
         #endregion
 
         #region -- PRIVATE --
 
-        private static readonly int _NBR_EXPECTED_COMPONENTS = 2;
-        private static readonly int _TAG_INDEX = 0;
-        private static readonly int _CLAIMS_INDEX = 1;
-        private static readonly int _HEADER_SIZE = 6;
+        private const int NbrExpectedComponents = 2;
+        private const int TagIndex = 0;
+        private const int ClaimsIndex = 1;
+        private const int HeaderSize = 6;
         private KeyClaims _claims;
 
         private struct KeyClaims
@@ -184,10 +179,11 @@ namespace ShiftEverywhere.DiME
             public byte[] pub { get; set; }
 
             [JsonPropertyName("key")][JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-            public string b58Key { get { return (this.key != null) ? Base58.Encode(this.key, null) : null; } }
+            public string B58Key => (key != null) ? Base58.Encode(key, null) : null;
 
             [JsonPropertyName("pub")][JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-            public string b58Pub { get { return (this.pub != null) ? Base58.Encode(this.pub, null) : null; } }
+            public string B58Pub => pub != null ? Base58.Encode(pub, null) : null;
+
             [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
             public string ctx { get; set; }
 
@@ -208,56 +204,60 @@ namespace ShiftEverywhere.DiME
                 this.uid = uid;
                 this.iat = iat;
                 this.exp = exp;
-                this.key = (b58Key != null) ? Base58.Decode(b58Key) : null;
-                this.pub = (b58Pub != null) ? Base58.Decode(b58Pub) : null;
+                this.key = b58Key != null ? Base58.Decode(b58Key) : null;
+                this.pub = b58Pub != null ? Base58.Decode(b58Pub) : null;
                 this.ctx = ctx;
             }
         }
 
-        private static byte[] headerFrom(KeyType type, KeyVariant variant) {
-            AlgorithmFamily algorithmFamily = Key.GetAlgorithmFamilyFromType(type);
-            byte[] header = new byte[Key._HEADER_SIZE];
-            header[0] = (byte)Envelope.DIME_VERSION;
+        private static byte[] HeaderFrom(KeyType type, KeyVariant variant) {
+            var algorithmFamily = GetAlgorithmFamilyFromType(type);
+            var header = new byte[HeaderSize];
+            header[0] = Envelope._DIME_VERSION;
             header[1] = (byte)algorithmFamily;
             switch (algorithmFamily) {
                 case AlgorithmFamily.Aead:
-                    header[2] = (byte) 0x01; // 0x01 == XChaCha20-Poly1305
-                    header[3] = (byte) 0x02; // 0x02 == 256-bit key size
+                    header[2] = 0x01; // 0x01 == XChaCha20-Poly1305
+                    header[3] = 0x02; // 0x02 == 256-bit key size
                     break;
                 case AlgorithmFamily.Ecdh:
-                    header[2] = (byte) 0x02; // 0x02 == X25519
+                    header[2] = 0x02; // 0x02 == X25519
                     header[3] = (byte)variant;
                     break;
                 case AlgorithmFamily.Eddsa:
-                    header[2] = (byte) 0x01; // 0x01 == Ed25519
+                    header[2] = 0x01; // 0x01 == Ed25519
                     header[3] = (byte)variant;
                     break;
                 case AlgorithmFamily.Hash:
-                    header[2] = (byte) 0x01; // 0x01 == Blake2b
-                    header[3] = (byte) 0x02; // 0x02 == 256-bit key size
+                    header[2] = 0x01; // 0x01 == Blake2b
+                    header[3] = 0x02; // 0x02 == 256-bit key size
                     break;
+                case AlgorithmFamily.Undefined:
+                default:
+                    throw new ArgumentOutOfRangeException();
             }
             return header;
         }    
 
-        private static AlgorithmFamily GetAlgorithmFamilyFromType(KeyType type) {
-            switch(type)
+        private static AlgorithmFamily GetAlgorithmFamilyFromType(KeyType type)
+        {
+            return type switch
             {
-                case KeyType.Encryption: return AlgorithmFamily.Aead;
-                case KeyType.Exchange: return AlgorithmFamily.Ecdh;
-                case KeyType.Identity: return AlgorithmFamily.Eddsa;
-                case KeyType.Authentication: return AlgorithmFamily.Hash;
-                default: throw new InvalidOperationException($"Unexpected value: {type}");
-            }
+                KeyType.Encryption => AlgorithmFamily.Aead,
+                KeyType.Exchange => AlgorithmFamily.Ecdh,
+                KeyType.Identity => AlgorithmFamily.Eddsa,
+                KeyType.Authentication => AlgorithmFamily.Hash,
+                _ => throw new InvalidOperationException($"Unexpected value: {type}")
+            };
         }
 
-        private static AlgorithmFamily GetAlgorithmFamily(byte[] key) {
+        private static AlgorithmFamily GetAlgorithmFamily(IReadOnlyList<byte> key) {
             return (AlgorithmFamily)Enum.ToObject(typeof(AlgorithmFamily), key[1]);
         }
 
         private static KeyVariant GetKeyVariant(byte[] key) {
-            AlgorithmFamily family = Key.GetAlgorithmFamily(key);
-            if (family == AlgorithmFamily.Ecdh || family == AlgorithmFamily.Eddsa) {
+            var family = GetAlgorithmFamily(key);
+            if (family is AlgorithmFamily.Ecdh or AlgorithmFamily.Eddsa) {
                 return (KeyVariant)Enum.ToObject(typeof(KeyVariant), key[3]);
             }
             return KeyVariant.Secret;

@@ -15,47 +15,45 @@ using System.Linq;
 namespace ShiftEverywhere.DiME
 {
     ///<summary>Holds a message from one subject (issuer) to another. The actual message is held as a byte[] and may be
-    /// optionally encrypted (using end-to-end encryption). Responses to messages may be linked with the orginal message, thus
+    /// optionally encrypted (using end-to-end encryption). Responses to messages may be linked with the original message, thus
     /// creating a strong cryptographical link. The entity that created the message signs it before exporting and thus sealing
     /// it's content. </summary>
     public class Message: Item
     {
         #region -- PUBLIC DATA MEMBERS --
-        public const string TAG = "MSG"; 
-        public override string Tag { get { return Message.TAG; } }
+        public const string _TAG = "MSG"; 
+        public override string Tag => _TAG;
         /// <summary>A unique identifier for the message.</summary>
-        public override Guid UniqueId { get { return this._claims.uid; } }
+        public override Guid UniqueId => _claims.uid;
         /// <summary>The id of the receiver.</summary>
-        public Guid? AudienceId { get { return this._claims.aud; } }
+        public Guid? AudienceId => _claims.aud;
         /// <summary>The id of the issuer (subject id of the issuer).</summary>
-        public Guid IssuerId { get { return this._claims.iss; } }
+        public Guid IssuerId => _claims.iss;
         /// <summary>The timestamp of when the message was created (issued).</summary>
-        public DateTime IssuedAt { get { return Utility.FromTimestamp(this._claims.iat); } }
+        public DateTime IssuedAt => Utility.FromTimestamp(_claims.iat);
         /// <summary>The timestamp of when the message is expired and is no longer valid.</summary>
-        public DateTime? ExpiresAt { get { return (this._claims.exp != null) ? Utility.FromTimestamp(this._claims.exp) : null; } }
+        public DateTime? ExpiresAt => (_claims.exp != null) ? Utility.FromTimestamp(_claims.exp) : null;
         /// <summary>Normally used to specify a key that was used to encrypt the message. Used by the receiver to either complete
-        /// a key agreement for a shared encryption key, or fetch a pre-shared enctyption key.
-        public Guid? KeyId { get { return this._claims.kid; } set { ThrowIfSigned(); this._claims.kid = value; } }
+        /// a key agreement for a shared encryption key, or fetch a pre-shared encryption key.</summary>
+        public Guid? KeyId { get => _claims.kid; set { ThrowIfSigned(); _claims.kid = value; } }
         /// <summary>Normally used to attach a public key to a message that is encrypted. Used by the receiver to generate the shared 
         /// encryption key. Same as the "pub" field.</summary>
-        public string PublicKey { get { return this._claims.pub; } set { ThrowIfSigned(); this._claims.pub = value; } }
+        public string PublicKey { get => _claims.pub; set { ThrowIfSigned(); _claims.pub = value; } }
         /// <summary>If another Dime item has been linked to this message, then this will be set the the 
         /// unique identifier, UUID, of that linked item. Will be null, if no item is linked.</summary>
         public Guid? LinkedId 
         { 
             get 
-            { 
-                if (this._claims.lnk != null)
-                {
-                    string uid = this._claims.lnk.Split(new char[] { Envelope._COMPONENT_DELIMITER })[Message._LINK_UID_INDEX];
-                    return new Guid(uid);
-                }
-                return null; 
+            {
+                if (_claims.lnk == null) return null;
+                var uid = _claims.lnk.Split(new[] { Envelope._COMPONENT_DELIMITER })[LinkUidIndex];
+                return new Guid(uid);
             } 
         }
-        public string Context { get { return this._claims.ctx; } }
+        public string Context => _claims.ctx;
 
         #endregion
+        
         #region -- PUBLIC CONSTRUCTORS --
 
         public Message() { }
@@ -64,52 +62,53 @@ namespace ShiftEverywhere.DiME
 
         public Message(Guid? audienceId, Guid issuerId, double validFor = -1, string context = null)
         {
-            if (context != null && context.Length > Envelope.MAX_CONTEXT_LENGTH) { throw new ArgumentException("Context must not be longer than " + Envelope.MAX_CONTEXT_LENGTH + "."); }
-            DateTime iat = DateTime.UtcNow;
+            if (context is {Length: > Envelope._MAX_CONTEXT_LENGTH}) { throw new ArgumentException("Context must not be longer than " + Envelope._MAX_CONTEXT_LENGTH + "."); }
+            var iat = DateTime.UtcNow;
             DateTime? exp = (validFor != -1) ? iat.AddSeconds(validFor) : null; 
-            this._claims = new MessageClaims(Guid.NewGuid(), 
-                                             audienceId, 
-                                             issuerId, 
-                                             Utility.ToTimestamp(iat), 
-                                             (exp.HasValue) ? Utility.ToTimestamp(exp.Value) : null, 
-                                             null, 
-                                             null, 
-                                             null,
-                                             context);
+            _claims = new MessageClaims(Guid.NewGuid(), 
+                audienceId, 
+                issuerId, 
+                Utility.ToTimestamp(iat), 
+                (exp.HasValue) ? Utility.ToTimestamp(exp.Value) : null, 
+                null, 
+                null, 
+                null,
+                context);
         }
 
         #endregion
+        
         #region -- PUBLIC INTERFACE --
 
-        public override void Sign(Key keybox)
+        public override void Sign(Key key)
         {
-            if (this._payload == null) { throw new InvalidOperationException("Unable to sign message, no payload added."); }
-            base.Sign(keybox);
+            if (_payload == null) { throw new InvalidOperationException("Unable to sign message, no payload added."); }
+            base.Sign(key);
         }
 
         public override string ToEncoded()
         {
-            if (this._payload == null) { throw new InvalidOperationException("Unable to encode message, no payload added."); }
+            if (_payload == null) { throw new InvalidOperationException("Unable to encode message, no payload added."); }
             return base.ToEncoded();
         }
 
         internal new static Message FromEncoded(string encoded)
         {
-            Message message = new Message();
+            var message = new Message();
             message.Decode(encoded);
             return message;
         }
 
-        public override void Verify(Key keybox) { 
-            if (this._payload == null || this._payload.Length == 0) { throw new InvalidOperationException("Unable to verify message, no payload added."); }
+        public override void Verify(Key key) { 
+            if (string.IsNullOrEmpty(_payload)) { throw new InvalidOperationException("Unable to verify message, no payload added."); }
             // Verify IssuedAt and ExpiresAt
-            DateTime now = DateTime.UtcNow;
-            if (this.IssuedAt > now) { throw new DateExpirationException("Issuing date in the future."); }
-            if (this.ExpiresAt != null) {
-                if (this.IssuedAt > this.ExpiresAt) { throw new DateExpirationException("Expiration before issuing date."); }
-                if (this.ExpiresAt < now) { throw new DateExpirationException("Passed expiration date."); }
+            var now = DateTime.UtcNow;
+            if (IssuedAt > now) { throw new DateExpirationException("Issuing date in the future."); }
+            if (ExpiresAt != null) {
+                if (IssuedAt > ExpiresAt) { throw new DateExpirationException("Expiration before issuing date."); }
+                if (ExpiresAt < now) { throw new DateExpirationException("Passed expiration date."); }
             }
-            base.Verify(keybox);
+            base.Verify(key);
         }
 
         public void Verify(string publicKey, Item linkedItem)
@@ -117,20 +116,18 @@ namespace ShiftEverywhere.DiME
             Verify(new Key(publicKey), linkedItem);
         }
 
-        public void Verify(Key keybox, Item linkedItem)
+        public void Verify(Key key, Item linkedItem)
         {
-            Verify(keybox);
-            if (linkedItem != null)
-            {
-                if (this._claims.lnk == null || this._claims.lnk.Length == 0) { throw new InvalidOperationException("No link to Dime item found, unable to verify."); }
-                string[] components = this._claims.lnk.Split(new char[] { Envelope._COMPONENT_DELIMITER });
-                if (components == null || components.Length != 3) { throw new FormatException("Invalid data found in item link field."); }
-                string msgHash = linkedItem.Thumbprint();
-                if (components[Message._LINK_ITEM_TYPE_INDEX] != linkedItem.Tag
-                    || components[Message._LINK_UID_INDEX] != linkedItem.UniqueId.ToString() 
-                    || components[Message._LINK_THUMBPRINT_INDEX] != msgHash) 
-                { throw new IntegrityException("Failed to verify link Dime item (provided item did not match)."); }
-            }
+            Verify(key);
+            if (linkedItem == null) return;
+            if (string.IsNullOrEmpty(_claims.lnk)) { throw new InvalidOperationException("No link to Dime item found, unable to verify."); }
+            var components = _claims.lnk.Split(new[] { Envelope._COMPONENT_DELIMITER });
+            if (components is not {Length: 3}) { throw new FormatException("Invalid data found in item link field."); }
+            var msgHash = linkedItem.Thumbprint();
+            if (components[LinkItemTypeIndex] != linkedItem.Tag
+                || components[LinkUidIndex] != linkedItem.UniqueId.ToString() 
+                || components[LinkThumbprintIndex] != msgHash) 
+            { throw new IntegrityException("Failed to verify link Dime item (provided item did not match)."); }
         }
 
         /// <summary>Will attach a byte-array payload to the message. This may be any valid byte-array, at export this will be
@@ -139,7 +136,7 @@ namespace ShiftEverywhere.DiME
         /// <param name="payload">The payload to set.</param>
         public void SetPayload(byte[] payload) {
             ThrowIfSigned();
-            this._payload = Utility.ToBase64(payload);
+            _payload = Utility.ToBase64(payload);
         }
 
         /// <summary>Will encrypt and attach a byte-array payload to the message. This may be any valid byte-array, at export this will be
@@ -163,7 +160,7 @@ namespace ShiftEverywhere.DiME
         /// the byte-array as is.</summary>
         /// <returns>A byte-array.</returns>
         public byte[] GetPayload() {
-            return Utility.FromBase64(this._payload);
+            return Utility.FromBase64(_payload);
         }
 
         /// <summary>Decrypts and returns the payload attached to the message. This will decrypt the payload before returning it.</summary>
@@ -173,7 +170,7 @@ namespace ShiftEverywhere.DiME
         public byte[] GetPayload(Key issuerKey, Key audienceKey)
         {
             if (issuerKey == null) { throw new ArgumentNullException(nameof(issuerKey), "Provided local key may not be null."); }
-            if (audienceKey == null || audienceKey.Public == null) { throw new ArgumentNullException(nameof(audienceKey), "Provided remote key may not be null."); }
+            if (audienceKey?.Public == null) { throw new ArgumentNullException(nameof(audienceKey), "Provided remote key may not be null."); }
             if (issuerKey.Type != KeyType.Exchange) { throw new ArgumentException("Unable to decrypt, invalid key type.", nameof(issuerKey)); }
             var key = Crypto.GenerateSharedSecret(issuerKey, audienceKey);
             return Crypto.Decrypt(GetPayload(), key);
@@ -185,9 +182,9 @@ namespace ShiftEverywhere.DiME
         /// <exception cref="ArgumentNullException">If the passed message object is null.</exception> 
         public void LinkItem(Item item)
         {
-            if (this.IsSigned) { throw new InvalidOperationException("Unable to link item, message is already signed."); }
+            if (IsSigned) { throw new InvalidOperationException("Unable to link item, message is already signed."); }
             if (item == null) { throw new ArgumentNullException(nameof(item), "Item to link with must not be null."); }
-            this._claims.lnk = $"{item.Tag}{Envelope._COMPONENT_DELIMITER}{item.UniqueId.ToString()}{Envelope._COMPONENT_DELIMITER}{item.Thumbprint()}";
+            _claims.lnk = $"{item.Tag}{Envelope._COMPONENT_DELIMITER}{item.UniqueId.ToString()}{Envelope._COMPONENT_DELIMITER}{item.Thumbprint()}";
         }
 
         #endregion
@@ -200,46 +197,43 @@ namespace ShiftEverywhere.DiME
 
         protected override void Decode(string encoded)
         {
-            string[] components = encoded.Split(new char[] { Envelope._COMPONENT_DELIMITER });
-            if (components.Length != Message._NBR_EXPECTED_COMPONENTS_NO_SIGNATURE
-            || components.Length != Message._NBR_EXPECTED_COMPONENTS_SIGNATURE) 
-                { throw new FormatException($"Unexpected number of components for identity issuing request, expected: '{Message._NBR_EXPECTED_COMPONENTS_NO_SIGNATURE}' or '{Message._NBR_EXPECTED_COMPONENTS_SIGNATURE}', got: '{components.Length}'."); }
-            if (components[Message._TAG_INDEX] != Message.TAG) { throw new FormatException($"Unexpected item tag, expected: \"{Message.TAG}\", got: \"{components[Message._TAG_INDEX]}\"."); }
-            this._claims = JsonSerializer.Deserialize<MessageClaims>(Utility.FromBase64(components[Message._CLAIMS_INDEX]));
-            this._payload = components[Message._PAYLOAD_INDEX];
-            if (components.Length == Message._NBR_EXPECTED_COMPONENTS_SIGNATURE)
+            var components = encoded.Split(new[] { Envelope._COMPONENT_DELIMITER });
+            if (components.Length is not (NbrExpectedComponentsNoSignature and NbrExpectedComponentsSignature)) 
+            { throw new FormatException($"Unexpected number of components for identity issuing request, expected: '{NbrExpectedComponentsNoSignature}' or '{NbrExpectedComponentsSignature}', got: '{components.Length}'."); }
+            if (components[TagIndex] != _TAG) { throw new FormatException($"Unexpected item tag, expected: \"{_TAG}\", got: \"{components[TagIndex]}\"."); }
+            _claims = JsonSerializer.Deserialize<MessageClaims>(Utility.FromBase64(components[ClaimsIndex]));
+            _payload = components[PayloadIndex];
+            if (components.Length == NbrExpectedComponentsSignature)
             {
-                this._signature = components.Last();
+                Signature = components.Last();
             }
         }
 
         protected override string Encode()
         {
-            if (this._encoded == null)
-            {
-                StringBuilder builder = new StringBuilder();
-                builder.Append(Message.TAG);
-                builder.Append(Envelope._COMPONENT_DELIMITER);
-                builder.Append(Utility.ToBase64(JsonSerializer.Serialize(this._claims)));
-                builder.Append(Envelope._COMPONENT_DELIMITER);
-                builder.Append(this._payload);
-                this._encoded = builder.ToString();
-            }
-            return this._encoded;
+            if (Encoded != null) return Encoded;
+            var builder = new StringBuilder();
+            builder.Append(_TAG);
+            builder.Append(Envelope._COMPONENT_DELIMITER);
+            builder.Append(Utility.ToBase64(JsonSerializer.Serialize(_claims)));
+            builder.Append(Envelope._COMPONENT_DELIMITER);
+            builder.Append(_payload);
+            Encoded = builder.ToString();
+            return Encoded;
         }
 
         #endregion
 
         #region -- PRIVATE --
 
-        private const int _NBR_EXPECTED_COMPONENTS_SIGNATURE = 4;
-        private const int _NBR_EXPECTED_COMPONENTS_NO_SIGNATURE = 4;
-        private const int _TAG_INDEX = 0;
-        private const int _CLAIMS_INDEX = 1;
-        private const int _PAYLOAD_INDEX = 2;
-        private const int _LINK_ITEM_TYPE_INDEX = 0;
-        private const int _LINK_UID_INDEX = 1;
-        private const int _LINK_THUMBPRINT_INDEX = 2;
+        private const int NbrExpectedComponentsSignature = 4;
+        private const int NbrExpectedComponentsNoSignature = 4;
+        private const int TagIndex = 0;
+        private const int ClaimsIndex = 1;
+        private const int PayloadIndex = 2;
+        private const int LinkItemTypeIndex = 0;
+        private const int LinkUidIndex = 1;
+        private const int LinkThumbprintIndex = 2;
         private MessageClaims _claims;
         private string _payload;
 

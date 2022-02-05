@@ -17,22 +17,21 @@ namespace ShiftEverywhere.DiME
         
         public static string GenerateSignature(string data, Key key)
         {
-            if (key == null) { throw new ArgumentNullException(nameof(key), "Unable to sign, keybox must not be null."); }
-            if (key.RawSecret == null) { throw new ArgumentNullException(nameof(key), "Unable to sign, key in keybox must not be null."); }
+            if (key == null) { throw new ArgumentNullException(nameof(key), "Unable to sign, key must not be null."); }
+            if (key.RawSecret == null) { throw new ArgumentNullException(nameof(key), "Unable to sign, key in key must not be null."); }
             if (key.Type != KeyType.Identity) { throw new ArgumentException($"Unable to sign, wrong key type provided, got: {key.Type}, expected: KeyType.Identity."); }
-            byte[] signature = SodiumPublicKeyAuth.SignDetached(Encoding.UTF8.GetBytes(data), key.RawSecret);
+            var signature = SodiumPublicKeyAuth.SignDetached(Encoding.UTF8.GetBytes(data), key.RawSecret);
             return Utility.ToBase64(signature);
         }
 
         public static void VerifySignature(string data, string signature, Key key)
         {
-            if (key == null) { throw new ArgumentNullException(nameof(key), "Unable to verify signature, keybox must not be null."); }
+            if (key == null) { throw new ArgumentNullException(nameof(key), "Unable to verify signature, key must not be null."); }
             if (data == null) { throw new ArgumentNullException(nameof(data), "Data must not be null."); }
             if (signature == null) { throw new ArgumentNullException(nameof(signature), "Signature must not be null."); }
-            if (key.RawPublic == null) { throw new ArgumentNullException(nameof(key), "Unable to sign, public key in keybox must not be null."); }
+            if (key.RawPublic == null) { throw new ArgumentNullException(nameof(key), "Unable to sign, public key in key must not be null."); }
             if (key.Type != KeyType.Identity) { throw new ArgumentException($"Unable to sign, wrong key type provided, got: {key.Type}, expected: KeyType.Identity."); }
-            byte[] rawSignature = Utility.FromBase64(signature);
-
+            var rawSignature = Utility.FromBase64(signature);
             if (!SodiumPublicKeyAuth.VerifyDetached(rawSignature, Encoding.UTF8.GetBytes(data), key.RawPublic)) {
                 throw new IntegrityException();
             }
@@ -40,22 +39,17 @@ namespace ShiftEverywhere.DiME
 
         public static Key GenerateKey(KeyType type)
         {
-            if (type == KeyType.Encryption || type == KeyType.Authentication) {
-                byte[] secretKey = Utility.RandomBytes(Crypto._NBR_S_KEY_BYTES);
+            if (type is KeyType.Encryption or KeyType.Authentication) {
+                var secretKey = Utility.RandomBytes(Crypto.NbrSKeyBytes);
                 return new Key(Guid.NewGuid(), type, secretKey, null);
-            } else {
-                RevampedKeyPair keypair = null;
-                switch (type)
+            } else
+            {
+                var keypair = type switch
                 {
-                    case KeyType.Identity:
-                        keypair = SodiumPublicKeyAuth.GenerateRevampedKeyPair();
-                        break;
-                    case KeyType.Exchange:
-                        keypair = SodiumKeyExchange.GenerateRevampedKeyPair();
-                        break;
-                    default:
-                        throw new ArgumentException("Unkown key type.", nameof(type));
-                }
+                    KeyType.Identity => SodiumPublicKeyAuth.GenerateRevampedKeyPair(),
+                    KeyType.Exchange => SodiumKeyExchange.GenerateRevampedKeyPair(),
+                    _ => throw new ArgumentException("Unknown key type.", nameof(type))
+                };
                 return new Key(Guid.NewGuid(), 
                                 type, 
                                 keypair.PrivateKey,
@@ -72,13 +66,13 @@ namespace ShiftEverywhere.DiME
             byte[] shared;
             if (clientKey.RawSecret != null) 
             {
-                SodiumKeyExchangeSharedSecretBox ClientSharedSecretBox = SodiumKeyExchange.CalculateClientSharedSecret(clientKey.RawPublic, clientKey.RawSecret, serverKey.RawPublic);
-                shared = ClientSharedSecretBox.TransferSharedSecret;
+                var clientSharedSecretBox = SodiumKeyExchange.CalculateClientSharedSecret(clientKey.RawPublic, clientKey.RawSecret, serverKey.RawPublic);
+                shared = clientSharedSecretBox.TransferSharedSecret;
             } 
             else if (serverKey.RawSecret != null)
             {
-                SodiumKeyExchangeSharedSecretBox ServerSharedSecretBox = SodiumKeyExchange.CalculateServerSharedSecret(serverKey.RawPublic, serverKey.RawSecret, clientKey.RawPublic);
-                shared = ServerSharedSecretBox.ReadSharedSecret;
+                var serverSharedSecretBox = SodiumKeyExchange.CalculateServerSharedSecret(serverKey.RawPublic, serverKey.RawSecret, clientKey.RawPublic);
+                shared = serverSharedSecretBox.ReadSharedSecret;
             }
             else
                 throw new KeyMismatchException("Invalid keys provided.");
@@ -91,19 +85,19 @@ namespace ShiftEverywhere.DiME
 
         public static byte[] Encrypt(byte[] plainText, Key key)
         {
-            if (plainText == null || plainText.Length == 0) { throw new ArgumentNullException(nameof(plainText), "Plain text to encrypt must not be null and not have a length of 0."); }
-            if (key == null || key.RawSecret == null) { throw new ArgumentNullException(nameof(key), "Key must not be null."); }
-            byte[] nonce = Utility.RandomBytes(Crypto._NBR_NONCE_BYTES);
-            byte[] cipherText = SodiumSecretBox.Create(plainText, nonce, key.RawSecret);
+            if (plainText == null || plainText.Length == 0) { throw new ArgumentNullException(nameof(plainText), "Plain text to encrypt must not be null and not have a length of 0."); }
+            if (key?.RawSecret == null) { throw new ArgumentNullException(nameof(key), "Key must not be null."); }
+            var nonce = Utility.RandomBytes(Crypto.NbrNonceBytes);
+            var cipherText = SodiumSecretBox.Create(plainText, nonce, key.RawSecret);
             return Utility.Combine(nonce, cipherText);
         }
 
         public static byte[] Decrypt(byte[] cipherText, Key key)
         {
             if (cipherText == null ||cipherText.Length == 0) { throw new ArgumentNullException(nameof(cipherText), "Cipher text to decrypt must not be null and not have a length of 0."); }
-            if (key == null || key.RawSecret == null) { throw new ArgumentNullException(nameof(key), "Key must not be null."); }
-            byte[] nonce = Utility.SubArray(cipherText, 0, Crypto._NBR_NONCE_BYTES);
-            byte[] data = Utility.SubArray(cipherText, Crypto._NBR_NONCE_BYTES);
+            if (key?.RawSecret == null) { throw new ArgumentNullException(nameof(key), "Key must not be null."); }
+            var nonce = Utility.SubArray(cipherText, 0, Crypto.NbrNonceBytes);
+            var data = Utility.SubArray(cipherText, Crypto.NbrNonceBytes);
             return SodiumSecretBox.Open(data, nonce, key.RawSecret);
         }
 
@@ -118,16 +112,16 @@ namespace ShiftEverywhere.DiME
 
         public static byte[] GenerateHash(byte[] data)
         {
-            return SodiumGenericHash.ComputeHash((byte)Crypto._NBR_HASH_BYTES, data);
+            return SodiumGenericHash.ComputeHash(Crypto.NbrHashBytes, data);
         }
 
         #endregion
 
         #region -- PRIVATE --
 
-        private static readonly int _NBR_S_KEY_BYTES = 32;
-        private static readonly int _NBR_HASH_BYTES = 32;
-        private static readonly int _NBR_NONCE_BYTES = 24;
+        private const int NbrSKeyBytes = 32;
+        private const int NbrHashBytes = 32;
+        private const int NbrNonceBytes = 24;
 
         #endregion
 
