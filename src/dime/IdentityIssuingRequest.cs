@@ -4,7 +4,7 @@
 //  A secure and compact messaging format for assertion and practical use of digital identities
 //
 //  Released under the MIT licence, see LICENSE for more information.
-//  Copyright © 2021 Shift Everywhere AB. All rights reserved.
+//  Copyright © 2022 Shift Everywhere AB. All rights reserved.
 //
 using System;
 using System.Text;
@@ -19,7 +19,7 @@ namespace ShiftEverywhere.DiME
     {
         #region -- PUBLIC --
 
-        public const long _VALID_FOR_1_YEAR = 365 * 24 * 60 * 60; 
+        public const long _VALID_FOR_1_YEAR = 365L * 24 * 60 * 60; 
         public const string _TAG = "IIR";
         public override string Tag => _TAG;
         /// <summary></summary>
@@ -42,11 +42,7 @@ namespace ShiftEverywhere.DiME
             else 
                 iir._capabilities = capabilities; 
             var now = DateTime.UtcNow;
-            string[] cap;
-            if (capabilities is {Count: > 0})
-                cap = capabilities.ConvertAll(c => c.ToString().ToLower()).ToArray();
-            else
-                cap = new[] { Capability.Generic.ToString().ToLower() };
+            var cap = capabilities is {Count: > 0} ? capabilities.ConvertAll(c => c.ToString().ToLower()).ToArray() : new[] { Capability.Generic.ToString().ToLower() };
             iir._claims = new IirClaims(Guid.NewGuid(), Utility.ToTimestamp(now), key.Public, cap, principles);
             iir.Signature = Crypto.GenerateSignature(iir.Encode(), key);
             return iir;
@@ -81,7 +77,7 @@ namespace ShiftEverywhere.DiME
         /// <param name="ambits">The areas or regions where the identity is valid.</param>
         /// <param name="methods">A list of methods that will apply to the issued identity.</param>
         /// <returns>Returns an imutable Identity instance.</returns>
-        public Identity Issue(Guid subjectId, double validFor, Key issuerKey, Identity issuerIdentity, List<Capability> allowedCapabilities, List<Capability> requiredCapabilities = null, List<string> ambits = null, List<string> methods = null) 
+        public Identity Issue(Guid subjectId, long validFor, Key issuerKey, Identity issuerIdentity, List<Capability> allowedCapabilities, List<Capability> requiredCapabilities = null, List<string> ambits = null, List<string> methods = null) 
         {    
             if (issuerIdentity == null) { throw new ArgumentNullException(nameof(issuerIdentity), "Issuer identity must not be null."); }
             return IssueNewIdentity(issuerIdentity.SystemName, subjectId, validFor, issuerKey, issuerIdentity, allowedCapabilities, requiredCapabilities, ambits, methods);
@@ -96,7 +92,7 @@ namespace ShiftEverywhere.DiME
         /// <param name="ambits">The areas or regions where the identity is valid.</param>
         /// <param name="methods">A list of methods that will apply to the issued identity.</param>
         /// <returns>Returns an imutable self-issued Identity instance.</returns>
-        public Identity SelfIssue(Guid subjectId, double validFor, Key issuerKey, string systemName, List<string> ambits = null, List<string> methods = null)
+        public Identity SelfIssue(Guid subjectId, long validFor, Key issuerKey, string systemName, List<string> ambits = null, List<string> methods = null)
         {
             if (string.IsNullOrEmpty(systemName)) { throw new ArgumentNullException(nameof(systemName), "System name must not be null or empty."); }
             return IssueNewIdentity(systemName, subjectId, validFor, issuerKey, null, null, null, ambits, methods);
@@ -174,7 +170,7 @@ namespace ShiftEverywhere.DiME
             }
         }
         
-        private Identity IssueNewIdentity(string systemName, Guid subjectId, double validFor, Key issuerKey, Identity issuerIdentity, List<Capability> allowedCapabilities, List<Capability> requiredCapabilities = null, List<string> ambits = null, List<string> methods = null)
+        private Identity IssueNewIdentity(string systemName, Guid subjectId, long validFor, Key issuerKey, Identity issuerIdentity, List<Capability> allowedCapabilities, List<Capability> requiredCapabilities = null, List<string> ambits = null, List<string> methods = null)
         {
             Verify();
             var isSelfSign = (issuerIdentity == null || PublicKey == issuerKey.Public);

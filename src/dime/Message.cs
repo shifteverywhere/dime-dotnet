@@ -4,7 +4,7 @@
 //  A secure and compact messaging format for assertion and practical use of digital identities
 //
 //  Released under the MIT licence, see LICENSE for more information.
-//  Copyright © 2021 Shift Everywhere AB. All rights reserved.
+//  Copyright © 2022 Shift Everywhere AB. All rights reserved.
 //
 using System;
 using System.Text;
@@ -58,9 +58,9 @@ namespace ShiftEverywhere.DiME
 
         public Message() { }
 
-        public Message(Guid issuerId, double validFor = -1, string context = null): this(null, issuerId, validFor, context) { }
+        public Message(Guid issuerId, long validFor = -1L, string context = null): this(null, issuerId, validFor, context) { }
 
-        public Message(Guid? audienceId, Guid issuerId, double validFor = -1, string context = null)
+        public Message(Guid? audienceId, Guid issuerId, long validFor = -1L, string context = null)
         {
             if (context is {Length: > Envelope._MAX_CONTEXT_LENGTH}) { throw new ArgumentException("Context must not be longer than " + Envelope._MAX_CONTEXT_LENGTH + "."); }
             var iat = DateTime.UtcNow;

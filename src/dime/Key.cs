@@ -4,7 +4,7 @@
 //  A secure and compact messaging format for assertion and practical use of digital identities
 //
 //  Released under the MIT licence, see LICENSE for more information.
-//  Copyright © 2021 Shift Everywhere AB. All rights reserved.
+//  Copyright © 2022 Shift Everywhere AB. All rights reserved.
 //
 using System;
 using System.Collections.Generic;
@@ -59,15 +59,15 @@ namespace ShiftEverywhere.DiME
 
         /// <summary></summary>
         public static Key Generate(KeyType type, string context) {
-            return Generate(type, -1, null, context);
+            return Generate(type, -1L, null, context);
         }
 
         /// <summary></summary>
-        public static Key Generate(KeyType type, double validFor = -1, Guid? issuerId = null, string context = null)
+        public static Key Generate(KeyType type, long validFor = -1L, Guid? issuerId = null, string context = null)
         {
             if (context is {Length: > Envelope._MAX_CONTEXT_LENGTH}) { throw new ArgumentException("Context must not be longer than " + Envelope._MAX_CONTEXT_LENGTH + "."); }
             var key = Crypto.GenerateKey(type);
-            if (validFor != -1)
+            if (validFor != -1L)
             {
                 var exp = key.IssuedAt.AddSeconds(validFor);
                 key._claims.exp = Utility.ToTimestamp(exp);
@@ -234,7 +234,7 @@ namespace ShiftEverywhere.DiME
                     break;
                 case AlgorithmFamily.Undefined:
                 default:
-                    throw new ArgumentOutOfRangeException();
+                    throw new ArgumentOutOfRangeException($"The algorithm familty of key type {type} is not supported or invalid.");
             }
             return header;
         }    
