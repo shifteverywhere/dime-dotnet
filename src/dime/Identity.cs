@@ -16,41 +16,97 @@ using System.Collections.ObjectModel;
 
 namespace ShiftEverywhere.DiME
 {
-    ///<summary>Represents a digital identity of an entity. Can be self-signed or signed by a trusted identity (and thus
-    /// be part of a trust chain.</summary>
+    ///<summary>
+    /// Represents a digital identity of an entity. Can be self-signed or signed by a trusted identity (and thus be part
+    /// of a trust chain.
+    ///</summary>
     public class Identity: Item
     {
         #region -- PUBLIC --
 
-        ///<summary>A shared trusted identity that acts as the root identity in the trust chain.</summary>
+        /// <summary>
+        /// A shared trusted identity that acts as the root identity in the trust chain.
+        /// </summary>
         public static Identity TrustedIdentity { get { lock(Lock) { return _trustedIdentity; } } }
+        /// <summary>
+        /// A tag identifying the Di:ME item type, part of the header.
+        /// </summary>
         public const string _TAG = "ID";
+        /// <summary>
+        /// Returns the tag of the Di:ME item.
+        /// </summary>
         public override string Tag => _TAG;
+        /// <summary>
+        /// Returns the name of the system or network that the entity belongs to. If issued by another entity and part
+        /// of a trust chain, then all entities will share the same system name.
+        /// </summary>
         public string SystemName => _claims.sys;
+        /// <summary>
+        /// Returns a unique identifier for the instance. This will be assigned when issuing an identity, but will
+        /// change with each re-issuing even if it is for the same entity.
+        /// </summary>
         public override Guid UniqueId => _claims.uid;
-        /// <summary>A unique UUID (GUID) of the identity. Same as the "sub" field.</summary>
+        /// <summary>
+        /// Returns the entity's subject identifier. This is, within the system, defined by system name, unique for one
+        /// specific entity.
+        /// </summary>
         public Guid SubjectId => _claims.sub;
-        /// <summary>The date when the identity was issued, i.e. approved by the issuer. Same as the "iat" field.</summary>
+        /// <summary>
+        /// The date and time when this identity was issued. Although, this date will most often be in the past, the
+        /// identity should not be used and not trusted before this date.
+        /// </summary>
         public DateTime IssuedAt => Utility.FromTimestamp(_claims.iat);
-        /// <summary>The date when the identity will expire and should not be accepted anymore. Same as the "exp" field.</summary>
+        /// <summary>
+        /// The date and time when the identity will expire, and should not be used and not trusted anymore.
+        /// </summary>
         public DateTime ExpiresAt => Utility.FromTimestamp(_claims.exp);
-        /// <summary>A unique UUID (GUID) of the issuer of the identity. Same as the "iss" field. If same value as subjectId, then this is a self-issued identity.</summary>
+        /// <summary>
+        /// Returns the issuer's subject identifier. The issuer is the entity that has issued the identity to another
+        /// entity. If this value is equal to the subject identifier, then this identity is self-issued.
+        /// </summary>
         public Guid IssuerId => _claims.iss;
-        /// <summary>The public key associated with the identity. Same as the "pub" claim.</summary>
+        /// <summary>
+        /// Returns the public key attached to the identity of an entity. The Key instance returned will only contain a
+        /// public key or type IDENTITY.
+        /// </summary>
         public string PublicKey => _claims.pub;
-        /// <summary>The trust chain of signed public keys.</summary>
+        /// <summary>
+        /// Returns the parent identity of a trust chain for an identity. This is the issuing identity.
+        /// </summary>
         public Identity TrustChain { get; internal set; }
-        public IList<Capability> Capabilities { get { return _claims.cap != null ? new List<string>(_claims.cap).ConvertAll(str => {
+        /// <summary>
+        /// Returns a list of any capabilities given to an identity. These are requested by an entity and approved (and
+        /// potentially modified) by the issuing entity when issuing a new identity. Capabilities are usually used to
+        /// determine what an entity may do with its issued identity.
+        /// </summary>
+        public IEnumerable<Capability> Capabilities { get { return _claims.cap != null ? new List<string>(_claims.cap).ConvertAll(str => {
             Enum.TryParse(str, true, out Capability cap); return cap; }) : null; } }
+        /// <summary>
+        /// Returns all principles assigned to an identity. These are key-value fields that further provide information
+        /// about the entity. Using principles are optional.
+        /// </summary>
         public ReadOnlyDictionary<string, object> Principles => _claims.pri != null ? new ReadOnlyDictionary<string, object>(_claims.pri) : null;
+        /// <summary>
+        /// Returns an ambit list assigned to an identity. An ambit defines the scope, region or role where an identity
+        /// may be used.
+        /// </summary>
         public IList<string> Ambits => _claims.amb != null ? new List<string>(_claims.amb).AsReadOnly() : null;
+        /// <summary>
+        /// Returns a list of methods associated with an identity. The usage of this is normally context or application
+        /// specific, and may specify different methods that can be used convert, transfer or further process a Di:ME
+        /// identity.
+        /// </summary>
         public IList<string> Methods => _claims.mtd != null ? new List<string>(_claims.mtd).AsReadOnly() : null;
+        /// <summary>
+        /// Returns if the identity has been self-issued. Self-issuing happens when the same entity issues its own identity.
+        /// </summary>
         public bool IsSelfSigned => SubjectId == IssuerId && HasCapability(Capability.Self);
 
-        ///<summary>Set the shared trusted identity, which forms the basis of the trust chain. All identities will be verified
-        /// for trust using this identity. For the trust chain to hold, then all identities must be either issued
-        /// by this identity or other identities (with the 'issue' capability) that has been issued by this identity.</summary>
-        ///<param name="trustedIdentity">The identity to set as the trusted identity.</param>
+        /// <summary>
+        /// Sets an Identity instance to be the trusted identity used for verifying a trust chain of other Identity
+        /// instances. This is normally the root identity of a trust chain.
+        /// </summary>
+        /// <param name="trustedIdentity">The identity to set as the trusted identity.</param>
         public static void SetTrustedIdentity(Identity trustedIdentity)
         {
             lock(Lock)
@@ -61,6 +117,12 @@ namespace ShiftEverywhere.DiME
 
         public Identity() { }
 
+        /// <summary>
+        /// Verifies if an Identity instance is valid and can be trusted. Will validate issued at and expires at dates, look at a trust chain (if present) and verify the signature with the attached public key.
+        /// </summary>
+        /// <exception cref="InvalidOperationException"></exception>
+        /// <exception cref="DateExpirationException">If the issued at date is in the future, or if the expires at date is in the past.</exception>
+        /// <exception cref="UntrustedIdentityException">If the trust of the identity could not be verified.</exception>
         public void VerifyTrust()
         {
             if (TrustedIdentity == null) { throw new InvalidOperationException("Unable to verify trust, no trusted identity set."); }
@@ -82,7 +144,9 @@ namespace ShiftEverywhere.DiME
             }
         }
 
-        /// <summary>Will check if the identity has a specific capability.</summary>
+        /// <summary>
+        /// Will check if the identity has a specific capability.
+        /// </summary>
         /// <param name="capability">The capability to check for.</param>
         /// <returns>Boolean to indicate if the identity has the capability or not.</returns>
         public bool HasCapability(Capability capability)
@@ -90,6 +154,11 @@ namespace ShiftEverywhere.DiME
             return Capabilities.Any(cap => cap == capability);
         }
 
+        /// <summary>
+        /// Will check if an identity is within a particular ambit.
+        /// </summary>
+        /// <param name="ambit">The ambit to check for.</param>
+        /// <returns>true or false</returns>
         public bool HasAmbit(string ambit) {
             return _claims.amb != null && Ambits.Any(cap => cap == ambit);
         }

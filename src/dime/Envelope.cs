@@ -15,20 +15,66 @@ using System.Text.Json.Serialization;
 
 namespace ShiftEverywhere.DiME
 {
+    /// <summary>
+    /// An encapsulating object that can carry one or more Di:ME items. This is usually the format that is exported and
+    /// stored or transmitted. It will start with the header 'Di'. Envelopes may be either anonymous or signed. An
+    /// anonymous envelope, most frequently used, is not cryptographically sealed, although the items inside normally
+    /// are. A signed envelope can contain one or more items and is itself also signed, it also has a small number of
+    /// claims attached to it.
+    /// </summary>
     public class Envelope
     {
+        /// <summary>
+        /// The maximum length that the context claim may hold. This is also used for the context claim in messages.
+        /// </summary>
         public const int _MAX_CONTEXT_LENGTH = 84;
+        /// <summary>
+        /// The standard envelope header.
+        /// </summary>
         public const string _HEADER = "Di";
+        /// <summary>
+        /// The current version of the implemented Di:ME specification.
+        /// </summary>
         public const int _DIME_VERSION = 0x01;
+        /// <summary>
+        /// Returns the identifier of the issuer of the envelope. Only applicable for signed envelopes.
+        /// </summary>
         public Guid? IssuerId => _claims?.iss;
+        /// <summary>
+        /// Returns the date in UTC when this envelope was issued. Only applicable for signed envelopes.
+        /// </summary>
         public DateTime? IssuedAt => _claims.HasValue ? Utility.FromTimestamp(_claims.Value.iat) : null;
+        /// <summary>
+        /// Returns the context that is attached to the envelope. Only applicable for signed envelopes.
+        /// </summary>
         public string Context => _claims?.ctx;
+        /// <summary>
+        /// Returns any attached Di:ME items. This will be an array of Item instances and may be cast by looking at the
+        /// tag of the item (getTag).
+        /// </summary>
         public IList<Item> Items => _items?.AsReadOnly();
+        /// <summary>
+        /// Indicates if the envelope has a signature attached to it. This does not indicate if the envelope is signed
+        /// or anonymous, as a tobe signed envelope will return false here before it is signed.
+        /// </summary>
         public bool IsSigned => _signature != null;
+        /// <summary>
+        /// Indicates if the envelope is anonymous (true) or if it is signed (false).
+        /// </summary>
         public bool IsAnonymous => !_claims.HasValue;
 
+        /// <summary>
+        /// Default constructor for an anonymous envelope.
+        /// </summary>
         public Envelope() { }
 
+        /// <summary>
+        /// Constructor to create a signed envelope with the identifier of the issuer and a custom context claim. The
+        /// context may be any valid text.
+        /// </summary>
+        /// <param name="issuerId">The identifier of the issuer, may not be null.</param>
+        /// <param name="context">The context to attach to the envelope, may be null.</param>
+        /// <exception cref="ArgumentException"></exception>
         public Envelope(Guid issuerId, string context = null)
         {
             var now = Utility.ToTimestamp(DateTime.UtcNow);
@@ -36,6 +82,13 @@ namespace ShiftEverywhere.DiME
             _claims = new DimeClaims(issuerId, now, context);
         }
 
+        /// <summary>
+        /// Imports an envelope from a Di:ME encoded string. This will not verify the envelope, this has to be done by
+        /// calling verify separately.
+        /// </summary>
+        /// <param name="exported">The encoded Di:ME envelope to import.</param>
+        /// <returns>The imported Envelope instance.</returns>
+        /// <exception cref="FormatException"></exception>
         public static Envelope Import(string exported)
         {
             if (!exported.StartsWith(_HEADER)) { throw new FormatException("Not a Dime envelope object, invalid header."); }
@@ -71,6 +124,13 @@ namespace ShiftEverywhere.DiME
             return dime;
         }
 
+        /// <summary>
+        /// Adds a Di:ME item (of type Item or any subclass thereof) to the envelope. For signed envelopes, this needs
+        /// to be done before signing the envelope.
+        /// </summary>
+        /// <param name="item">The Di:ME item to add.</param>
+        /// <returns>Returns the Envelope instance for convenience.</returns>
+        /// <exception cref="InvalidOperationException"></exception>
         public Envelope AddItem(Item item)
         {
             if (_signature != null) { throw new InvalidOperationException("Unable to add item, envelope is already signed."); }
@@ -79,6 +139,13 @@ namespace ShiftEverywhere.DiME
             return this;
         }
 
+        /// <summary>
+        /// Adds a list of Di:ME items (of type Item or any subclass thereof) to the envelope. For signed envelopes,
+        /// this needs to be done before signing the envelope.
+        /// </summary>
+        /// <param name="items">The Di:ME items to add.</param>
+        /// <returns>Returns the Envelope instance for convenience.</returns>
+        /// <exception cref="InvalidOperationException"></exception>
         public Envelope SetItems(IEnumerable<Item> items)
         {
             if (_signature != null) { throw new InvalidOperationException("Unable to set items, envelope is already signed."); }
@@ -86,6 +153,14 @@ namespace ShiftEverywhere.DiME
             return this;
         }
 
+        /// <summary>
+        /// Signs the envelope using the provided key. The key must be of type IDENTITY. It is not possible to sign an
+        /// anonymous envelope. It is also not possible to sign an envelope if it already has been signed or does not
+        /// contain any Di:ME items.
+        /// </summary>
+        /// <param name="key">The key to use when signing.</param>
+        /// <returns>Returns the Envelope instance for convenience.</returns>
+        /// <exception cref="InvalidOperationException"></exception>
         public Envelope Sign(Key key)
         {
             if (IsAnonymous) { throw new InvalidOperationException("Unable to sign, envelope is anonymous."); }
@@ -95,11 +170,21 @@ namespace ShiftEverywhere.DiME
             return this;
         }
 
+        /// <summary>
+        /// Verifies the signature of the envelope using a provided key.
+        /// </summary>
+        /// <param name="publicKey">The key to used to verify the signature, must not be null.</param>
         public void Verify(string publicKey)
         {
             Verify(new Key(publicKey));
         }
         
+        /// <summary>
+        /// Verifies the signature of the envelope using a provided key.
+        /// </summary>
+        /// <param name="key">The key to used to verify the signature, must not be null.</param>
+        /// <returns>Returns the Envelope instance for convenience.</returns>
+        /// <exception cref="InvalidOperationException"></exception>
         public Envelope Verify(Key key)
         {
             if (IsAnonymous) { throw new InvalidOperationException("Unable to verify, envelope is anonymous."); }
@@ -108,6 +193,11 @@ namespace ShiftEverywhere.DiME
             return this;
         }
 
+        /// <summary>
+        /// Exports the envelope to a Di:ME encoded string.
+        /// </summary>
+        /// <returns>The Di:ME encoded representation of the envelope.</returns>
+        /// <exception cref="InvalidOperationException"></exception>
         public string Export()
         {
             if (!IsAnonymous)
@@ -119,19 +209,37 @@ namespace ShiftEverywhere.DiME
                 return Encode();
         }
 
+        /// <summary>
+        /// Returns the thumbprint of the envelope. This may be used to easily identify an envelope or detect if an
+        /// envelope has been changed. This is created by securely hashing the envelope and will be unique and change as
+        /// soon as any content changes.
+        /// </summary>
+        /// <returns>The hash of the envelope as a hex string.</returns>
         public string Thumbprint()
         {
             var encoded = IsAnonymous ? Encode() : $"{Encode()}{SectionDelimiter}{_signature}";
             return Envelope.Thumbprint(encoded);
         }
 
+        /// <summary>
+        /// Returns the thumbprint of a Di:ME encoded envelope string. This may be used to easily identify an envelope
+        /// or detect if an envelope has been changed. This is created by securely hashing the envelope and will be
+        /// unique and change as soon as any content changes. This will generate the same value as the instance method
+        /// thumbprint or the same (and unchanged) envelope.
+        /// </summary>
+        /// <param name="encoded">The Di:ME encoded envelope string.</param>
+        /// <returns>The hash of the envelope as a hex string.</returns>
         public static string Thumbprint(string encoded)
         {
             return Utility.ToHex(Crypto.GenerateHash(encoded));
         }
 
+        #region -- INTERNAL --
+        
         internal const char _COMPONENT_DELIMITER = '.';
 
+        #endregion
+        
         #region -- PRIVATE --
 
         private const char SectionDelimiter = ':';

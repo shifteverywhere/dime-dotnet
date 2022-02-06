@@ -15,23 +15,59 @@ using System.Collections.Generic;
 
 namespace ShiftEverywhere.DiME
 {
+    /// <summary>
+    /// Class used to create a request for the issuing of an identity to an entity. This will contain a locally
+    /// generated public key (where the private key remains locally), capabilities requested and principles claimed. An
+    /// issuing entity uses the Identity Issuing Request (IIR) to validate and then issue a new identity for the entity.
+    /// </summary>
     public class IdentityIssuingRequest: Item
     {
         #region -- PUBLIC --
 
+        /// <summary>
+        /// A constant holding the number of seconds for a year (based on 365 days).
+        /// </summary>
         public const long _VALID_FOR_1_YEAR = 365L * 24 * 60 * 60; 
+        /// <summary>
+        /// A tag identifying the Di:ME item type, part of the header.
+        /// </summary>
         public const string _TAG = "IIR";
+        /// <summary>
+        /// Returns the tag of the Di:ME item.
+        /// </summary>
         public override string Tag => _TAG;
-        /// <summary></summary>
+        /// <summary>
+        /// Returns a unique identifier for the instance. This will be generated at instance creation.
+        /// </summary>
         public override Guid UniqueId => _claims.uid;
-        /// <summary></summary>
+        /// <summary>
+        /// The date and time when this IIR was created.
+        /// </summary>
         public DateTime IssuedAt => Utility.FromTimestamp(_claims.iat);
-        /// <summary></summary>
+        /// <summary>
+        /// Returns the public key attached to the IIR. This is the public key attached by the entity and will get
+        /// included in any issued identity. The equivalent secret (private) key was used to sign the IIR, thus the
+        /// public key can be used to verify the signature. This must be a key of type IDENTITY.
+        /// </summary>
         public string PublicKey => _claims.pub;
+        /// <summary>
+        /// Returns all principles provided in the IIR. These are key-value fields that further provide information
+        /// about the entity. Using principles are optional.
+        /// </summary>
         public Dictionary<string, object> Principles => _claims.pri;
         
         public IdentityIssuingRequest() { }
 
+        /// <summary>
+        /// This will generate a new IIR from a Key instance together with a list of wished for capabilities and
+        /// principles to include in any issued identity. The Key instance must be of type IDENTITY.
+        /// </summary>
+        /// <param name="key">The Key instance to use.</param>
+        /// <param name="capabilities">A list of capabilities that should be requested.</param>
+        /// <param name="principles">A map of key-value fields that should be included in an issued identity.</param>
+        /// <returns>An IIR that can be used to issue a new identity (or sent to a trusted entity for issuing).</returns>
+        /// <exception cref="ArgumentException"></exception>
+        /// <exception cref="ArgumentNullException"></exception>
         public static IdentityIssuingRequest Generate(Key key, List<Capability> capabilities = null, Dictionary<string, object> principles = null) 
         {
             if (key.Type != KeyType.Identity) { throw new ArgumentException("Key of invalid type.", nameof(key)); }
@@ -48,55 +84,87 @@ namespace ShiftEverywhere.DiME
             return iir;
         }
 
+        /// <summary>
+        /// Verifies that the IIR has been signed by the secret (private) key that is associated with the public key
+        /// included in the IIR. If this passes then it can be assumed that the sender is in possession of the private
+        /// key used to create the IIR and will also after issuing of an identity form the proof-of-ownership.
+        /// </summary>
         public void Verify()
         {
             Verify(Key.FromBase58Key(PublicKey));
         }
 
+        /// <summary>
+        /// Verifies that the IIR has been signed by a secret (private) key that is associated with the provided public
+        /// key. If this passes then it can be assumed that the sender is in possession of the private key associated
+        /// with the public key used to verify. This method may be used when verifying that an IIR has been signed by
+        /// the same secret key that belongs to an already issued identity, this could be useful when re-issuing an identity.
+        /// </summary>
+        /// <param name="key">The key that should be used to verify the IIR, must be of type IDENTITY.</param>
+        /// <exception cref="DateExpirationException">If the IIR was issued in the future (according to the issued at date).</exception>
         public override void Verify(Key key)
         {
             if (DateTime.UtcNow < IssuedAt) { throw new DateExpirationException("An identity issuing request cannot have an issued at date in the future."); }
             base.Verify(key);
         }
 
+        /// <summary>
+        /// Checks if the IIR includes a request for a particular capability.
+        /// </summary>
+        /// <param name="capability">The capability to check for.</param>
+        /// <returns>true or false.</returns>
         public bool WantsCapability(Capability capability)
         {
             return _capabilities.Any(cap => cap == capability);
         }
-
-        /// <summary>Issues a new signed identity from an identity issuing request (IIR). The new identity
-        /// will be signed by the provided issuerIdentity. The identity of the issuer must either be trusted
-        /// by the TrustedIdentity, or be the TrustedIdentity. The newly issued identity will belong to the same
-        /// system specified in issuerIdentity.</summary>
-        /// <param name="subjectId">The subject id that should be associated with the identity.</param>
-        /// <param name="validFor">The number of seconds the identity should be valid, from issued at date, which is set automatically.</param>
-        /// <param name="issuerKey">The key pair of the issuer.</param>
-        /// <param name="issuerIdentity">The identity of the issuer (optional).</param>
-        /// <param name="allowedCapabilities">The capabilities that are allowed to be requested in the IIR, must not be null.</param>
-        /// <param name="requiredCapabilities">The capabilities that must be asked for in the IIR, may be null.</param>
-        /// <param name="ambits">The areas or regions where the identity is valid.</param>
+        
+        /// <summary>
+        /// Will issue a new Identity instance from the IIR. This method should only be called after the IIR has been
+        /// validated to meet context and application specific requirements. The only exception is the capabilities,
+        /// that may be validated during the issuing, by providing allowed and required capabilities. The system name of
+        /// the issued identity will be set to the same as the issuing identity.
+        /// </summary>
+        /// <param name="subjectId">The subject identifier of the entity. For a new identity this may be anything, for a
+        /// re-issue it should be the same as subject identifier used previously.</param>
+        /// <param name="validFor">The number of seconds that the identity should be valid for, from the time of issuing.</param>
+        /// <param name="issuerKey">The Key of the issuing entity, must contain a secret key of type IDENTIFY.</param>
+        /// <param name="issuerIdentity">The Identity instance of the issuing entity. If part of a trust chain, then
+        /// this will be attached to the newly issued Identity.</param>
+        /// <param name="allowedCapabilities">A list of capabilities that may be present in the IIR to allow issuing.</param>
+        /// <param name="requiredCapabilities">A list of capabilities that will be added (if not present in the IIR)
+        /// before issuing.</param>
+        /// <param name="ambits">A list of ambits that will apply to the issued identity.</param>
         /// <param name="methods">A list of methods that will apply to the issued identity.</param>
-        /// <returns>Returns an imutable Identity instance.</returns>
+        /// <returns>An Identity instance that may be sent back to the entity that proved the IIR.</returns>
+        /// <exception cref="ArgumentNullException"></exception>
         public Identity Issue(Guid subjectId, long validFor, Key issuerKey, Identity issuerIdentity, List<Capability> allowedCapabilities, List<Capability> requiredCapabilities = null, List<string> ambits = null, List<string> methods = null) 
         {    
             if (issuerIdentity == null) { throw new ArgumentNullException(nameof(issuerIdentity), "Issuer identity must not be null."); }
             return IssueNewIdentity(issuerIdentity.SystemName, subjectId, validFor, issuerKey, issuerIdentity, allowedCapabilities, requiredCapabilities, ambits, methods);
         }
 
-        /// <summary>Issues a new self signed identity from an identity issuing request (IIR). The new identity
-        /// will be signed by the provided issuerKey, which must match the public key inside the IIR.</summary>
-        /// <param name="subjectId">The subject id that should be associated with the identity.</param>
-        /// <param name="validFor">The number of seconds the identity should be valid, from issued at date, which is set automatically.</param>
-        /// <param name="issuerKey">The key pair of the issuer.</param>
-        /// <param name="systemName">An unique name of the system where the identity is deployed (system, infrastructure, application, etc.).</param>
-        /// <param name="ambits">The areas or regions where the identity is valid.</param>
+        /// <summary>
+        /// Will issue a new Identity instance from the IIR. The issued identity will be self-issued as it will be
+        /// signed by the same key that also created the IIR. This is normally used when creating a root identity for a trust chain.
+        /// </summary>
+        /// <param name="subjectId">The subject identifier of the entity. For a new identity this may be anything, for
+        /// a re-issue it should be the same as subject identifier used previously.</param>
+        /// <param name="validFor">The number of seconds that the identity should be valid for, from the time of issuing.</param>
+        /// <param name="issuerKey">The Key of the issuing entity, must contain a secret key of type IDENTIFY.</param>
+        /// <param name="systemName">The name of the system, or network, that the identity should be a part of.</param>
+        /// <param name="ambits">A list of ambits that will apply to the issued identity.</param>
         /// <param name="methods">A list of methods that will apply to the issued identity.</param>
-        /// <returns>Returns an imutable self-issued Identity instance.</returns>
+        /// <returns></returns>
+        /// <exception cref="ArgumentNullException"></exception>
         public Identity SelfIssue(Guid subjectId, long validFor, Key issuerKey, string systemName, List<string> ambits = null, List<string> methods = null)
         {
             if (string.IsNullOrEmpty(systemName)) { throw new ArgumentNullException(nameof(systemName), "System name must not be null or empty."); }
             return IssueNewIdentity(systemName, subjectId, validFor, issuerKey, null, null, null, ambits, methods);
         }
+        
+        #endregion
+        
+        # region -- INTERNAL --
 
         internal new static IdentityIssuingRequest FromEncoded(string encoded)
         {

@@ -14,26 +14,52 @@ using System.Text.Json.Serialization;
 
 namespace ShiftEverywhere.DiME
 {
+    /// <summary>
+    /// Represents cryptographic keys. This may be keys for signing and verifying other Di:ME items and envelopes, used
+    /// for encryption purposes, or when exchanging shared keys between entities.
+    /// </summary>
     public class Key: Item
     {
         #region -- PUBLIC --
 
+        /// <summary>
+        /// A tag identifying the Di:ME item type, part of the header.
+        /// </summary>
         public const string _TAG = "KEY";
+        /// <summary>
+        /// Returns the tag of the Di:ME item.
+        /// </summary>
         public override string Tag => _TAG;
 
+        /// <summary>
+        /// Returns the version of the Di:ME specification for which this key was generated.
+        /// </summary>
         public int Version { 
             get {
                 var key = _claims.key ?? _claims.pub;
                 return key[0];
             }
         }
+        /// <summary>
+        /// Returns the identifier of the entity that generated the key (issuer). This is optional.
+        /// </summary>
          public Guid? IssuerId => _claims.iss;
-         /// <summary></summary>
+         /// <summary>
+         /// Returns a unique identifier for the instance. This will be generated at instance creation.
+         /// </summary>
         public override Guid UniqueId => _claims.uid;
+         /// <summary>
+         /// The date and time when this key was created.
+         /// </summary>
          public DateTime IssuedAt => Utility.FromTimestamp(_claims.iat);
-         /// <summary></summary>
+         /// <summary>
+         /// Returns the expiration date of the key. This is optional.
+         /// </summary>
         public DateTime ExpiresAt => Utility.FromTimestamp(_claims.exp);
-         /// <summary></summary>
+         /// <summary>
+         /// Returns the type of the key. The type determines what the key may be used for, this since it is also
+         /// closely associated with the cryptographic algorithm the key is generated for.
+         /// </summary>
          public KeyType Type { 
             get
             {
@@ -48,21 +74,40 @@ namespace ShiftEverywhere.DiME
                 };
             }
         }
-        /// <summary></summary>
+        /// <summary>
+        /// The secret part of the key. This part should never be stored or transmitted in plain text.
+        /// </summary>
         public string Secret => _claims.B58Key;
-        /// <summary></summary>
+        /// <summary>
+        /// The public part of the key. This part may be stored or transmitted in plain text.
+        /// </summary>
         public string Public => _claims.B58Pub;
-        /// <summary></summary>
+        /// <summary>
+        /// Returns the context that is attached to the key.
+        /// </summary>
         public string Context => _claims.ctx;
 
         public Key() { }
 
-        /// <summary></summary>
+        /// <summary>
+        /// Will generate a new Key with a specified type.
+        /// </summary>
+        /// <param name="type">The type of key to generate.</param>
+        /// <param name="context">The context to attach to the message, may be null.</param>
+        /// <returns>A newly generated key.</returns>
         public static Key Generate(KeyType type, string context) {
             return Generate(type, -1L, null, context);
         }
 
-        /// <summary></summary>
+        /// <summary>
+        /// Will generate a new Key with a specified type.
+        /// </summary>
+        /// <param name="type">The type of key to generate.</param>
+        /// <param name="validFor">The number of seconds that the key should be valid for, from the time of issuing.</param>
+        /// <param name="issuerId">The identifier of the issuer (creator) of the key, may be null.</param>
+        /// <param name="context">The context to attach to the message, may be null.</param>
+        /// <returns></returns>
+        /// <exception cref="ArgumentException"></exception>
         public static Key Generate(KeyType type, long validFor = -1L, Guid? issuerId = null, string context = null)
         {
             if (context is {Length: > Envelope._MAX_CONTEXT_LENGTH}) { throw new ArgumentException("Context must not be longer than " + Envelope._MAX_CONTEXT_LENGTH + "."); }
@@ -77,21 +122,24 @@ namespace ShiftEverywhere.DiME
             return key;
         }
 
+        /// <summary>
+        /// Will instantiate a Key instance from a base 58 encoded string.
+        /// </summary>
+        /// <param name="encodedKey">A base 58 encoded key.</param>
+        /// <returns>A Key instance.</returns>
         public static Key FromBase58Key(string encodedKey)
         {
             return new Key(encodedKey);
         }
 
+        /// <summary>
+        /// Will create a copy of a key with only the public part left. This should be used when transmitting a key to
+        /// another entity, when the receiving entity only needs the public part.
+        /// </summary>
+        /// <returns>A new instance of the key with only the public part.</returns>
         public Key PublicCopy()
         {
             return new Key(UniqueId, Type, null, RawPublic);
-        }
-
-        internal new static Key FromEncoded(string encoded)
-        {
-            var key = new Key();
-            key.Decode(encoded);
-            return key;
         }
 
         #endregion
@@ -129,6 +177,13 @@ namespace ShiftEverywhere.DiME
 
         }
 
+        internal new static Key FromEncoded(string encoded)
+        {
+            var key = new Key();
+            key.Decode(encoded);
+            return key;
+        }
+        
         #endregion
 
         # region -- PROTECTED --

@@ -14,33 +14,58 @@ using System.Linq;
 
 namespace ShiftEverywhere.DiME
 {
-    ///<summary>Holds a message from one subject (issuer) to another. The actual message is held as a byte[] and may be
-    /// optionally encrypted (using end-to-end encryption). Responses to messages may be linked with the original message, thus
-    /// creating a strong cryptographical link. The entity that created the message signs it before exporting and thus sealing
-    /// it's content. </summary>
+    /// <summary>
+    /// A class that can be used to create secure and integrity protected messages, that can be sent to entities, who
+    /// may verify the integrity and trust of the message. Messages may also be end-to-end encrypted to protect the
+    /// confidentiality of the message payload.
+    /// </summary>
     public class Message: Item
     {
         #region -- PUBLIC DATA MEMBERS --
+        
+        /// <summary>
+        /// A tag identifying the Di:ME item type, part of the header.
+        /// </summary>
         public const string _TAG = "MSG"; 
+        /// <summary>
+        /// Returns the tag of the Di:ME item.
+        /// </summary>
         public override string Tag => _TAG;
-        /// <summary>A unique identifier for the message.</summary>
+        /// <summary>
+        /// Returns a unique identifier for the instance. This will be generated at instance creation.
+        /// </summary>
         public override Guid UniqueId => _claims.uid;
-        /// <summary>The id of the receiver.</summary>
+        /// <summary>
+        /// Returns the audience (receiver) identifier. This is optional, although required if encrypting the message
+        /// payload.
+        /// </summary>
         public Guid? AudienceId => _claims.aud;
-        /// <summary>The id of the issuer (subject id of the issuer).</summary>
+        /// <summary>
+        /// Returns the issuer (sender/creator) identifier of the message.
+        /// </summary>
         public Guid IssuerId => _claims.iss;
-        /// <summary>The timestamp of when the message was created (issued).</summary>
+        /// <summary>
+        /// The date and time when this message was created.
+        /// </summary>
         public DateTime IssuedAt => Utility.FromTimestamp(_claims.iat);
-        /// <summary>The timestamp of when the message is expired and is no longer valid.</summary>
+        /// <summary>
+        /// The date and time when the message will expire.
+        /// </summary>
         public DateTime? ExpiresAt => (_claims.exp != null) ? Utility.FromTimestamp(_claims.exp) : null;
-        /// <summary>Normally used to specify a key that was used to encrypt the message. Used by the receiver to either complete
-        /// a key agreement for a shared encryption key, or fetch a pre-shared encryption key.</summary>
+        /// <summary>
+        /// The identifier of the key that was used when encryption the message payload. This is optional, and usage is
+        /// application specific.
+        /// </summary>
         public Guid? KeyId { get => _claims.kid; set { ThrowIfSigned(); _claims.kid = value; } }
-        /// <summary>Normally used to attach a public key to a message that is encrypted. Used by the receiver to generate the shared 
-        /// encryption key. Same as the "pub" field.</summary>
+        /// <summary>
+        /// A public key that was included in the message. Normally this public key was used for a key exchange where
+        /// the shared key was used to encrypt the payload. This is optional.
+        /// </summary>
         public string PublicKey { get => _claims.pub; set { ThrowIfSigned(); _claims.pub = value; } }
-        /// <summary>If another Dime item has been linked to this message, then this will be set the the 
-        /// unique identifier, UUID, of that linked item. Will be null, if no item is linked.</summary>
+        /// <summary>
+        /// If the message is linked to another Di:ME item, thus creating a cryptographic link between them, then this
+        /// will return the identifier, as a UUID, of the linked item. This is optional.
+        /// </summary>
         public Guid? LinkedId 
         { 
             get 
@@ -50,6 +75,9 @@ namespace ShiftEverywhere.DiME
                 return new Guid(uid);
             } 
         }
+        /// <summary>
+        /// Returns the context that is attached to the message.
+        /// </summary>
         public string Context => _claims.ctx;
 
         #endregion
@@ -58,8 +86,24 @@ namespace ShiftEverywhere.DiME
 
         public Message() { }
 
+        /// <summary>
+        /// Creates a message from a specified issuer (sender) and an expiration date.
+        /// </summary>
+        /// <param name="issuerId">The issuer identifier.</param>
+        /// <param name="validFor">The number of seconds that the message should be valid for, from the time of issuing.</param>
+        /// <param name="context">The context to attach to the message, may be null.</param>
         public Message(Guid issuerId, long validFor = -1L, string context = null): this(null, issuerId, validFor, context) { }
 
+        /// <summary>
+        /// Creates a message to a specified audience (receiver) from a specified issuer (sender), with an expiration
+        /// date and a context. The context may be anything and may be used for application specific purposes.
+        /// </summary>
+        /// <param name="audienceId">The audience identifier. Providing -1 as validFor will skip setting an expiration
+        /// date.</param>
+        /// <param name="issuerId">The issuer identifier.</param>
+        /// <param name="validFor">The number of seconds that the message should be valid for, from the time of issuing.</param>
+        /// <param name="context">The context to attach to the message, may be null.</param>
+        /// <exception cref="ArgumentException"></exception>
         public Message(Guid? audienceId, Guid issuerId, long validFor = -1L, string context = null)
         {
             if (context is {Length: > Envelope._MAX_CONTEXT_LENGTH}) { throw new ArgumentException("Context must not be longer than " + Envelope._MAX_CONTEXT_LENGTH + "."); }
@@ -80,25 +124,23 @@ namespace ShiftEverywhere.DiME
         
         #region -- PUBLIC INTERFACE --
 
+        /// <summary>
+        /// Will sign the message with the proved key. The Key instance must contain a secret key and be of type IDENTITY.
+        /// </summary>
+        /// <param name="key">The key to sign the item with, must be of type IDENTITY.</param>
+        /// <exception cref="InvalidOperationException"></exception>
         public override void Sign(Key key)
         {
             if (_payload == null) { throw new InvalidOperationException("Unable to sign message, no payload added."); }
             base.Sign(key);
         }
 
-        public override string ToEncoded()
-        {
-            if (_payload == null) { throw new InvalidOperationException("Unable to encode message, no payload added."); }
-            return base.ToEncoded();
-        }
-
-        internal new static Message FromEncoded(string encoded)
-        {
-            var message = new Message();
-            message.Decode(encoded);
-            return message;
-        }
-
+        /// <summary>
+        /// Verifies the signature of the message using a provided key.
+        /// </summary>
+        /// <param name="key">The key to used to verify the signature, must not be null.</param>
+        /// <exception cref="InvalidOperationException"></exception>
+        /// <exception cref="DateExpirationException">If any problems with issued at and expires at dates.</exception>
         public override void Verify(Key key) { 
             if (string.IsNullOrEmpty(_payload)) { throw new InvalidOperationException("Unable to verify message, no payload added."); }
             // Verify IssuedAt and ExpiresAt
@@ -111,11 +153,26 @@ namespace ShiftEverywhere.DiME
             base.Verify(key);
         }
 
+        /// <summary>
+        /// Verifies the signature of the message using a provided key and verifies a linked item from the proved item.
+        /// To verify correctly the linkedItem must be the original item that the message was linked to.
+        /// </summary>
+        /// <param name="publicKey">The key to used to verify the signature, must not be null.</param>
+        /// <param name="linkedItem">The item the message was linked to.</param>
         public void Verify(string publicKey, Item linkedItem)
         {
             Verify(new Key(publicKey), linkedItem);
         }
 
+        /// <summary>
+        /// Verifies the signature of the message using a provided key and verifies a linked item from the proved item.
+        /// To verify correctly the linkedItem must be the original item that the message was linked to.
+        /// </summary>
+        /// <param name="key">The key to used to verify the signature, must not be null.</param>
+        /// <param name="linkedItem">The item the message was linked to.</param>
+        /// <exception cref="InvalidOperationException"></exception>
+        /// <exception cref="FormatException">If no item has been linked with the message.</exception>
+        /// <exception cref="IntegrityException">If the signature is invalid.</exception>
         public void Verify(Key key, Item linkedItem)
         {
             Verify(key);
@@ -129,22 +186,24 @@ namespace ShiftEverywhere.DiME
                 || components[LinkThumbprintIndex] != msgHash) 
             { throw new IntegrityException("Failed to verify link Dime item (provided item did not match)."); }
         }
-
-        /// <summary>Will attach a byte-array payload to the message. This may be any valid byte-array, at export this will be
-        /// encoded as a Base64 string. If a payload is already set, then the old will be overwritten. If the message is already signed, 
-        /// then InvalidOperationException will be thrown.</summary>
+        
+        /// <summary>
+        /// Sets the plain text payload of the message.
+        /// </summary>
         /// <param name="payload">The payload to set.</param>
         public void SetPayload(byte[] payload) {
             ThrowIfSigned();
             _payload = Utility.ToBase64(payload);
         }
 
-        /// <summary>Will encrypt and attach a byte-array payload to the message. This may be any valid byte-array, at export this will be
-        /// encoded as a Base64 string. If a payload is already set, then the old will be overwritten. If the message is already signed, 
-        /// then InvalidOperationException will be thrown.</summary>
-        /// <param name="payload">The payload to set.</param>
+        /// <summary>
+        /// Will encrypt and attach a payload using a shared encryption key between the issuer and audience of a message.
+        /// </summary>
+        /// <param name="payload">The payload to encrypt and attach to the message, must not be null and of length >= 1.</param>
         /// <param name="issuerKey">This is the key of the issuer of the message, must be of type EXCHANGE, must not be null.</param>
         /// <param name="audienceKey">This is the key of the audience of the message, must be of type EXCHANGE, must not be null.</param>
+        /// <exception cref="ArgumentNullException"></exception>
+        /// <exception cref="ArgumentException"></exception>
         public void SetPayload(byte[] payload, Key issuerKey, Key audienceKey)
         {
             ThrowIfSigned();
@@ -156,17 +215,23 @@ namespace ShiftEverywhere.DiME
             SetPayload(Crypto.Encrypt(payload, key));
         }
 
-        /// <summary>Returns the payload attached to the message. This method will not decrypt any encrypted payloads, just return 
-        /// the byte-array as is.</summary>
-        /// <returns>A byte-array.</returns>
+        /// <summary>
+        /// Returns the plain text payload of the message. If an encrypted payload have been set, then this will return
+        /// the encrypted payload.
+        /// </summary>
+        /// <returns>The message payload.</returns>
         public byte[] GetPayload() {
             return Utility.FromBase64(_payload);
         }
 
-        /// <summary>Decrypts and returns the payload attached to the message. This will decrypt the payload before returning it.</summary>
+        /// <summary>
+        /// Returns the decrypted message payload, if it is able to decrypt it.
+        /// </summary>
         /// <param name="issuerKey">This is the key of the issuer of the message, must be of type EXCHANGE, must not be null.</param>
         /// <param name="audienceKey">This is the key of the audience of the message, must be of type EXCHANGE, must not be null.</param>
-        /// <returns>A byte-array.</returns>
+        /// <returns>The message payload.</returns>
+        /// <exception cref="ArgumentNullException"></exception>
+        /// <exception cref="ArgumentException"></exception>
         public byte[] GetPayload(Key issuerKey, Key audienceKey)
         {
             if (issuerKey == null) { throw new ArgumentNullException(nameof(issuerKey), "Provided local key may not be null."); }
@@ -176,10 +241,13 @@ namespace ShiftEverywhere.DiME
             return Crypto.Decrypt(GetPayload(), key);
         }
 
-        /// <summary>This will link another Dime item to this message. Used most often when responding to another message.
-        /// The Dime item is then cryptographically linked to the response message, once the message is signed.</summary>
-        /// <param name="item">The message object to link to.</param>
-        /// <exception cref="ArgumentNullException">If the passed message object is null.</exception> 
+        /// <summary>
+        /// Will cryptographically link a message to another Di:ME item. This may be used to prove a relationship
+        /// between one message and other item.
+        /// </summary>
+        /// <param name="item">The item to link to the message.</param>
+        /// <exception cref="InvalidOperationException"></exception>
+        /// <exception cref="ArgumentNullException"></exception>
         public void LinkItem(Item item)
         {
             if (IsSigned) { throw new InvalidOperationException("Unable to link item, message is already signed."); }
@@ -191,6 +259,19 @@ namespace ShiftEverywhere.DiME
 
         #region -- INTERNAL --
 
+        internal override string ToEncoded()
+        {
+            if (_payload == null) { throw new InvalidOperationException("Unable to encode message, no payload added."); }
+            return base.ToEncoded();
+        }
+
+        internal new static Message FromEncoded(string encoded)
+        {
+            var message = new Message();
+            message.Decode(encoded);
+            return message;
+        }
+        
         #endregion
 
         # region -- PROTECTED --

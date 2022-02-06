@@ -15,11 +15,21 @@ using System.Security.Cryptography;
 namespace ShiftEverywhere.DiME
 {
 
+	///<summary>
+	/// Encodes and decodes byte arrays and strings to and from base 58. This is mainly used to encode/decode keys.
+	///</summary>
 	public static class Base58
 	{
 
         #region -- PUBLIC INTERFACE --
 
+        ///<summary>
+        /// Encodes a byte array and an optional prefix to base 58. The prefix will be added to the front of the data
+        /// array.
+        ///</summary>
+		///<param name="data">The main byte array to encode.</param>
+		///<param name="prefix">A byte array that will be added to the front of data before encoding.</param>
+		///<returns>Base 58 encoded string</returns>
 		public static string Encode(byte[] data, byte[] prefix) {
 			if (data is not {Length: > 0}) return null;
 			var length = (prefix != null) ? prefix.Length + data.Length : data.Length;
@@ -50,6 +60,11 @@ namespace ShiftEverywhere.DiME
 			return builder.ToString();
 		}
 
+        /// <summary>
+        /// Decodes a base 58 string to a byte array.
+        /// </summary>
+        /// <param name="encoded">The base 58 string that should be decoded.</param>
+        /// <returns>A decoded byte array.</returns>
 		public static byte[] Decode(string encoded) {
 			if (encoded.Length == 0) {
             	return Array.Empty<byte>();
