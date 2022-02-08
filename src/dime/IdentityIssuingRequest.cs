@@ -12,6 +12,8 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Linq;
 using System.Collections.Generic;
+using System.Collections.Immutable;
+using System.Collections.ObjectModel;
 
 namespace ShiftEverywhere.DiME
 {
@@ -54,7 +56,7 @@ namespace ShiftEverywhere.DiME
         /// Returns all principles provided in the IIR. These are key-value fields that further provide information
         /// about the entity. Using principles are optional.
         /// </summary>
-        public Dictionary<string, object> Principles => _claims.pri;
+        public ReadOnlyDictionary<string, object> Principles => _claims.pri != null ? new ReadOnlyDictionary<string, object>(_claims.pri) : null;
         
         public IdentityIssuingRequest() { }
 
@@ -224,7 +226,7 @@ namespace ShiftEverywhere.DiME
             public string pub { get; set; }
             [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
             public string[] cap { get; set; }
-            [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+            [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)][JsonConverter(typeof(DictionaryStringObjectJsonConverter))]
             public Dictionary<string, object> pri {get; set; }
 
             [JsonConstructor]
@@ -238,7 +240,7 @@ namespace ShiftEverywhere.DiME
             }
         }
         
-        private Identity IssueNewIdentity(string systemName, Guid subjectId, long validFor, Key issuerKey, Identity issuerIdentity, List<Capability> allowedCapabilities, List<Capability> requiredCapabilities = null, List<string> ambits = null, List<string> methods = null)
+        private Identity IssueNewIdentity(string systemName, Guid subjectId, long validFor, Key issuerKey, Identity issuerIdentity, List<Capability> allowedCapabilities, IReadOnlyCollection<Capability> requiredCapabilities = null, List<string> ambits = null, List<string> methods = null)
         {
             Verify();
             var isSelfSign = (issuerIdentity == null || PublicKey == issuerKey.Public);
@@ -248,7 +250,7 @@ namespace ShiftEverywhere.DiME
             var now = DateTime.UtcNow;
             var expires = now.AddSeconds(validFor);
             var issuerId = issuerIdentity?.SubjectId ?? subjectId;
-            var identity = new Identity(systemName, subjectId, PublicKey, now, expires, issuerId, _capabilities, Principles, ambits, methods);
+            var identity = new Identity(systemName, subjectId, PublicKey, now, expires, issuerId, _capabilities, _claims.pri, ambits, methods);
             if (Identity.TrustedIdentity != null && issuerIdentity != null && issuerIdentity.SubjectId != Identity.TrustedIdentity.SubjectId)
             {
                 issuerIdentity.VerifyTrust();
