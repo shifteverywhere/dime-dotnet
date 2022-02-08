@@ -16,6 +16,14 @@ namespace ShiftEverywhere.DiMETest
     [TestClass]
     public class MessageTests
     {
+        
+        [TestMethod]
+        public void GetTagTest1()
+        {
+            var message = new Message(Guid.NewGuid());
+            Assert.AreEqual("MSG", message.Tag);
+        }
+        
         [TestMethod]
         public void MessageTest1()
         {
@@ -126,6 +134,15 @@ namespace ShiftEverywhere.DiMETest
         {
             Identity.SetTrustedIdentity(Commons.TrustedIdentity);
             var message = new Message(Commons.AudienceIdentity.SubjectId, Commons.IssuerIdentity.SubjectId, 120L);
+            message.SetPayload(Encoding.UTF8.GetBytes("Racecar is racecar backwards."));
+            message.Sign(Commons.IssuerKey);
+            message.Verify(Commons.IssuerIdentity.PublicKey);
+        }
+        
+        [TestMethod]
+        public void VerifyTest4() {
+            Identity.SetTrustedIdentity(Commons.TrustedIdentity);
+            var message = new Message(Commons.AudienceIdentity.SubjectId, Commons.IssuerIdentity.SubjectId);
             message.SetPayload(Encoding.UTF8.GetBytes("Racecar is racecar backwards."));
             message.Sign(Commons.IssuerKey);
             message.Verify(Commons.IssuerIdentity.PublicKey);

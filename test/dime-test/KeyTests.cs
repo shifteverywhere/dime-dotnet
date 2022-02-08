@@ -17,6 +17,13 @@ namespace ShiftEverywhere.DiMETest
     [TestClass]
     public class KeyTests
     {
+        
+        [TestMethod]
+        public void GetTagTest1() {
+            var key = Key.Generate(KeyType.Identity);
+            Assert.AreEqual("KEY", key.Tag);
+        }
+        
         [TestMethod]
         public void KeyTest1()
         {

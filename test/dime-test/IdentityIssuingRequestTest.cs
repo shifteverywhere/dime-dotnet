@@ -16,6 +16,14 @@ namespace ShiftEverywhere.DiMETest
     [TestClass]
     public class IdentityIssuingRequestTests
     {  
+        
+        [TestMethod]
+        public void GetTagTest1()
+        {
+            var iir = IdentityIssuingRequest.Generate((Key.Generate(KeyType.Identity)));
+            Assert.AreEqual("IIR", iir.Tag);
+        }
+        
         [TestMethod]
         public void GenerateRequestTest1()
         {
@@ -29,6 +37,24 @@ namespace ShiftEverywhere.DiMETest
         public void GenerateRequestTest2()
         {
             _ = IdentityIssuingRequest.Generate(Key.Generate(KeyType.Identity));
+        }
+        
+        [TestMethod]
+        public void IssueTest1() {
+            Identity.SetTrustedIdentity(Commons.TrustedIdentity);
+            var key1 = Key.Generate(KeyType.Identity);
+            var caps = new List<Capability> { Capability.Generic };
+            var iir1 = IdentityIssuingRequest.Generate(key1, caps);
+            var components = iir1.Export().Split(new[] { '.' });
+            var json = Utility.FromBase64(components[1]);
+            var original = System.Text.Encoding.UTF8.GetString(json, 0, json.Length);
+            var key2 = Key.Generate(KeyType.Identity);
+            var modified = original.Replace(key1.Public, key2.Public);
+            var iir2 = Item.Import<IdentityIssuingRequest>(components[0] + "." + Utility.ToBase64(modified) + "." + components[2]);
+            try {
+                iir2.Issue(Guid.NewGuid(), 100L, Commons.IntermediateKey, Commons.IntermediateIdentity, caps, caps);
+            } catch (IntegrityException) { return; } // All is well 
+            Assert.IsTrue(false, "Should not happen.");
         }
 
         [TestMethod]
@@ -135,6 +161,59 @@ namespace ShiftEverywhere.DiMETest
             var identity = iir.Issue(Guid.NewGuid(), IdentityIssuingRequest._VALID_FOR_1_YEAR, Commons.IntermediateKey, Commons.IntermediateIdentity, allowedCapabilities, requiredCapabilities);
             Assert.IsTrue(identity.HasCapability(requestedCapabilities[0]));
             Assert.IsTrue(identity.HasCapability(requestedCapabilities[1]));
+        }
+        
+        [TestMethod]
+        public void CapabilityTest5() {
+            Identity.SetTrustedIdentity(Commons.TrustedIdentity);
+            var allowedCapabilities = new List<Capability> { Capability.Generic, Capability.Identify };
+            var requestedCapabilities = new List<Capability> { Capability.Issue };
+            try
+            {
+                IdentityIssuingRequest.Generate(Key.Generate(KeyType.Identity), requestedCapabilities).Issue(Guid.NewGuid(), 100L, Commons.TrustedKey, Commons.TrustedIdentity, allowedCapabilities);
+            } catch (IdentityCapabilityException) { return; } // All is well
+            Assert.IsTrue(false, "Should not happen.");
+        }
+        
+        [TestMethod]
+        public void CapabilityTest6() {
+            Identity.SetTrustedIdentity(null);
+            var caps = new List<Capability> { Capability.Issue };
+            try {
+                IdentityIssuingRequest.Generate(Key.Generate(KeyType.Identity), caps).Issue(Guid.NewGuid(), 100L, Commons.TrustedKey, null, caps);
+            } catch (ArgumentNullException) { return; } // All is well
+            Assert.IsTrue(false, "Should not happen.");
+        }
+
+        [TestMethod]
+        public void PrinciplesTest1()
+        {
+            var principles = new Dictionary<string, object>
+            {
+                ["tag"] = "Racecar is racecar backwards.",
+                ["nbr"] = new List<string> { "one" , "two", "three" }
+            };
+            var iir =  IdentityIssuingRequest.Generate(Key.Generate(KeyType.Identity), new List<Capability> { Capability.Generic }, principles);
+            var pri = iir.Principles;
+            Assert.AreEqual("Racecar is racecar backwards.", pri["tag"]);
+            var nbr = (List<string>)pri["nbr"];
+            Assert.AreEqual(3, nbr.Count);
+            Assert.AreEqual("two", nbr[1]);
+        }
+        
+        [TestMethod]
+        public void PrinciplesTest2() {
+            var principles = new Dictionary<string, dynamic>
+            {
+                ["tag"] = "Racecar is racecar backwards.",
+                ["nbr"] = new[] { "one" , "two", "three" }
+            };
+            var iir1 = IdentityIssuingRequest.Generate(Key.Generate(KeyType.Identity), new List<Capability> { Capability.Generic }, principles);
+            var iir2 = Item.Import<IdentityIssuingRequest>(iir1.Export());
+            Assert.AreEqual("Racecar is racecar backwards.", iir2.Principles["tag"]);
+            var nbr = (object[])iir2.Principles["nbr"];
+            Assert.AreEqual(3, nbr.Length);
+            Assert.AreEqual("three", nbr[2]);
         }
    
     }
