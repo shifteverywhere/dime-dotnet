@@ -31,7 +31,7 @@ namespace DiME_test
             Assert.IsTrue(identity.HasCapability(caps[0]));
             Assert.IsTrue(identity.HasCapability(caps[1]));
             Assert.IsTrue(identity.HasCapability(Capability.Self));
-            Assert.IsTrue(key.Public == identity.PublicKey);
+            Assert.AreEqual(key.Public, identity.PublicKey.Public);
             Assert.IsNotNull(identity.IssuedAt);
             Assert.IsNotNull(identity.ExpiresAt);
             Assert.IsTrue(identity.IssuedAt < identity.ExpiresAt);
@@ -51,7 +51,7 @@ namespace DiME_test
             Assert.IsTrue(subjectId == identity.SubjectId);
             Assert.IsTrue(identity.HasCapability(caps[0]));
             Assert.IsTrue(identity.HasCapability(caps[1]));
-            Assert.IsTrue(key.Public == identity.PublicKey);
+            Assert.AreEqual(key.Public, identity.PublicKey.Public);
             Assert.IsNotNull(identity.IssuedAt);
             Assert.IsNotNull(identity.ExpiresAt);
             Assert.IsTrue(identity.IssuedAt < identity.ExpiresAt);

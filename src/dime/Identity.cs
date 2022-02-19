@@ -69,7 +69,8 @@ namespace DiME
         /// Returns the public key attached to the identity of an entity. The Key instance returned will only contain a
         /// public key or type IDENTITY.
         /// </summary>
-        public string PublicKey => _claims.pub;
+        public Key PublicKey => _claims.pub is {Length: > 0} ? Key.FromBase58Key(_claims.pub) : null;
+
         /// <summary>
         /// Returns the parent identity of a trust chain for an identity. This is the issuing identity.
         /// </summary>

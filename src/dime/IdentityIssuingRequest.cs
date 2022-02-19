@@ -51,7 +51,7 @@ namespace DiME
         /// included in any issued identity. The equivalent secret (private) key was used to sign the IIR, thus the
         /// public key can be used to verify the signature. This must be a key of type IDENTITY.
         /// </summary>
-        public string PublicKey => _claims.pub;
+        public Key PublicKey => _claims.pub is {Length: > 0} ? Key.FromBase58Key(_claims.pub) : null;
         /// <summary>
         /// Returns all principles provided in the IIR. These are key-value fields that further provide information
         /// about the entity. Using principles are optional.
@@ -93,7 +93,7 @@ namespace DiME
         /// </summary>
         public void Verify()
         {
-            Verify(Key.FromBase58Key(PublicKey));
+            Verify(PublicKey);
         }
 
         /// <summary>
@@ -243,17 +243,17 @@ namespace DiME
         private Identity IssueNewIdentity(string systemName, Guid subjectId, long validFor, Key issuerKey, Identity issuerIdentity, List<Capability> allowedCapabilities, IReadOnlyCollection<Capability> requiredCapabilities = null, List<string> ambits = null, List<string> methods = null)
         {
             Verify();
-            var isSelfSign = (issuerIdentity == null || PublicKey == issuerKey.Public);
+            var isSelfSign = issuerIdentity == null || PublicKey.Public.Equals(issuerKey.Public);
             CompleteCapabilities(allowedCapabilities, requiredCapabilities, isSelfSign);
             if (!isSelfSign && !issuerIdentity.HasCapability(Capability.Issue))
                 throw new IdentityCapabilityException("Issuing identity missing 'issue' capability.");
             var now = DateTime.UtcNow;
             var expires = now.AddSeconds(validFor);
             var issuerId = issuerIdentity?.SubjectId ?? subjectId;
-            var identity = new Identity(systemName, subjectId, PublicKey, now, expires, issuerId, _capabilities, _claims.pri, ambits, methods);
+            var identity = new Identity(systemName, subjectId, PublicKey.Public, now, expires, issuerId, _capabilities, _claims.pri, ambits, methods);
             if (Identity.TrustedIdentity != null && issuerIdentity != null && issuerIdentity.SubjectId != Identity.TrustedIdentity.SubjectId)
             {
-                issuerIdentity.VerifyTrust();
+                issuerIdentity.IsTrusted();
                 // The chain will only be set if this is not the trusted identity (and as long as one is set)
                 identity.TrustChain = issuerIdentity;
             }
