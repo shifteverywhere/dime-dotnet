@@ -12,7 +12,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace ShiftEverywhere.DiME
+namespace DiME
 {
     /// <summary>
     /// Represents cryptographic keys. This may be keys for signing and verifying other Di:ME items and envelopes, used

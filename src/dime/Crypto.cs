@@ -10,7 +10,7 @@ using System;
 using System.Text;
 using ASodium;
 
-namespace ShiftEverywhere.DiME
+namespace DiME
 {
     /// <summary>
     /// Cryptographic helper methods, which also abstracts the rest of the implementation from any underlying

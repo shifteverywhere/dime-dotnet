@@ -11,7 +11,7 @@ using System.Text;
 using System.Security.Cryptography;
 using System.Xml;
 
-namespace ShiftEverywhere.DiME
+namespace DiME
 {
     /// <summary>
     /// Utility support methods.

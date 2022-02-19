@@ -13,7 +13,7 @@ using System.Linq;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace ShiftEverywhere.DiME
+namespace DiME
 {
     /// <summary>
     /// An encapsulating object that can carry one or more Di:ME items. This is usually the format that is exported and

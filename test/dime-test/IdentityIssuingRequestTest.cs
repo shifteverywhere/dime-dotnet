@@ -9,9 +9,9 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.Collections.Generic;
-using ShiftEverywhere.DiME;
+using DiME;
 
-namespace ShiftEverywhere.DiMETest
+namespace DiME_test
 {
     [TestClass]
     public class IdentityIssuingRequestTests

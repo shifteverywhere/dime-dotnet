@@ -8,9 +8,9 @@
 //
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.Text;
-using ShiftEverywhere.DiME;
+using DiME;
 
-namespace ShiftEverywhere.DiMETest
+namespace DiME_test
 {
     [TestClass]
     public class Base58Tests

@@ -9,7 +9,7 @@
 using System;
 using System.Runtime.Serialization;
 
-namespace ShiftEverywhere.DiME
+namespace DiME
 {
 
     /// <summary>

@@ -10,9 +10,9 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.Text;
 using System.Linq;
-using ShiftEverywhere.DiME;
+using DiME;
 
-namespace ShiftEverywhere.DiMETest
+namespace DiME_test
 {
     [TestClass]
     public class EnvelopeTests

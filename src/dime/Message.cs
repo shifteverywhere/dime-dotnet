@@ -12,7 +12,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Linq;
 
-namespace ShiftEverywhere.DiME
+namespace DiME
 {
     /// <summary>
     /// A class that can be used to create secure and integrity protected messages, that can be sent to entities, who

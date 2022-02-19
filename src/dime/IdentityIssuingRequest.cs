@@ -15,7 +15,7 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Collections.ObjectModel;
 
-namespace ShiftEverywhere.DiME
+namespace DiME
 {
     /// <summary>
     /// Class used to create a request for the issuing of an identity to an entity. This will contain a locally

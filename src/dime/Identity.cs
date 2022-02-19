@@ -14,7 +14,7 @@ using System.Linq;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 
-namespace ShiftEverywhere.DiME
+namespace DiME
 {
     ///<summary>
     /// Represents a digital identity of an entity. Can be self-signed or signed by a trusted identity (and thus be part

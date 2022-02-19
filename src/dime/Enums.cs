@@ -6,7 +6,7 @@
 //  Released under the MIT licence, see LICENSE for more information.
 //  Copyright © 2022 Shift Everywhere AB. All rights reserved.
 //
-namespace ShiftEverywhere.DiME
+namespace DiME
 {
     /// <summary>
     /// Defines the family a particular algorithm belongs to. Used for header information in keys.

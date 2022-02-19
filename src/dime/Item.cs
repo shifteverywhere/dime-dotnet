@@ -9,7 +9,7 @@
 using System;
 using System.Linq;
 
-namespace ShiftEverywhere.DiME
+namespace DiME
 {
     /// <summary>
     /// Base class for any other type of Di:ME items that can be included inside an Envelope instance.
