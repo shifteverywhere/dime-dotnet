@@ -132,6 +132,8 @@ namespace DiME
         /// <param name="issuerKey">The Key of the issuing entity, must contain a secret key of type IDENTIFY.</param>
         /// <param name="issuerIdentity">The Identity instance of the issuing entity. If part of a trust chain, then
         /// this will be attached to the newly issued Identity.</param>
+        /// <param name="includeChain">If set to true then the trust chain will be added to the newly issued identity.
+        /// The chain will only the included if the issuing identity is not the root node.</param>
         /// <param name="allowedCapabilities">A list of capabilities that may be present in the IIR to allow issuing.</param>
         /// <param name="requiredCapabilities">A list of capabilities that will be added (if not present in the IIR)
         /// before issuing.</param>
@@ -139,10 +141,10 @@ namespace DiME
         /// <param name="methods">A list of methods that will apply to the issued identity.</param>
         /// <returns>An Identity instance that may be sent back to the entity that proved the IIR.</returns>
         /// <exception cref="ArgumentNullException"></exception>
-        public Identity Issue(Guid subjectId, long validFor, Key issuerKey, Identity issuerIdentity, List<Capability> allowedCapabilities, List<Capability> requiredCapabilities = null, List<string> ambits = null, List<string> methods = null) 
+        public Identity Issue(Guid subjectId, long validFor, Key issuerKey, Identity issuerIdentity, bool includeChain, List<Capability> allowedCapabilities, List<Capability> requiredCapabilities = null, List<string> ambits = null, List<string> methods = null) 
         {    
             if (issuerIdentity == null) { throw new ArgumentNullException(nameof(issuerIdentity), "Issuer identity must not be null."); }
-            return IssueNewIdentity(issuerIdentity.SystemName, subjectId, validFor, issuerKey, issuerIdentity, allowedCapabilities, requiredCapabilities, ambits, methods);
+            return IssueNewIdentity(issuerIdentity.SystemName, subjectId, validFor, issuerKey, issuerIdentity, includeChain, allowedCapabilities, requiredCapabilities, ambits, methods);
         }
 
         /// <summary>
@@ -161,7 +163,7 @@ namespace DiME
         public Identity SelfIssue(Guid subjectId, long validFor, Key issuerKey, string systemName, List<string> ambits = null, List<string> methods = null)
         {
             if (string.IsNullOrEmpty(systemName)) { throw new ArgumentNullException(nameof(systemName), "System name must not be null or empty."); }
-            return IssueNewIdentity(systemName, subjectId, validFor, issuerKey, null, null, null, ambits, methods);
+            return IssueNewIdentity(systemName, subjectId, validFor, issuerKey, null, false, null, null, ambits, methods);
         }
         
         #endregion
@@ -240,9 +242,9 @@ namespace DiME
             }
         }
         
-        private Identity IssueNewIdentity(string systemName, Guid subjectId, long validFor, Key issuerKey, Identity issuerIdentity, List<Capability> allowedCapabilities, IReadOnlyCollection<Capability> requiredCapabilities = null, List<string> ambits = null, List<string> methods = null)
+        private Identity IssueNewIdentity(string systemName, Guid subjectId, long validFor, Key issuerKey, Identity issuerIdentity, bool includeChain, List<Capability> allowedCapabilities, IReadOnlyCollection<Capability> requiredCapabilities = null, List<string> ambits = null, List<string> methods = null)
         {
-            Verify();
+            Verify(PublicKey);
             var isSelfSign = issuerIdentity == null || PublicKey.Public.Equals(issuerKey.Public);
             CompleteCapabilities(allowedCapabilities, requiredCapabilities, isSelfSign);
             if (!isSelfSign && !issuerIdentity.HasCapability(Capability.Issue))
@@ -255,7 +257,11 @@ namespace DiME
             {
                 issuerIdentity.IsTrusted();
                 // The chain will only be set if this is not the trusted identity (and as long as one is set)
-                identity.TrustChain = issuerIdentity;
+                // and if it is a trusted issuer identity (from set trusted identity) and includeChain is set to true
+                if (includeChain)
+                {
+                    identity.TrustChain = issuerIdentity;    
+                }
             }
             identity.Sign(issuerKey);
             return identity;

@@ -46,7 +46,7 @@ namespace DiME_test
             var key = Key.Generate(KeyType.Identity);
             var caps = new List<Capability> { Capability.Generic, Capability.Identify };
             var iir = IdentityIssuingRequest.Generate(key, caps);
-            var identity = iir.Issue(subjectId, IdentityIssuingRequest._VALID_FOR_1_YEAR, Commons.IntermediateKey, Commons.IntermediateIdentity, caps);
+            var identity = iir.Issue(subjectId, IdentityIssuingRequest._VALID_FOR_1_YEAR, Commons.IntermediateKey, Commons.IntermediateIdentity, true, caps);
             Assert.AreEqual(Identity.TrustedIdentity.SystemName, identity.SystemName);
             Assert.IsTrue(subjectId == identity.SubjectId);
             Assert.IsTrue(identity.HasCapability(caps[0]));
@@ -65,7 +65,7 @@ namespace DiME_test
             var reqCaps = new List<Capability> { Capability.Issue };
             var allowCaps = new List<Capability> { Capability.Generic, Capability.Identify };
             try {
-                _ = IdentityIssuingRequest.Generate(Key.Generate(KeyType.Identity), reqCaps).Issue(Guid.NewGuid(), 100L, Commons.TrustedKey, Commons.TrustedIdentity, allowCaps);
+                _ = IdentityIssuingRequest.Generate(Key.Generate(KeyType.Identity), reqCaps).Issue(Guid.NewGuid(), 100L, Commons.TrustedKey, Commons.TrustedIdentity, true, allowCaps);
             } catch (IdentityCapabilityException) { return; } // All is well
             Assert.IsTrue(false, "Should not happen.");
         }
@@ -76,7 +76,7 @@ namespace DiME_test
             Identity.SetTrustedIdentity(Commons.TrustedIdentity);
             var key = Key.Generate(KeyType.Identity);
             var caps = new List<Capability> { Capability.Issue, Capability.Generic };
-            var identity = IdentityIssuingRequest.Generate(key, caps).Issue(Guid.NewGuid(), 100L, Commons.TrustedKey, Commons.TrustedIdentity, caps);
+            var identity = IdentityIssuingRequest.Generate(key, caps).Issue(Guid.NewGuid(), 100L, Commons.TrustedKey, Commons.TrustedIdentity, true, caps);
             Assert.IsTrue(identity.HasCapability(Capability.Issue));
             Assert.IsTrue(identity.HasCapability(Capability.Generic));
         }
@@ -87,7 +87,7 @@ namespace DiME_test
             Identity.SetTrustedIdentity(null);
             var caps = new List<Capability> { Capability.Issue };
             try {
-                _ = IdentityIssuingRequest.Generate(Key.Generate(KeyType.Identity), caps).Issue(Guid.NewGuid(), 100L, Commons.TrustedKey, null, caps);
+                _ = IdentityIssuingRequest.Generate(Key.Generate(KeyType.Identity), caps).Issue(Guid.NewGuid(), 100L, Commons.TrustedKey, null, true, caps);
             } catch (ArgumentNullException) { return; } // All is well
             Assert.IsTrue(false, "Should not happen.");
         }
@@ -106,7 +106,7 @@ namespace DiME_test
         {
             Identity.SetTrustedIdentity(Commons.TrustedIdentity);
             var caps = new List<Capability> { Capability.Generic };
-            var identity = IdentityIssuingRequest.Generate(Key.Generate(KeyType.Identity)).Issue(Guid.NewGuid(), 100L, Commons.IntermediateKey, Commons.IntermediateIdentity, caps);
+            var identity = IdentityIssuingRequest.Generate(Key.Generate(KeyType.Identity)).Issue(Guid.NewGuid(), 100L, Commons.IntermediateKey, Commons.IntermediateIdentity, true, caps);
             Assert.IsFalse(identity.IsSelfSigned);
         }
 
@@ -128,7 +128,7 @@ namespace DiME_test
         {
             Identity.SetTrustedIdentity(Commons.TrustedIdentity);
             var caps = new List<Capability> { Capability.Generic };
-            var identity = IdentityIssuingRequest.Generate(Key.Generate(KeyType.Identity)).Issue(Guid.NewGuid(), 100L, Commons.IntermediateKey, Commons.IntermediateIdentity, caps);
+            var identity = IdentityIssuingRequest.Generate(Key.Generate(KeyType.Identity)).Issue(Guid.NewGuid(), 100L, Commons.IntermediateKey, Commons.IntermediateIdentity, true, caps);
             Assert.IsTrue(identity.IsTrusted());
         }
 
@@ -175,17 +175,33 @@ namespace DiME_test
             Identity.SetTrustedIdentity(Commons.TrustedIdentity);
             var nodeCaps = new List<Capability> { Capability.Generic, Capability.Issue };
             var key1 = Key.Generate(KeyType.Identity);
-            var node1 = IdentityIssuingRequest.Generate(key1, nodeCaps).Issue(Guid.NewGuid(), 100L, Commons.TrustedKey, Commons.TrustedIdentity,nodeCaps, nodeCaps);
+            var node1 = IdentityIssuingRequest.Generate(key1, nodeCaps).Issue(Guid.NewGuid(), 100L, Commons.TrustedKey, Commons.TrustedIdentity, true, nodeCaps, nodeCaps);
             var key2 = Key.Generate(KeyType.Identity);
-            var node2 = IdentityIssuingRequest.Generate(key2, nodeCaps).Issue(Guid.NewGuid(), 100L, key1, node1, nodeCaps, nodeCaps);
+            var node2 = IdentityIssuingRequest.Generate(key2, nodeCaps).Issue(Guid.NewGuid(), 100L, key1, node1, true, nodeCaps, nodeCaps);
             var key3 = Key.Generate(KeyType.Identity);
-            var node3 = IdentityIssuingRequest.Generate(key3, nodeCaps).Issue(Guid.NewGuid(), 100L, key2, node2, nodeCaps, nodeCaps);
+            var node3 = IdentityIssuingRequest.Generate(key3, nodeCaps).Issue(Guid.NewGuid(), 100L, key2, node2, true, nodeCaps, nodeCaps);
             var leafCaps = new List<Capability> { Capability.Generic };
-            var leaf = IdentityIssuingRequest.Generate(Key.Generate(KeyType.Identity), leafCaps).Issue(Guid.NewGuid(), 100L, key3, node3, leafCaps, leafCaps);
+            var leaf = IdentityIssuingRequest.Generate(Key.Generate(KeyType.Identity), leafCaps).Issue(Guid.NewGuid(), 100L, key3, node3, true, leafCaps, leafCaps);
             Assert.IsTrue(leaf.IsTrusted());
             Assert.IsTrue(leaf.IsTrusted(node1));
             Assert.IsTrue(leaf.IsTrusted(node2));
             Assert.IsTrue(leaf.IsTrusted(node3));
+            Assert.IsFalse(leaf.IsTrusted(Commons.IntermediateIdentity));
+        }
+        
+        [TestMethod]
+        public void IsTrustedTest9() {
+            Identity.SetTrustedIdentity(Commons.TrustedIdentity);
+            var nodeCaps = new List<Capability> { Capability.Generic, Capability.Issue };
+            var key1 = Key.Generate(KeyType.Identity);
+            var node1 = IdentityIssuingRequest.Generate(key1, nodeCaps).Issue(Guid.NewGuid(), 100L, Commons.TrustedKey, Commons.TrustedIdentity, false, nodeCaps, nodeCaps);
+            var key2 = Key.Generate(KeyType.Identity);
+            var node2 = IdentityIssuingRequest.Generate(key2, nodeCaps).Issue(Guid.NewGuid(), 100L, key1, node1, false, nodeCaps, nodeCaps);
+            var leafCaps = new List<Capability> { Capability.Generic };
+            var leaf = IdentityIssuingRequest.Generate(Key.Generate(KeyType.Identity), leafCaps).Issue(Guid.NewGuid(), 100L, key2, node2, false, leafCaps, leafCaps);
+            Assert.IsFalse(leaf.IsTrusted());
+            Assert.IsFalse(leaf.IsTrusted(node1));
+            Assert.IsTrue(leaf.IsTrusted(node2));
             Assert.IsFalse(leaf.IsTrusted(Commons.IntermediateIdentity));
         }
 
@@ -195,7 +211,7 @@ namespace DiME_test
             Identity.SetTrustedIdentity(Commons.TrustedIdentity);
             var caps = new List<Capability> { Capability.Generic, Capability.Identify };
             var key = Crypto.GenerateKey(KeyType.Identity);
-            var identity = IdentityIssuingRequest.Generate(key, caps).Issue(Guid.NewGuid(), IdentityIssuingRequest._VALID_FOR_1_YEAR, Commons.IntermediateKey, Commons.IntermediateIdentity, caps);
+            var identity = IdentityIssuingRequest.Generate(key, caps).Issue(Guid.NewGuid(), IdentityIssuingRequest._VALID_FOR_1_YEAR, Commons.IntermediateKey, Commons.IntermediateIdentity, true, caps);
             var exported = identity.Export();
             Assert.IsNotNull(exported);
             Assert.IsTrue(exported.Length > 0);

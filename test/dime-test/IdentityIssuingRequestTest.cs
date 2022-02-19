@@ -20,7 +20,7 @@ namespace DiME_test
         [TestMethod]
         public void GetTagTest1()
         {
-            var iir = IdentityIssuingRequest.Generate((Key.Generate(KeyType.Identity)));
+            var iir = IdentityIssuingRequest.Generate(Key.Generate(KeyType.Identity));
             Assert.AreEqual("IIR", iir.Tag);
         }
         
@@ -52,11 +52,34 @@ namespace DiME_test
             var modified = original.Replace(key1.Public, key2.Public);
             var iir2 = Item.Import<IdentityIssuingRequest>(components[0] + "." + Utility.ToBase64(modified) + "." + components[2]);
             try {
-                iir2.Issue(Guid.NewGuid(), 100L, Commons.IntermediateKey, Commons.IntermediateIdentity, caps, caps);
+                iir2.Issue(Guid.NewGuid(), 100L, Commons.IntermediateKey, Commons.IntermediateIdentity, true, caps, caps);
             } catch (IntegrityException) { return; } // All is well 
             Assert.IsTrue(false, "Should not happen.");
         }
 
+        [TestMethod]
+        public void IssueTest2() {
+            var caps = new List<Capability> { Capability.Generic };
+            var identity = IdentityIssuingRequest.Generate(Key.Generate(KeyType.Identity)).Issue(Guid.NewGuid(), 100L, Commons.TrustedKey, Commons.TrustedIdentity, true, caps);
+            Assert.IsNull(identity.TrustChain);
+        }
+
+        [TestMethod]
+        public void IssueTest3() {
+            Identity.SetTrustedIdentity(Commons.TrustedIdentity);
+            var caps = new List<Capability> { Capability.Generic };
+            var identity = IdentityIssuingRequest.Generate(Key.Generate(KeyType.Identity)).Issue(Guid.NewGuid(), 100L, Commons.IntermediateKey, Commons.IntermediateIdentity, true, caps);
+            Assert.IsNotNull(identity.TrustChain);
+        }
+
+        [TestMethod]
+        public void IssueTest4() {
+            Identity.SetTrustedIdentity(Commons.TrustedIdentity);
+            var caps = new List<Capability> { Capability.Generic };
+            var identity = IdentityIssuingRequest.Generate(Key.Generate(KeyType.Identity)).Issue(Guid.NewGuid(), 100L, Commons.IntermediateKey, Commons.IntermediateIdentity, false, caps);
+            Assert.IsNull(identity.TrustChain);
+        }
+        
         [TestMethod]
         public void VerifyTest1()
         {
@@ -115,7 +138,7 @@ namespace DiME_test
             var iir = IdentityIssuingRequest.Generate(Key.Generate(KeyType.Identity), requestedCapabilities);
             try
             {
-                _ = iir.Issue(Guid.NewGuid(), IdentityIssuingRequest._VALID_FOR_1_YEAR, Commons.IntermediateKey, Commons.IntermediateIdentity, null);
+                _ = iir.Issue(Guid.NewGuid(), IdentityIssuingRequest._VALID_FOR_1_YEAR, Commons.IntermediateKey, Commons.IntermediateIdentity, true, null);
             } catch (ArgumentException) { return; } // All is well
             Assert.IsTrue(false, "Should not happen.");
         }
@@ -130,7 +153,7 @@ namespace DiME_test
             var iir = IdentityIssuingRequest.Generate(Key.Generate(KeyType.Identity), requestedCapabilities);
             try
             {
-                _ = iir.Issue(Guid.NewGuid(), IdentityIssuingRequest._VALID_FOR_1_YEAR, Commons.IntermediateKey, Commons.IntermediateIdentity, allowedCapabilities);
+                _ = iir.Issue(Guid.NewGuid(), IdentityIssuingRequest._VALID_FOR_1_YEAR, Commons.IntermediateKey, Commons.IntermediateIdentity, true, allowedCapabilities);
             } catch (IdentityCapabilityException) { return; } // All is well
             Assert.IsTrue(false, "Should not happen.");
         }
@@ -145,7 +168,7 @@ namespace DiME_test
             var iir = IdentityIssuingRequest.Generate(Key.Generate(KeyType.Identity), requestedCapabilities);
             try
             {
-                _ = iir.Issue(Guid.NewGuid(), IdentityIssuingRequest._VALID_FOR_1_YEAR, Commons.IntermediateKey, Commons.IntermediateIdentity, allowedCapabilities, requiredCapabilities);
+                _ = iir.Issue(Guid.NewGuid(), IdentityIssuingRequest._VALID_FOR_1_YEAR, Commons.IntermediateKey, Commons.IntermediateIdentity, true, allowedCapabilities, requiredCapabilities);
             } catch (IdentityCapabilityException) { return; } // All is well
             Assert.IsTrue(false, "Should not happen.");
         }
@@ -158,7 +181,7 @@ namespace DiME_test
             var allowedCapabilities = new List<Capability> { Capability.Generic, Capability.Identify };
             var requiredCapabilities = new List<Capability> { Capability.Identify };
             var iir = IdentityIssuingRequest.Generate(Key.Generate(KeyType.Identity), requestedCapabilities);
-            var identity = iir.Issue(Guid.NewGuid(), IdentityIssuingRequest._VALID_FOR_1_YEAR, Commons.IntermediateKey, Commons.IntermediateIdentity, allowedCapabilities, requiredCapabilities);
+            var identity = iir.Issue(Guid.NewGuid(), IdentityIssuingRequest._VALID_FOR_1_YEAR, Commons.IntermediateKey, Commons.IntermediateIdentity, true, allowedCapabilities, requiredCapabilities);
             Assert.IsTrue(identity.HasCapability(requestedCapabilities[0]));
             Assert.IsTrue(identity.HasCapability(requestedCapabilities[1]));
         }
@@ -170,7 +193,7 @@ namespace DiME_test
             var requestedCapabilities = new List<Capability> { Capability.Issue };
             try
             {
-                IdentityIssuingRequest.Generate(Key.Generate(KeyType.Identity), requestedCapabilities).Issue(Guid.NewGuid(), 100L, Commons.TrustedKey, Commons.TrustedIdentity, allowedCapabilities);
+                IdentityIssuingRequest.Generate(Key.Generate(KeyType.Identity), requestedCapabilities).Issue(Guid.NewGuid(), 100L, Commons.TrustedKey, Commons.TrustedIdentity, true, allowedCapabilities);
             } catch (IdentityCapabilityException) { return; } // All is well
             Assert.IsTrue(false, "Should not happen.");
         }
@@ -180,7 +203,7 @@ namespace DiME_test
             Identity.SetTrustedIdentity(null);
             var caps = new List<Capability> { Capability.Issue };
             try {
-                IdentityIssuingRequest.Generate(Key.Generate(KeyType.Identity), caps).Issue(Guid.NewGuid(), 100L, Commons.TrustedKey, null, caps);
+                IdentityIssuingRequest.Generate(Key.Generate(KeyType.Identity), caps).Issue(Guid.NewGuid(), 100L, Commons.TrustedKey, null, true, caps);
             } catch (ArgumentNullException) { return; } // All is well
             Assert.IsTrue(false, "Should not happen.");
         }

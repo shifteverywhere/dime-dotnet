@@ -98,7 +98,7 @@ namespace DiME_test
         private static Identity GenerateIdentity(Key subjectKey, Key issuerKey, Identity issuerIdentity, long validFor, List<Capability> capabilities) {
             var subjectId = Guid.NewGuid();
             var iir = IdentityIssuingRequest.Generate(subjectKey, capabilities);
-            var identity = issuerIdentity == null ? iir.SelfIssue(subjectId, validFor, issuerKey, _SYSTEM_NAME) : iir.Issue(subjectId, validFor, issuerKey, issuerIdentity, capabilities);
+            var identity = issuerIdentity == null ? iir.SelfIssue(subjectId, validFor, issuerKey, _SYSTEM_NAME) : iir.Issue(subjectId, validFor, issuerKey, issuerIdentity, true, capabilities);
             return identity;
         }
     }
