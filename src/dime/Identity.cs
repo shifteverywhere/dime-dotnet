@@ -124,26 +124,48 @@ namespace DiME
         /// <exception cref="InvalidOperationException"></exception>
         /// <exception cref="DateExpirationException">If the issued at date is in the future, or if the expires at date is in the past.</exception>
         /// <exception cref="UntrustedIdentityException">If the trust of the identity could not be verified.</exception>
+        [Obsolete("This method is deprecated since 1.0.1 and will be removed in a future version use IsTrusted() or IsTrusted(Identity) instead.")]
         public void VerifyTrust()
         {
-            if (TrustedIdentity == null) { throw new InvalidOperationException("Unable to verify trust, no trusted identity set."); }
-            var now = DateTime.UtcNow;
-            if (IssuedAt > now) { throw new DateExpirationException("Identity is not yet valid, issued at date in the future."); }
-            if (IssuedAt > ExpiresAt) { throw new DateExpirationException("Invalid expiration date, expires at before issued at."); }
-            if (ExpiresAt < now) { throw new DateExpirationException("Identity has expired."); }
-            lock (Lock)
-            {
-                if (_trustedIdentity.SystemName != SystemName) { throw new UntrustedIdentityException("Unable to trust identity, identity part of another system."); }
-            }
-            TrustChain?.VerifyTrust();
-            var publicKey = TrustChain != null ? TrustChain.PublicKey : TrustedIdentity.PublicKey;
-            try {
-                Crypto.VerifySignature(Encoded, Signature, Key.FromBase58Key(publicKey));
-            } catch (IntegrityException) 
+            if (!IsTrusted()) 
             {
                 throw new UntrustedIdentityException("Identity cannot be trusted.");
             }
         }
+
+        /// <summary>
+        /// Will verify if an identity can be trusted using the globally set Trusted Identity
+        /// (SetTrustedIdentity(Identity)). Once trust has been established it will also verify the issued at date and
+        /// the expires at date to see if these are valid.
+        /// </summary>
+        /// <returns>True if the identity is trusted.</returns>
+        /// <exception cref="InvalidOperationException">If global trusted identity is not set.</exception>
+        public bool IsTrusted()
+        {
+            if (TrustedIdentity == null) { throw new InvalidOperationException("Unable to verify trust, no global trusted identity set."); }
+            return IsTrusted(TrustedIdentity);
+        }
+
+        /// <summary>
+        /// Will verify if an identity can be trusted by a provided identity. An identity is trusted if it exists on the
+        /// same branch and later in the branch as the provided identity. Once trust has been established it will also
+        /// verify the issued at date and the expires at date to see if these are valid.
+        /// </summary>
+        /// <param name="trustedIdentity">The identity to verify the trust from.</param>
+        /// <returns>True if the identity is trusted.</returns>
+        /// <exception cref="DateExpirationException">If the issued at date is in the future, or if the expires at date is in the past.</exception>
+        public bool IsTrusted(Identity trustedIdentity)
+        {
+            if (trustedIdentity == null) { throw new ArgumentNullException(nameof(trustedIdentity),"Unable to verify trust, provided trusted identity must not be null."); }
+            if (VerifyChain(trustedIdentity) == null) return false;
+            var now = DateTime.UtcNow;
+            if (IssuedAt > now) { throw new DateExpirationException("Identity is not yet valid, issued at date in the future."); }
+            if (IssuedAt > ExpiresAt) { throw new DateExpirationException("Invalid expiration date, expires at before issued at."); }
+            if (ExpiresAt < now) { throw new DateExpirationException("Identity has expired."); }
+            return true;
+        }
+        
+        
 
         /// <summary>
         /// Will check if the identity has a specific capability.
@@ -279,6 +301,29 @@ namespace DiME
             var identity = new Identity();
             identity.Decode(encoded);
             return identity;
+        }
+
+        private Identity VerifyChain(Identity trustedIdentity)
+        {
+            Identity verifyingIdentity;
+            if (TrustChain != null && TrustChain.SubjectId.CompareTo(trustedIdentity.SubjectId) != 0)
+            {
+                verifyingIdentity = TrustChain.VerifyChain(trustedIdentity);
+            }
+            else
+            {
+                verifyingIdentity = trustedIdentity;
+            }
+            if (verifyingIdentity == null) return null;
+            try
+            {
+                Verify(verifyingIdentity.PublicKey);
+                return this;
+            }
+            catch (IntegrityException)
+            {
+                return null;
+            }
         }
         
         #endregion

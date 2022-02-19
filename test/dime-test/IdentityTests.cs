@@ -111,45 +111,82 @@ namespace DiME_test
         }
 
         [TestMethod]
-        public void VerifyTrustTest1()
+        public void IsTrustedTest1()
         {
             try {
                 Identity.SetTrustedIdentity(null);
                 var key = Key.Generate(KeyType.Identity);
                 var identity = IdentityIssuingRequest.Generate(key).SelfIssue(Guid.NewGuid(), 100L, key, Commons._SYSTEM_NAME);
                 Assert.IsTrue(identity.IsSelfSigned);
-                identity.VerifyTrust();
+                identity.IsTrusted();
             } catch (InvalidOperationException) { return; } // All is well
             Assert.IsTrue(false, "This should not happen.");
         }
 
         [TestMethod]
-        public void VerifyTrustTest2()
+        public void IsTrustedTest2()
         {
             Identity.SetTrustedIdentity(Commons.TrustedIdentity);
             var caps = new List<Capability> { Capability.Generic };
             var identity = IdentityIssuingRequest.Generate(Key.Generate(KeyType.Identity)).Issue(Guid.NewGuid(), 100L, Commons.IntermediateKey, Commons.IntermediateIdentity, caps);
-            identity.VerifyTrust();
+            Assert.IsTrue(identity.IsTrusted());
         }
 
         [TestMethod]
-        public void VerifyTrustTest3()
+        public void IsTrustedTest3()
         {
             Identity.SetTrustedIdentity(null);
             var key = Key.Generate(KeyType.Identity);
             var identity = IdentityIssuingRequest.Generate(key).SelfIssue(Guid.NewGuid(), 100L, key, Commons._SYSTEM_NAME);
             Identity.SetTrustedIdentity(Commons.TrustedIdentity);
-            try {
-                identity.VerifyTrust();
-            } catch (UntrustedIdentityException) { return; } // All is well
-            Assert.IsTrue(false, "This should not happen.");
+            Assert.IsFalse(identity.IsTrusted());
         }
 
         [TestMethod]
-        public void VerifyTrustTest4()
+        public void IsTrustedTest4()
         {
             Identity.SetTrustedIdentity(Commons.TrustedIdentity);
-            Commons.IntermediateIdentity.VerifyTrust();
+            Assert.IsTrue(Commons.IntermediateIdentity.IsTrusted());
+        }
+        
+        [TestMethod]
+        public void IsTrustedTest5()
+        {
+            Identity.SetTrustedIdentity(Commons.TrustedIdentity);
+            Assert.IsTrue(Commons.AudienceIdentity.IsTrusted());
+        }
+        
+        [TestMethod]
+        public void IsTrustedTest6()
+        {
+            Identity.SetTrustedIdentity(null);
+            Assert.IsTrue(Commons.AudienceIdentity.IsTrusted(Commons.IntermediateIdentity));
+        }
+        
+        [TestMethod]
+        public void IsTrustedTest7()
+        {
+            Identity.SetTrustedIdentity(null);
+            Assert.IsFalse(Commons.AudienceIdentity.IsTrusted(Commons.IssuerIdentity));
+        }
+        
+        [TestMethod]
+        public void IsTrustedTest8() {
+            Identity.SetTrustedIdentity(Commons.TrustedIdentity);
+            var nodeCaps = new List<Capability> { Capability.Generic, Capability.Issue };
+            var key1 = Key.Generate(KeyType.Identity);
+            var node1 = IdentityIssuingRequest.Generate(key1, nodeCaps).Issue(Guid.NewGuid(), 100L, Commons.TrustedKey, Commons.TrustedIdentity,nodeCaps, nodeCaps);
+            var key2 = Key.Generate(KeyType.Identity);
+            var node2 = IdentityIssuingRequest.Generate(key2, nodeCaps).Issue(Guid.NewGuid(), 100L, key1, node1, nodeCaps, nodeCaps);
+            var key3 = Key.Generate(KeyType.Identity);
+            var node3 = IdentityIssuingRequest.Generate(key3, nodeCaps).Issue(Guid.NewGuid(), 100L, key2, node2, nodeCaps, nodeCaps);
+            var leafCaps = new List<Capability> { Capability.Generic };
+            var leaf = IdentityIssuingRequest.Generate(Key.Generate(KeyType.Identity), leafCaps).Issue(Guid.NewGuid(), 100L, key3, node3, leafCaps, leafCaps);
+            Assert.IsTrue(leaf.IsTrusted());
+            Assert.IsTrue(leaf.IsTrusted(node1));
+            Assert.IsTrue(leaf.IsTrusted(node2));
+            Assert.IsTrue(leaf.IsTrusted(node3));
+            Assert.IsFalse(leaf.IsTrusted(Commons.IntermediateIdentity));
         }
 
         [TestMethod]
@@ -179,11 +216,11 @@ namespace DiME_test
             Assert.AreEqual(DateTime.Parse("2021-12-02T22:31:40.256988Z").ToUniversalTime(), identity.IssuedAt);
             Assert.AreEqual(DateTime.Parse("2022-12-02T22:31:40.256988Z").ToUniversalTime(), identity.ExpiresAt);
             Assert.AreEqual(Commons.IntermediateIdentity.SubjectId, identity.IssuerId);
-            Assert.AreEqual("2TDXdoNviR4ReMTz8ADQ365XFFHvjcK9jutaym3g3eYybRL8Yax1XCScY", identity.PublicKey);
+            Assert.AreEqual("2TDXdoNviR4ReMTz8ADQ365XFFHvjcK9jutaym3g3eYybRL8Yax1XCScY", identity.PublicKey.Public);
             Assert.IsTrue(identity.HasCapability(Capability.Generic));
             Assert.IsTrue(identity.HasCapability(Capability.Identify));
             Assert.IsNotNull(identity.TrustChain);
-            identity.VerifyTrust();
+            Assert.IsTrue(identity.IsTrusted());
         }
 
         [TestMethod]
