@@ -123,8 +123,8 @@ namespace DiME
         /// <summary>
         /// Will issue a new Identity instance from the IIR. This method should only be called after the IIR has been
         /// validated to meet context and application specific requirements. The only exception is the capabilities,
-        /// that may be validated during the issuing, by providing allowed and required capabilities. The system name of
-        /// the issued identity will be set to the same as the issuing identity.
+        /// that may be validated during the issuing, by providing allowed and required capabilities. If system is
+        /// omitted, then the issued identity will be set to the system same as the issuing identity.
         /// </summary>
         /// <param name="subjectId">The subject identifier of the entity. For a new identity this may be anything, for a
         /// re-issue it should be the same as subject identifier used previously.</param>
@@ -137,14 +137,16 @@ namespace DiME
         /// <param name="allowedCapabilities">A list of capabilities that may be present in the IIR to allow issuing.</param>
         /// <param name="requiredCapabilities">A list of capabilities that will be added (if not present in the IIR)
         /// before issuing.</param>
+        /// <param name="systemName">The name of the system, or network, that the identity should be a part of.</param>
         /// <param name="ambits">A list of ambits that will apply to the issued identity.</param>
         /// <param name="methods">A list of methods that will apply to the issued identity.</param>
         /// <returns>An Identity instance that may be sent back to the entity that proved the IIR.</returns>
         /// <exception cref="ArgumentNullException"></exception>
-        public Identity Issue(Guid subjectId, long validFor, Key issuerKey, Identity issuerIdentity, bool includeChain, List<Capability> allowedCapabilities, List<Capability> requiredCapabilities = null, List<string> ambits = null, List<string> methods = null) 
+        public Identity Issue(Guid subjectId, long validFor, Key issuerKey, Identity issuerIdentity, bool includeChain, List<Capability> allowedCapabilities, List<Capability> requiredCapabilities = null, string systemName = null, List<string> ambits = null, List<string> methods = null) 
         {    
             if (issuerIdentity == null) { throw new ArgumentNullException(nameof(issuerIdentity), "Issuer identity must not be null."); }
-            return IssueNewIdentity(issuerIdentity.SystemName, subjectId, validFor, issuerKey, issuerIdentity, includeChain, allowedCapabilities, requiredCapabilities, ambits, methods);
+            var sys = systemName is {Length: > 0} ? systemName : issuerIdentity.SystemName;
+            return IssueNewIdentity(sys, subjectId, validFor, issuerKey, issuerIdentity, includeChain, allowedCapabilities, requiredCapabilities, ambits, methods);
         }
 
         /// <summary>
@@ -190,17 +192,15 @@ namespace DiME
             _claims = JsonSerializer.Deserialize<IirClaims>(json);
             _capabilities = new List<string>(_claims.cap).ConvertAll(str => {
                 Enum.TryParse<Capability>(str, true, out var cap); return cap; });
-            if (components.Length == NbrComponentsWithSignature)
-            {
-                Encoded = encoded.Substring(0, encoded.LastIndexOf(Envelope._COMPONENT_DELIMITER));
-                Signature = components[SignatureIndex];
-            }
+            if (components.Length != NbrComponentsWithSignature) return; // No signature, decoding is done
+            Encoded = encoded[..encoded.LastIndexOf(Envelope._COMPONENT_DELIMITER)];
+            Signature = components[SignatureIndex];
         }
 
         protected override string Encode()
         {
             if (Encoded != null) return Encoded;
-            StringBuilder builder = new StringBuilder();
+            var builder = new StringBuilder();
             builder.Append(_TAG);
             builder.Append(Envelope._COMPONENT_DELIMITER);
             builder.Append(Utility.ToBase64(JsonSerializer.Serialize(_claims)));
