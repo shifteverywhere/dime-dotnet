@@ -108,12 +108,12 @@ namespace DiME
         {
             if (context is {Length: > Envelope._MAX_CONTEXT_LENGTH}) { throw new ArgumentException("Context must not be longer than " + Envelope._MAX_CONTEXT_LENGTH + "."); }
             var iat = DateTime.UtcNow;
-            DateTime? exp = (validFor != -1) ? iat.AddSeconds(validFor) : null; 
+            DateTime? exp = validFor != -1 ? iat.AddSeconds(validFor) : null; 
             _claims = new MessageClaims(Guid.NewGuid(), 
                 audienceId, 
                 issuerId, 
                 Utility.ToTimestamp(iat), 
-                (exp.HasValue) ? Utility.ToTimestamp(exp.Value) : null, 
+                exp.HasValue ? Utility.ToTimestamp(exp.Value) : null, 
                 null, 
                 null, 
                 null,

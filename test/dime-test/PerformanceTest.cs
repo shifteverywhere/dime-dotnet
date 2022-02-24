@@ -14,7 +14,6 @@ using DiME;
 
 namespace DiME_test
 {
-    
     [TestClass]
     public class PerformanceTests
     {
@@ -104,7 +103,7 @@ namespace DiME_test
             sw.Start();
             for(var i = 0; i < PerformanceRounds; i++) {
                 var dime = dimeList[i];
-                var identity = Item.Import<Identity>(dime);
+                Item.Import<Identity>(dime);
             }
             sw.Stop();
             Console.WriteLine($" DONE \n\t - Total: {sw.Elapsed}s\n");
@@ -114,5 +113,5 @@ namespace DiME_test
             
         }
     }
-
+    
 }

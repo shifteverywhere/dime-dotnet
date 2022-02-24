@@ -66,21 +66,20 @@ namespace DiME
         public static Key GenerateKey(KeyType type)
         {
             if (type is KeyType.Encryption or KeyType.Authentication) {
-                var secretKey = Utility.RandomBytes(Crypto.NbrSKeyBytes);
+                var secretKey = Utility.RandomBytes(NbrSKeyBytes);
                 return new Key(Guid.NewGuid(), type, secretKey, null);
-            } else
-            {
-                var keypair = type switch
-                {
-                    KeyType.Identity => SodiumPublicKeyAuth.GenerateRevampedKeyPair(),
-                    KeyType.Exchange => SodiumKeyExchange.GenerateRevampedKeyPair(),
-                    _ => throw new ArgumentException("Unknown key type.", nameof(type))
-                };
-                return new Key(Guid.NewGuid(), 
-                                type, 
-                                keypair.PrivateKey,
-                                keypair.PublicKey);
             }
+            // If it wasn't Encryption or Authentication generation continues here
+            var keypair = type switch
+            {
+                KeyType.Identity => SodiumPublicKeyAuth.GenerateRevampedKeyPair(),
+                KeyType.Exchange => SodiumKeyExchange.GenerateRevampedKeyPair(),
+                _ => throw new ArgumentException("Unknown key type.", nameof(type))
+            };
+            return new Key(Guid.NewGuid(), 
+                type, 
+                keypair.PrivateKey,
+                keypair.PublicKey);
         }
 
         #region -- KEY AGREEMENT --
@@ -129,7 +128,7 @@ namespace DiME
         {
             if (plainText == null || plainText.Length == 0) { throw new ArgumentNullException(nameof(plainText), "Plain text to encrypt must not be null and not have a length of 0."); }
             if (key?.RawSecret == null) { throw new ArgumentNullException(nameof(key), "Key must not be null."); }
-            var nonce = Utility.RandomBytes(Crypto.NbrNonceBytes);
+            var nonce = Utility.RandomBytes(NbrNonceBytes);
             var cipherText = SodiumSecretBox.Create(plainText, nonce, key.RawSecret);
             return Utility.Combine(nonce, cipherText);
         }
@@ -145,8 +144,8 @@ namespace DiME
         {
             if (cipherText == null ||cipherText.Length == 0) { throw new ArgumentNullException(nameof(cipherText), "Cipher text to decrypt must not be null and not have a length of 0."); }
             if (key?.RawSecret == null) { throw new ArgumentNullException(nameof(key), "Key must not be null."); }
-            var nonce = Utility.SubArray(cipherText, 0, Crypto.NbrNonceBytes);
-            var data = Utility.SubArray(cipherText, Crypto.NbrNonceBytes);
+            var nonce = Utility.SubArray(cipherText, 0, NbrNonceBytes);
+            var data = Utility.SubArray(cipherText, NbrNonceBytes);
             return SodiumSecretBox.Open(data, nonce, key.RawSecret);
         }
 
@@ -161,7 +160,7 @@ namespace DiME
         /// <returns>The generated secure hash.</returns>
         public static byte[] GenerateHash(string data)
         {
-            return Crypto.GenerateHash(Encoding.UTF8.GetBytes(data));
+            return GenerateHash(Encoding.UTF8.GetBytes(data));
         }
 
         /// <summary>
@@ -171,7 +170,7 @@ namespace DiME
         /// <returns>The generated secure hash.</returns>
         public static byte[] GenerateHash(byte[] data)
         {
-            return SodiumGenericHash.ComputeHash(Crypto.NbrHashBytes, data);
+            return SodiumGenericHash.ComputeHash(NbrHashBytes, data);
         }
 
         #endregion

@@ -39,7 +39,7 @@ namespace DiME_test
             const string base58 = "1RUP8qykPEgwU7tFVRBorfw2BdwmQX9q9VR5oELDCQndpL";
             var bytes = Base58.Decode(base58);
             Assert.IsTrue(bytes[0] == 0x00);
-            var decoded = System.Text.Encoding.UTF8.GetString(Utility.SubArray(bytes, 1));
+            var decoded = Encoding.UTF8.GetString(Utility.SubArray(bytes, 1));
             Assert.AreEqual("Racecar is racecar backwards.", decoded);
         }
 

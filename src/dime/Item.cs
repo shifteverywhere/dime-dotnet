@@ -31,7 +31,7 @@ namespace DiME
         /// <summary>
         /// Checks if the item has been signed or not.
         /// </summary>
-        public bool IsSigned => this.Signature != null;
+        public bool IsSigned => Signature != null;
 
         /// <summary>
         /// Will import an item from a DiME encoded string. Di:ME envelopes cannot be imported using this method, for
@@ -68,7 +68,7 @@ namespace DiME
         public virtual void Sign(Key key)
         {
             if (IsSigned) { throw new InvalidOperationException("Unable to sign item, it is already signed."); }
-            if (key == null || key.Secret == null) { throw new ArgumentNullException(nameof(key), "Unable to sign item, key for signing must not be null."); }
+            if (key?.Secret == null) { throw new ArgumentNullException(nameof(key), "Unable to sign item, key for signing must not be null."); }
             Signature = Crypto.GenerateSignature(Encode(), key);
         }
 

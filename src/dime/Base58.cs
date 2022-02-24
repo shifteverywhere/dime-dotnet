@@ -32,8 +32,8 @@ namespace DiME
 		///<returns>Base 58 encoded string</returns>
 		public static string Encode(byte[] data, byte[] prefix) {
 			if (data is not {Length: > 0}) return null;
-			var length = (prefix != null) ? prefix.Length + data.Length : data.Length;
-			var bytes = new byte[length + Base58.NbrChecksumBytes];
+			var length = prefix != null ? prefix.Length + data.Length : data.Length;
+			var bytes = new byte[length + NbrChecksumBytes];
 			if (prefix != null) {
 				Buffer.BlockCopy(prefix, 0, bytes, 0, prefix.Length);
 				Buffer.BlockCopy(data, 0, bytes, prefix.Length, data.Length);
@@ -41,8 +41,8 @@ namespace DiME
 				Buffer.BlockCopy(data, 0, bytes, 0, data.Length);
 			}
 
-			var checksum = Base58.DoubleHash(bytes, length);
-			Buffer.BlockCopy(checksum, 0, bytes, length, Base58.NbrChecksumBytes);
+			var checksum = DoubleHash(bytes, length);
+			Buffer.BlockCopy(checksum, 0, bytes, length, NbrChecksumBytes);
 			// Count leading zeros, to know where to start
 			var start = bytes.TakeWhile(aByte => aByte == 0).Count();
 
@@ -69,10 +69,10 @@ namespace DiME
 			if (encoded.Length == 0) {
             	return Array.Empty<byte>();
         	}
-			byte[] input58 = new byte[encoded.Length];
-			for (int i = 0; i < encoded.Length; ++i) {
-				char c = encoded[i];
-				int digit = (c < 128) ? Base58.ReverseTable[c] : -1;
+			var input58 = new byte[encoded.Length];
+			for (var i = 0; i < encoded.Length; ++i) {
+				var c = encoded[i];
+				var digit = c < 128 ? ReverseTable[c] : -1;
 				input58[i] = (byte) digit;
 			}
 			// Count leading zeros to know how many to restore
@@ -93,19 +93,19 @@ namespace DiME
 			}
 
 			var result = Utility.SubArray(decoded, position - start);
-			var data = Utility.SubArray(result, 0, result.Length - Base58.NbrChecksumBytes);
-			var checksum = Utility.SubArray(result, result.Length - Base58.NbrChecksumBytes);
-			var actualChecksum = Utility.SubArray(Base58.DoubleHash(data, result.Length - Base58.NbrChecksumBytes), 0, Base58.NbrChecksumBytes);
-			return Base58.Compare(checksum, actualChecksum) ? data : Array.Empty<byte>();
+			var data = Utility.SubArray(result, 0, result.Length - NbrChecksumBytes);
+			var checksum = Utility.SubArray(result, result.Length - NbrChecksumBytes);
+			var actualChecksum = Utility.SubArray(DoubleHash(data, result.Length - NbrChecksumBytes), 0, NbrChecksumBytes);
+			return Compare(checksum, actualChecksum) ? data : Array.Empty<byte>();
 		}
 
 		#endregion
 
 		static Base58() 
 		{
-			Array.Fill(Base58.ReverseTable, -1);
-			for (var i = 0; i < Base58.IndexTable.Length; i++) {
-				Base58.ReverseTable[Base58.IndexTable[i]] = i;
+			Array.Fill(ReverseTable, -1);
+			for (var i = 0; i < IndexTable.Length; i++) {
+				ReverseTable[IndexTable[i]] = i;
 			}
 		}
 
@@ -117,13 +117,13 @@ namespace DiME
 
 		private static byte[] DoubleHash(byte[] message, int length) {
 			var toHash = Utility.SubArray(message, 0, length);
-			SHA256 sha256 = SHA256.Create();
+			var sha256 = SHA256.Create();
 			return sha256.ComputeHash(sha256.ComputeHash(toHash));
 		}
 
-		private static byte CalculateIndex(byte[] bytes, int position, int aBase, int divisor) {
+		private static byte CalculateIndex(IList<byte> bytes, int position, int aBase, int divisor) {
 			var remainder = 0;
-			for (var i = position; i < bytes.Length; i++) {
+			for (var i = position; i < bytes.Count; i++) {
 				var digit = bytes[i] & 255;
 				var temp = remainder * aBase + digit;
 				bytes[i] = (byte)(temp / divisor);

@@ -78,7 +78,7 @@ namespace DiME
         public Envelope(Guid issuerId, string context = null)
         {
             var now = Utility.ToTimestamp(DateTime.UtcNow);
-            if (context is {Length: > _MAX_CONTEXT_LENGTH}) { throw new ArgumentException($"Context must not be longer than {Envelope._MAX_CONTEXT_LENGTH}.", nameof(context)); }
+            if (context is {Length: > _MAX_CONTEXT_LENGTH}) { throw new ArgumentException($"Context must not be longer than {_MAX_CONTEXT_LENGTH}.", nameof(context)); }
             _claims = new DimeClaims(issuerId, now, context);
         }
 
@@ -200,13 +200,9 @@ namespace DiME
         /// <exception cref="InvalidOperationException"></exception>
         public string Export()
         {
-            if (!IsAnonymous)
-            {
-                if (_signature == null) { throw new InvalidOperationException("Unable to export, envelope is not signed."); }
-                return $"{Encode()}{SectionDelimiter}{_signature}";
-            }
-            else
-                return Encode();
+            if (IsAnonymous) return Encode();
+            if (_signature == null) { throw new InvalidOperationException("Unable to export, envelope is not signed."); }
+            return $"{Encode()}{SectionDelimiter}{_signature}";
         }
 
         /// <summary>
@@ -218,7 +214,7 @@ namespace DiME
         public string Thumbprint()
         {
             var encoded = IsAnonymous ? Encode() : $"{Encode()}{SectionDelimiter}{_signature}";
-            return Envelope.Thumbprint(encoded);
+            return Thumbprint(encoded);
         }
 
         /// <summary>
