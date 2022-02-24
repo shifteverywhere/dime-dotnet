@@ -8,16 +8,18 @@
     <Company>Shift Everywhere</Company>
     <Authors>Niclas Kjellin</Authors>
     <PackageId>DiME</PackageId>
-    <PackageVersion>1.0.1</PackageVersion>
+    <PackageVersion>1.0.2</PackageVersion>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageProjectUrl>https://docs.dimeformat.io</PackageProjectUrl>
     <RepositoryUrl>https://github.com/shifteverywhere/dime-dotnet-ref</RepositoryUrl>
     <PackageTags>dime pki trust cerificate end-to-end encryption iot messaging device identity data format secure communication integrity confidentiality</PackageTags>
     <PackageReleaseNotes>https://github.com/shifteverywhere/dime-dotnet-ref/blob/main/CHANGES.md</PackageReleaseNotes>
+    <PackageIcon>icon.png</PackageIcon>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="ASodium" Version="0.5.3" />
+    <None Include="images\icon.png" Pack="true" PackagePath="\" />
   </ItemGroup>
 
 </Project>
