@@ -1,13 +1,14 @@
 # Di:ME C#/.NET reference implementation
 
-Di:ME (Data Integrity Message Envelope) is a powerful universal data format that is built for secure, and integrity protected communication between entities in a trusted network. It is built with modern thinking and ease-of-use throughout. Although it can be used together with X.509 certificates, it has its own built in public key-based entity identification through a trusted chain. This makes it equally suitable as an alternative to certificate-based PKIs.
+Di:ME (Data Integrity Message Envelope) is a powerful universal data format that is built for secure, and integrity-protected communication between entities in a trusted network. It is built with modern thinking and ease of use throughout. Although it can be used together with X.509 certificates, it has it's own built-in public key-based entity identification through a trusted chain. This makes it equally suitable as an alternative to certificate-based PKIs.
 
 Potential use cases for Di:ME includes:
-•	IOT networks for distributing sensitive data, including collected sensor data, operation instructions, patches and firmware updates
-•	Automatic processing where audit trails and results logging is curial
-•	Peer-to-peer messaging where each responses gets cryptographically linked
-•	Distribution of sensitive information and records within large networks
-•	Establishing application-based networks with trusted entities
+
+- IOT networks for distributing sensitive data, including collected sensor data, operation instructions, patches, and firmware updates
+- Automatic processing where audit trails and results logging is curial
+- Peer-to-peer messaging where each response gets cryptographically linked
+- Distribution of sensitive information and records within large networks
+- Establishing application-based networks with trusted entities
 
 The strength of Di:ME is its modular format, where applications and networks can pick and mix to suit their own specific needs. At the same time, it removes the need to build complicated mechanisms for authenticating senders and validating payloads of data.
 
@@ -15,11 +16,11 @@ More information can be found at the official documentation page: [docs](docs.di
 
 ## Code examples
 
-Here follow a few simple examples of how to use Di:ME. Note that there is much more features available, refer to the official documentation for further details.
+Here follow a few simple examples of how to use Di:ME. Note that there are much more features available, refer to the official documentation for further details.
 
 ### Key generation example
 
-Creating a public-key pair to use for creating Identity Issuing Requests (IIRs), signing messages or issuing other identities:
+Creating a public-key pair to use for creating Identity Issuing Requests (IIRs), signing messages, or issuing other identities:
 
 ```
 var key = Key.Generate(KeyType.Identity);
@@ -27,7 +28,7 @@ var key = Key.Generate(KeyType.Identity);
 
 ### Self issuing example
 
-Create a self issued, or root, identity with the capability to issue other identities:
+Create a self-issued, or root, identity with the capability to issue other identities:
 
 ```
 var subjectId = Guid.NewGuid();
@@ -49,13 +50,13 @@ var iir = IdentityIssuingRequest.Generate(key, caps);
 var client = iir.Issue(subjectId, IdentityIssuingRequest._VALID_FOR_1_YEAR, key, root, true, caps);
 ```
 
-This will create a trust chain. Normally the IIR is generated on the client side and sent to the server to request a new identity. The generated key should be kept on the client side and stored securely. The key is needed when generating and verifying messages.
+This will create a trust chain. Normally the IIR is generated on the client-side and sent to the server to request a new identity. The generated key should be kept on the client-side and stored securely. The key is needed when generating and verifying messages.
 
-In the above example the client would be asking for an identity with the capabilities Generic and Identify. Generally Identify should be given when the client has been authenticated and when authentication is not done only Generic would be used. This is very system and application specific.
+In the above example, the client would be asking for an identity with the capabilities Generic and Identify. Generally Identify should be given when the client has been authenticated and when authentication is not done only Generic would be used. This is very system and application-specific.
 
 ### Verify the trust of an identity
 
-Verify the trust of a client identity from a system wide root identity:
+Verify the trust of a client identity from a system-wide root identity:
 
 ```
 Identity.SetTrustedIdentity(root);
@@ -82,7 +83,7 @@ message.Sign(key);
 var exported = message.Export();
 ```
 
-Message is signed with a previously created key, which is associated with the issuer (sender). Finally, the message is exported to a Di:ME encoded string that can be send to the audience (receiver).
+The message is signed with a previously created key, which is associated with the issuer (sender). Finally, the message is exported to a Di:ME encoded string that can be sent to the audience (receiver).
 
 ### End-to-end encrypted message example
 
@@ -126,4 +127,4 @@ Generating a thumbprint from a Di:ME envelope (exported Di:ME item):
 var thumbprint = Envelope.Thumbprint(exportedIdentity));
 ```
 
-Thumbprints can be used to quickly verify if the Di:ME item has changed, or it the item that was expected. A thumbprint is a cryptographic hash of the whole Di:ME item.
+Thumbprints can be used to quickly verify if the Di:ME item has changed, or it is the item that was expected. A thumbprint is a cryptographic hash of the whole Di:ME item.
