@@ -12,3 +12,118 @@ Potential use cases for Di:ME includes:
 The strength of Di:ME is its modular format, where applications and networks can pick and mix to suit their own specific needs. At the same time, it removes the need to build complicated mechanisms for authenticating senders and validating payloads of data.
 
 More information can be found at the official documentation page: [docs](docs.dimeformat.io)
+
+## Code examples
+
+Here follow a few simple examples of how to use Di:ME. Note that there is much more features available, refer to the official documentation for further details.
+
+### Key generation example
+
+Creating a public-key pair to use for creating Identity Issuing Requests (IIRs), signing messages or issuing other identities:
+
+```
+var key = Key.Generate(KeyType.Identity);
+```
+
+### Self issuing example
+
+Create a self issued, or root, identity with the capability to issue other identities:
+
+```
+var subjectId = Guid.NewGuid();
+var key = Key.Generate(KeyType.Identity);            
+var caps = new List<Capability> { Capability.Generic, Capability.Issue };
+var iir = IdentityIssuingRequest.Generate(key, caps);
+var root = iir.SelfIssue(subjectId, IdentityIssuingRequest._VALID_FOR_1_YEAR * 10, key, "example-system");
+```
+
+### Issue an identity from the root Identity
+
+Issue a new identity from a root identity (the one created above):
+
+```
+var subjectId = Guid.NewGuid();
+var key = Key.Generate(KeyType.Identity);
+var caps = new List<Capability> { Capability.Generic, Capability.Identify };
+var iir = IdentityIssuingRequest.Generate(key, caps);
+var client = iir.Issue(subjectId, IdentityIssuingRequest._VALID_FOR_1_YEAR, key, root, true, caps);
+```
+
+This will create a trust chain. Normally the IIR is generated on the client side and sent to the server to request a new identity. The generated key should be kept on the client side and stored securely. The key is needed when generating and verifying messages.
+
+In the above example the client would be asking for an identity with the capabilities Generic and Identify. Generally Identify should be given when the client has been authenticated and when authentication is not done only Generic would be used. This is very system and application specific.
+
+### Verify the trust of an identity
+
+Verify the trust of a client identity from a system wide root identity:
+
+```
+Identity.SetTrustedIdentity(root);
+client.IsTrusted();
+```
+
+Verify the trust of a client identity from a specified identity:
+
+```
+client.IsTrusted(root);
+```
+
+Note that the above example has the same effect as the previous example. However, being able to specify which identity to verify from may be useful in more complex trust structures.
+
+### Message example
+
+Creating a signed message with a payload:
+
+```
+var payload = Encoding.UTF8.GetBytes("Racecar is racecar backwards.");
+var message = new Message(client.SubjectId, root.SubjectId, 120L);
+message.SetPayload(payload);
+message.Sign(key);
+var exported = message.Export();
+```
+
+Message is signed with a previously created key, which is associated with the issuer (sender). Finally, the message is exported to a Di:ME encoded string that can be send to the audience (receiver).
+
+### End-to-end encrypted message example
+
+Creating a signed message with an end-to-end encrypted payload:
+
+```
+var localKey = Key.Generate(KeyType.Exchange);
+var message = new Message(client.SubjectId, root.SubjectId, 120L);
+message.SetPayload(Encoding.UTF8.GetBytes("Racecar is racecar backwards."), localKey, remoteKey);
+message.Sign(key);
+var exported = message.Export();
+```
+
+The remoteKey used in the example has to be distributed earlier. Notice that localKey is generated with the key type Exchange.
+
+### Linking a received message to a response message
+
+Cryptographically linking a message together, so that it is possible to verify that a response is actually for a particular message received earlier:
+
+```
+var receivedMessage = Item.Import<Message>(exportedMessageReceived);
+var responseMessage = new Message(receivedMessage.IssuerId, client.SubjectId, 120L);
+responseMessage.SetPayload(Encoding.UTF8.GetBytes("Racecar is racecar backwards."));
+responseMessage.LinkItem(receivedMessage);
+responseMessage.Sign(Commons.AudienceKey);
+var exportedMessageResponse = responseMessage.Export();
+```
+
+### Generating thumbprints
+
+Generating a thumbprint from a Di:ME identity that has been imported:
+
+```
+var identity = Item.Import<Identity>(exportedIdentity);
+var thumbprint = identity.Thumbprint()
+```
+
+Generating a thumbprint from a Di:ME envelope (exported Di:ME item):
+
+```
+var thumbprint = Envelope.Thumbprint(exportedIdentity));
+```
+
+Thumbprints can be used to quickly verify if the Di:ME item has changed, or it the item that was expected. A thumbprint is a cryptographic hash of the whole Di:ME item.
