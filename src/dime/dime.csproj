@@ -15,6 +15,7 @@
     <PackageTags>dime pki trust cerificate end-to-end encryption iot messaging device identity data format secure communication integrity confidentiality</PackageTags>
     <PackageReleaseNotes>https://github.com/shifteverywhere/dime-dotnet-ref/blob/main/CHANGES.md</PackageReleaseNotes>
     <PackageIcon>icon.png</PackageIcon>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
   </PropertyGroup>
 
   <ItemGroup>
