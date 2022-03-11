@@ -1,5 +1,8 @@
 # CHANGES
 
+## Version 1.0.2 - 2022-03-11
+- Includes documentation in packaged NUGET to support IntelliSense (etc.)
+
 ## Version 1.0.1 - 2022-02-24
 - Allows for systemName to be set when issuing a new identity. If none is provided, then the systemName from the issuing identity is used
 - Adds an option to exclude the trust chain from an issued identity, allows for more flexible usage and trust verification
