@@ -139,7 +139,12 @@ namespace DiME
         /// <returns>A new instance of the key with only the public part.</returns>
         public Key PublicCopy()
         {
-            return new Key(UniqueId, Type, null, RawPublic);
+            var copy = new Key(UniqueId, Type, null, RawPublic);
+            copy._claims.iat = _claims.iat;
+            copy._claims.exp = _claims.exp;
+            copy._claims.iss = _claims.iss;
+            copy._claims.ctx = _claims.ctx;
+            return copy;
         }
 
         #endregion

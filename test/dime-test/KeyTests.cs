@@ -69,11 +69,16 @@ namespace DiME_test
         [TestMethod]
         public void PublicOnlyTest1()
         {
-            var key = Key.Generate(KeyType.Identity);
+            var key = Key.Generate(KeyType.Identity, 120, Guid.NewGuid(), "Racecar is racecar backwards.");
             Assert.IsNotNull(key.Secret);
             var pubOnly = key.PublicCopy();
             Assert.IsNull(pubOnly.Secret);
+            Assert.AreEqual(key.Public, pubOnly.Public);
             Assert.AreEqual(key.UniqueId, pubOnly.UniqueId);
+            Assert.AreEqual(key.IssuedAt, pubOnly.IssuedAt);
+            Assert.AreEqual(key.ExpiresAt, pubOnly.ExpiresAt);
+            Assert.AreEqual(key.IssuerId, pubOnly.IssuerId);
+            Assert.AreEqual(key.Context, pubOnly.Context);
         }
 
         [TestMethod]

@@ -1,5 +1,8 @@
 # CHANGES
 
+## Version 1.0.3 - 2022-03-29
+- Includes a fix where the public copy of a key did not receive the claims from the source key.
+
 ## Version 1.0.2 - 2022-03-11
 - Includes documentation in packaged NUGET to support IntelliSense (etc.)
 
