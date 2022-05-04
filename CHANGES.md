@@ -1,5 +1,10 @@
 # CHANGES
 
+## Version 1.0.4 - 2022-05-04
+- Minor fix to prepare for an upcoming change that allows for more than one item to be linked to a Message item.
+
+**NOTE:** *Version 1.0.4 is most likely the last version that will support .NET 5, this since end-of-support for .NET 5 is May 10, 2022. Future versions of Dime will support .NET 6 instead. *
+
 ## Version 1.0.3 - 2022-03-29
 - Includes a fix where the public copy of a key did not receive the claims from the source key.
 

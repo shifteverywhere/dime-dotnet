@@ -12,7 +12,7 @@ Potential use cases for Di:ME includes:
 
 The strength of Di:ME is its modular format, where applications and networks can pick and mix to suit their own specific needs. At the same time, it removes the need to build complicated mechanisms for authenticating senders and validating payloads of data.
 
-More information can be found at the official documentation page: [docs](docs.dimeformat.io)
+More information can be found at the official documentation page: [docs](https://docs.dimeformat.io)
 
 ## Code examples
 
