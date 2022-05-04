@@ -92,7 +92,7 @@ namespace DiME
         public static Envelope Import(string exported)
         {
             if (!exported.StartsWith(_HEADER)) { throw new FormatException("Not a Dime envelope object, invalid header."); }
-            var sections = exported.Split(SectionDelimiter);
+            var sections = exported.Split(_SECTION_DELIMITER);
             // 0: HEADER
             var components = sections[0].Split(_COMPONENT_DELIMITER);
             Envelope dime;
@@ -118,7 +118,7 @@ namespace DiME
                dime._encoded = exported;
             else
             {
-                dime._encoded = exported[..exported.LastIndexOf(SectionDelimiter)];
+                dime._encoded = exported[..exported.LastIndexOf(_SECTION_DELIMITER)];
                 dime._signature = sections.Last(); 
             }
             return dime;
@@ -202,7 +202,7 @@ namespace DiME
         {
             if (IsAnonymous) return Encode();
             if (_signature == null) { throw new InvalidOperationException("Unable to export, envelope is not signed."); }
-            return $"{Encode()}{SectionDelimiter}{_signature}";
+            return $"{Encode()}{_SECTION_DELIMITER}{_signature}";
         }
 
         /// <summary>
@@ -213,7 +213,7 @@ namespace DiME
         /// <returns>The hash of the envelope as a hex string.</returns>
         public string Thumbprint()
         {
-            var encoded = IsAnonymous ? Encode() : $"{Encode()}{SectionDelimiter}{_signature}";
+            var encoded = IsAnonymous ? Encode() : $"{Encode()}{_SECTION_DELIMITER}{_signature}";
             return Thumbprint(encoded);
         }
 
@@ -233,12 +233,12 @@ namespace DiME
         #region -- INTERNAL --
         
         internal const char _COMPONENT_DELIMITER = '.';
+        internal const char _SECTION_DELIMITER = ':';
 
         #endregion
         
         #region -- PRIVATE --
 
-        private const char SectionDelimiter = ':';
         private List<Item> _items;
         private string _encoded;
         private string _signature;
@@ -278,7 +278,7 @@ namespace DiME
             }
             foreach(var item in _items)
             {
-                builder.Append(SectionDelimiter);
+                builder.Append(_SECTION_DELIMITER);
                 builder.Append(item.ToEncoded());
             }
             _encoded = builder.ToString();

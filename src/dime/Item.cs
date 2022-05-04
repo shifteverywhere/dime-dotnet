@@ -9,6 +9,7 @@
 using System;
 using System.Linq;
 
+#nullable enable
 namespace DiME
 {
     /// <summary>
@@ -44,8 +45,9 @@ namespace DiME
         public static T Import<T>(string exported) where T: Item, new()
         {
             var envelope = Envelope.Import(exported);
-            if (envelope.Items.Count > 1) { throw new FormatException("Multiple items found, import as 'Envelope' instead."); }
-            return (T)envelope.Items.First();
+            if (envelope.Items is {Count: > 1}) { throw new FormatException("Multiple items found, import as 'Envelope' instead."); }
+            if (envelope.Items != null) return (T) envelope.Items.First();
+            throw new NullReferenceException("Unable to import item, unexpected error occurred.");
         }
 
         /// <summary>
@@ -68,7 +70,7 @@ namespace DiME
         public virtual void Sign(Key key)
         {
             if (IsSigned) { throw new InvalidOperationException("Unable to sign item, it is already signed."); }
-            if (key?.Secret == null) { throw new ArgumentNullException(nameof(key), "Unable to sign item, key for signing must not be null."); }
+            if (key.Secret == null) { throw new ArgumentNullException(nameof(key), "Unable to sign item, key for signing must not be null."); }
             Signature = Crypto.GenerateSignature(Encode(), key);
         }
 
@@ -120,13 +122,14 @@ namespace DiME
         
         #region -- INTERNAL --
         
-        internal static Item FromEncoded(string encoded)
+        internal static Item? FromEncoded(string encoded)
         {
             var t = TypeFromTag(encoded[..encoded.IndexOf(Envelope._COMPONENT_DELIMITER)]);
-            var item = (Item)Activator.CreateInstance(t);
-            if (item == null) return null;
+            if (t == null) return null;
+            var item = (Item)Activator.CreateInstance(t)!;
             item.Decode(encoded);
             return item;
+
         }
         
         internal virtual string ToEncoded()
@@ -138,13 +141,33 @@ namespace DiME
         
         #region -- PROTECTED --
 
-        protected string Encoded;
-        protected string Signature;
-
+        /// <summary>
+        /// The encoded Di:ME item. Needs to remain intact once created or imported, this so thumbprints and signature
+        /// verifications will be correct. 
+        /// </summary>
+        protected string? Encoded;
+        /// <summary>
+        /// The signature of the Di:ME item, if any. Cannot be reproduced without the private key.
+        /// </summary>
+        protected string? Signature;
+ 
+        /// <summary>
+        /// Decodes an item. Abstract method that needs to be implemented in any subclass.
+        /// </summary>
+        /// <param name="encoded"></param>
         protected abstract void Decode(string encoded);
 
+        /// <summary>
+        /// Encodes an item and stores the result in Encoded. Abstract method that needs to be implemented in any
+        /// subclass.
+        /// </summary>
+        /// <returns></returns>
         protected abstract string Encode();
 
+        /// <summary>
+        /// Checks if the Di:ME item is signed, and if it is, will throw an exception.
+        /// </summary>
+        /// <exception cref="InvalidOperationException">If the item is signed.</exception>
         protected void ThrowIfSigned() {
             if (IsSigned) { throw new InvalidOperationException("Unable to complete operation, Di:ME item already signed."); }
         }
@@ -153,7 +176,7 @@ namespace DiME
 
         #region -- PRIVATE --
         
-        private static Type TypeFromTag(string tag)
+        private static Type? TypeFromTag(string tag)
         {
             return tag switch
             {

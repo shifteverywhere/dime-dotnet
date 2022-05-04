@@ -178,7 +178,8 @@ namespace DiME
             Verify(key);
             if (linkedItem == null) return;
             if (string.IsNullOrEmpty(_claims.lnk)) { throw new InvalidOperationException("No link to Dime item found, unable to verify."); }
-            var components = _claims.lnk.Split(new[] { Envelope._COMPONENT_DELIMITER });
+            var item = _claims.lnk.Split(new[] {Envelope._SECTION_DELIMITER})[0]; // This is in preparation of a future change where it would be possible to link more than one item
+            var components = item.Split(new[] { Envelope._COMPONENT_DELIMITER });
             if (components is not {Length: 3}) { throw new FormatException("Invalid data found in item link field."); }
             var msgHash = linkedItem.Thumbprint();
             if (components[LinkItemTypeIndex] != linkedItem.Tag

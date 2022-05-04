@@ -13,10 +13,25 @@ namespace DiME
     /// </summary>
     public enum AlgorithmFamily
     {
+        /// <summary>
+        /// Undefined algorithm.
+        /// </summary>
         Undefined = 0x00,
+        /// <summary>
+        /// Symmetric authentication encryption algorithm.
+        /// </summary>
         Aead = 0x10,
+        /// <summary>
+        /// Asymmetric Elliptic Curve key agreement algorithm.
+        /// </summary>
         Ecdh = 0x40,
+        /// <summary>
+        /// Asymmetric Edwards-curve digital signature algorithm
+        /// </summary>
         Eddsa = 0x80,
+        /// <summary>
+        /// Secure hashing algorithm.
+        /// </summary>
         Hash = 0xE0
     }
 
@@ -90,5 +105,5 @@ namespace DiME
         /// </summary>
         Public = 0x01
     }
-
+    
 }
