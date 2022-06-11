@@ -395,6 +395,40 @@ namespace DiME_test
             } catch (ArgumentException) { return; } // All is well
             Assert.IsTrue(false, "Should not happen.");
         }
+        
+        [TestMethod]
+        public void ExchangeAlienEncryptionTest1() 
+        {
+            var text = "Racecar is racecar backwards.";
+            var clientKey = Item.Import<Key>("Di:KEY.eyJ1aWQiOiIzOWYxMzkzMC0yYTJhLTQzOWEtYjBkNC1lMzJkMzc4ZDgyYzciLCJwdWIiOiIyREJWdG5NWlVjb0dZdHd3dmtjYnZBSzZ0Um1zOUZwNGJ4dHBlcWdha041akRVYkxvOXdueWRCUG8iLCJpYXQiOiIyMDIyLTA2LTAzVDEwOjUzOjM0LjQ0NDA0MVoiLCJrZXkiOiIyREJWdDhWOEF4UWR4UFZVRkJKOWdScFA1WDQzNnhMbVBrWW9RNzE1cTFRd2ZFVml1NFM3RExza20ifQ");
+            var serverKey = Item.Import<Key>("Di:KEY.eyJ1aWQiOiJjY2U1ZDU1Yi01NDI4LTRhMDUtOTZmYi1jZmU4ZTE4YmM3NWIiLCJwdWIiOiIyREJWdG5NYTZrcjNWbWNOcXNMSmRQMW90ZGtUMXlIMTZlMjV0QlJiY3pNaDFlc3J3a2hqYTdaWlEiLCJpYXQiOiIyMDIyLTA2LTAzVDEwOjUzOjM0Ljg0NjEyMVoiLCJrZXkiOiIyREJWdDhWOTV5N2lvb1A0bmRDajd6d3dqNW1MVExydVhaaGg0RTJuMUE0SHoxQkIycHB5WXY1blIifQ");
+
+            // This is received by the client //
+            var message = Item.Import<Message>("Di:MSG.eyJpc3MiOiIzOTA3MWIyNC04MGRmLTQyYzEtYWQwZS1jNmQ2ZmNmMjg5YmIiLCJ1aWQiOiJjNjExOWYxMC0wZDE3LTQ3NTItYTkwZS1lODlhOGI2OGIyY2MiLCJpYXQiOiIyMDIyLTA2LTAzVDEzOjU0OjM2Ljg4MDM3MVoifQ.8sdEJ3CuHLaA/DmYcCce+8iflhQwESkDwIF8xu69R4h6Pvt+k6HfDJjK+sYm4goKoA04hb8Zaq9wMGiuxXoqqBHAGqd/.WorEis9t8WdQiOW+yK2F8gLfBfrnlFk/W7FMmjBhPWpp7SAddq2UPvE0nRo1TvWdqonhb2gm2TPMp0O0X4ULAQ");
+            var payload = message.GetPayload(serverKey.PublicCopy(), clientKey);
+            Assert.AreEqual(text, Encoding.UTF8.GetString(payload));
+
+            // Client generate a response (to be sent to the server) //
+            var response = new Message(Guid.NewGuid());
+            response.SetPayload(Encoding.UTF8.GetBytes(text), serverKey.PublicCopy(), clientKey);
+            response.Sign(Key.Generate(KeyType.Identity));
+            var exported = response.Export();
+
+            // This would really happen on the server side //
+            var received = Item.Import<Message>(exported);
+            var payload2 = message.GetPayload(serverKey, clientKey.PublicCopy());
+            Assert.AreEqual(text, Encoding.UTF8.GetString(payload2));
+        }
+
+        [TestMethod]
+        public void ExchangeAlienMessageExportTest1()
+        {
+            var alienMessage =
+                "Di:MSG.eyJleHAiOiIyMDIyLTA2LTA4VDA5OjUxOjA4LjA3Mzk2MTNaIiwiaXNzIjoiNTFEQzdEMDEtODdEQy00NEM1LTlEMjctMEVGMjZEMjdCODVGIiwidWlkIjoiMTU3MjdFQTMtNDk0QS00QzVGLUE1M0UtMDE4Q0IyMUEzMjM5IiwiY3R4IjoiY29ubmVjdGlvbi1yZXF1ZXN0IiwiaWF0IjoiMjAyMi0wNi0wOFQwOTo0OTowOC4wNzM5NjEzWiJ9.eyJyZXF1ZXN0Ijp7InR5cCI6NSwiYWRkIjpbeyJ0eXAiOjEsIm1zZyI6IldlIHdpbGwgc2VuZCBhbiBTTVMgdG8gMDcqKioqKioqKjE5In1dLCJyZWYiOiJhR2J1RXdGYlVkfDV8RkpzQ09zb251bEtpMHRiTSIsImhkciI6IkJCTCAtIEFkZCBDb25uZWN0aW9uIiwibXNnIjoiRG8geW91IHdhbnQgdG8gY29ubmVjdCB0aGlzIHBob25lIHRvIEJCTD8ifX0.iAWGwidsaiI49xj2oNy5F2Yxubi+PC8WduUF+UuRQItxu4w60ILCnyWxRMD4kO78I1fcmbkDKbOa/o5+AgbhCA";
+            var message = Item.Import<Message>(alienMessage);
+            var reExported = message.Export();
+            Assert.AreEqual(alienMessage, reExported);
+        }
 
     }
 

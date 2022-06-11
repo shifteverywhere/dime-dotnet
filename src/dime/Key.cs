@@ -151,8 +151,8 @@ namespace DiME
 
         #region -- INTERNAL --
 
-        internal byte[] RawSecret => _claims.key != null ? Utility.SubArray(_claims.key, HeaderSize, _claims.key.Length - HeaderSize) : null;
-        internal byte[] RawPublic => _claims.pub != null ? Utility.SubArray(_claims.pub, HeaderSize, _claims.pub.Length - HeaderSize) : null;
+        public byte[] RawSecret => _claims.key != null ? Utility.SubArray(_claims.key, HeaderSize, _claims.key.Length - HeaderSize) : null;
+        public byte[] RawPublic => _claims.pub != null ? Utility.SubArray(_claims.pub, HeaderSize, _claims.pub.Length - HeaderSize) : null;
 
         internal Key(Guid id, KeyType type, byte[] key, byte[] pub)
         {
@@ -264,8 +264,8 @@ namespace DiME
                 this.uid = uid;
                 this.iat = iat;
                 this.exp = exp;
-                this.key = b58Key != null ? Base58.Decode(b58Key) : null;
-                this.pub = b58Pub != null ? Base58.Decode(b58Pub) : null;
+                key = b58Key != null ? Base58.Decode(b58Key) : null;
+                pub = b58Pub != null ? Base58.Decode(b58Pub) : null;
                 this.ctx = ctx;
             }
         }
