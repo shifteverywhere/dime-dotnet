@@ -223,7 +223,7 @@ namespace DiME
                 var issIdentity = Utility.FromBase64(components[ChainIndex]);
                 TrustChain = FromEncoded(Encoding.UTF8.GetString(issIdentity, 0, issIdentity.Length));
             }
-            Encoded = encoded.Substring(0, encoded.LastIndexOf(Envelope._COMPONENT_DELIMITER));
+            Encoded = encoded[..encoded.LastIndexOf(Envelope._COMPONENT_DELIMITER)];
             Signature = components[^1];
         }
 

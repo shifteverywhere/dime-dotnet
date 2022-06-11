@@ -280,15 +280,13 @@ namespace DiME
         protected override void Decode(string encoded)
         {
             var components = encoded.Split(new[] { Envelope._COMPONENT_DELIMITER });
-            if (components.Length is not (NbrExpectedComponentsNoSignature and NbrExpectedComponentsSignature)) 
-            { throw new FormatException($"Unexpected number of components for identity issuing request, expected: '{NbrExpectedComponentsNoSignature}' or '{NbrExpectedComponentsSignature}', got: '{components.Length}'."); }
+            if (components.Length is not NbrExpectedComponents) 
+            { throw new FormatException($"Unexpected number of components for identity issuing request, expected: '{NbrExpectedComponents}' or , got: '{components.Length}'."); }
             if (components[TagIndex] != _TAG) { throw new FormatException($"Unexpected item tag, expected: \"{_TAG}\", got: \"{components[TagIndex]}\"."); }
             _claims = JsonSerializer.Deserialize<MessageClaims>(Utility.FromBase64(components[ClaimsIndex]));
             _payload = components[PayloadIndex];
-            if (components.Length == NbrExpectedComponentsSignature)
-            {
-                Signature = components.Last();
-            }
+            Encoded = encoded[..encoded.LastIndexOf(Envelope._COMPONENT_DELIMITER)];
+            Signature = components.Last();
         }
 
         protected override string Encode()
@@ -308,8 +306,7 @@ namespace DiME
 
         #region -- PRIVATE --
 
-        private const int NbrExpectedComponentsSignature = 4;
-        private const int NbrExpectedComponentsNoSignature = 4;
+        private const int NbrExpectedComponents = 4;
         private const int TagIndex = 0;
         private const int ClaimsIndex = 1;
         private const int PayloadIndex = 2;
