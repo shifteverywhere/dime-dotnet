@@ -2,13 +2,13 @@
 
   <PropertyGroup>
     <TargetFramework>net5.0</TargetFramework>
-    <Description>Di:M.E (Data Integrity Message Envelope) is a powerful universal data format that is built for secure, and integrity protected communication between entities in a trusted network. It is built with modern thinking and ease-of-use throughout. Although it can be used together with X.509 certificates, it has its own built in public key-based entity identification through a trusted chain. This makes it equally suitable as an alternative to certificate-based PKIs.</Description>
+    <Description>Di:ME (Data Integrity Message Envelope) is a powerful universal data format that is built for secure, and integrity protected communication between entities in a trusted network. It is built with modern thinking and ease-of-use throughout. It may replace the need for X.509 certificates, as it has its own built in public key-based entity identification through a trusted chain. This makes it equally suitable as an alternative to certificate-based PKIs.</Description>
     <Copyright>Copyright © 2022 Shift Everywhere AB. All rights reserved.</Copyright>
-    <Product>Di:M.E - Data Integrity Message Envelope</Product>
+    <Product>Di:ME - Data Integrity Message Envelope</Product>
     <Company>Shift Everywhere</Company>
     <Authors>Niclas Kjellin</Authors>
     <PackageId>DiME</PackageId>
-    <PackageVersion>1.0.4</PackageVersion>
+    <PackageVersion>1.0.5</PackageVersion>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageProjectUrl>https://docs.dimeformat.io</PackageProjectUrl>
     <RepositoryUrl>https://github.com/shifteverywhere/dime-dotnet-ref</RepositoryUrl>
