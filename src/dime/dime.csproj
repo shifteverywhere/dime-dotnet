@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net5.0</TargetFramework>
+    <TargetFramework>net6.0</TargetFramework>
     <Description>Di:ME (Data Integrity Message Envelope) is a powerful universal data format that is built for secure, and integrity protected communication between entities in a trusted network. It is built with modern thinking and ease-of-use throughout. It may replace the need for X.509 certificates, as it has its own built in public key-based entity identification through a trusted chain. This makes it equally suitable as an alternative to certificate-based PKIs.</Description>
     <Copyright>Copyright © 2022 Shift Everywhere AB. All rights reserved.</Copyright>
     <Product>Di:ME - Data Integrity Message Envelope</Product>
