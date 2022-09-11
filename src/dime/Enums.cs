@@ -17,18 +17,22 @@ namespace DiME
         /// Undefined algorithm.
         /// </summary>
         Undefined = 0x00,
+
         /// <summary>
         /// Symmetric authentication encryption algorithm.
         /// </summary>
         Aead = 0x10,
+
         /// <summary>
         /// Asymmetric Elliptic Curve key agreement algorithm.
         /// </summary>
         Ecdh = 0x40,
+
         /// <summary>
         /// Asymmetric Edwards-curve digital signature algorithm
         /// </summary>
         Eddsa = 0x80,
+
         /// <summary>
         /// Secure hashing algorithm.
         /// </summary>
@@ -44,17 +48,20 @@ namespace DiME
         /// Capability set if the identity has been self signed. This capability often indicates a root identity, the
         /// start of a trust chain.
         /// </summary>
-        Self, 
+        Self,
+
         /// <summary>
         /// A generic capability, may have been set after a simple registration. Depending on the application, the
         /// identity may have limited usage.
         /// </summary>
-        Generic, 
+        Generic,
+
         /// <summary>
         /// A capability that indicates that the identity have been verified and is associated with a higher level of
         /// assurance. This may be done through more in-depth registration or secondary verification.
         /// </summary>
-        Identify, 
+        Identify,
+
         /// <summary>
         /// This capability allows an identity to sign and issue other identities, thus creating leaf identities in a
         /// trust chain. A root identity does often have this capability. However, it may be assigned to other
@@ -72,18 +79,22 @@ namespace DiME
         /// Undefined usage of the key (should not happen).
         /// </summary>
         Undefined = 0x00,
+
         /// <summary>
         /// Key type for asymmetric key used for signing.
         /// </summary>
         Identity = 0x10,
+
         /// <summary>
         /// Key type for asymmetric keys used for key exchange (agreement).
         /// </summary>
         Exchange = 0x20,
+
         /// <summary>
         /// Key type for secret (symmetric) keys, used for encryption.
         /// </summary>
         Encryption = 0xE0,
+
         /// <summary>
         /// Key type for symmetric keys used for message authentication.
         /// </summary>
@@ -93,17 +104,87 @@ namespace DiME
     /// <summary>
     /// Defines rhe variant of a key, may either be Secret or Public. Used for header information in keys.
     /// </summary>
-    public enum KeyVariant: byte
+    public enum KeyVariant : byte
     {
         /// <summary>
         /// Secret keying material. If a key is marked with Secret, then it should never be stored or transmitted as
         /// plain text.
         /// </summary>
         Secret = 0x00,
+
         /// <summary>
         /// Public keying material. Keys marked as PUBLIC can safely be distributed and shared with other parties.
         /// </summary>
         Public = 0x01
     }
-    
+
+    public enum Claim
+    {
+        /**
+     * Ambit
+     */
+        Amb,
+        /**
+     * Audience
+     */
+        Aud,
+        /**
+     * Capability
+     */
+        Cap,
+        /**
+     * Context
+     */
+        Ctx,
+        /**
+     * Expires at
+     */
+        Exp,
+        /**
+     * Issued at
+     */
+        Iat,
+        /**
+     * Issuer
+     */
+        Iss,
+        /**
+     * Key
+     */
+        Key,
+        /**
+     * Key ID
+     */
+        Kid,
+        /**
+     * Link
+     */
+        Lnk,
+        /**
+     * Method
+     */
+        Mtd,
+        /**
+     * Public key
+     */
+        Pub,
+        /**
+     * Principle
+     */
+        Pri,
+        /**
+     * Subject
+     */
+        Sub,
+        /**
+     * System
+     */
+        Sys,
+        /**
+     * Unique ID
+     */
+        Uid
+ 
+    }
+
 }
