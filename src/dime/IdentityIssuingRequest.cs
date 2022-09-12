@@ -29,7 +29,8 @@ namespace DiME
         /// <summary>
         /// A constant holding the number of seconds for a year (based on 365 days).
         /// </summary>
-        public const long _VALID_FOR_1_YEAR = 365L * 24 * 60 * 60; 
+        [Obsolete("Obsolete constant, use Dime.ValidFor1Year instead.")]
+        public const long _VALID_FOR_1_YEAR = Dime.ValidFor1Year; 
         /// <summary>
         /// A tag identifying the Di:ME item type, part of the header.
         /// </summary>
@@ -185,7 +186,7 @@ namespace DiME
 
         protected override void Decode(string encoded) 
         {
-            var components = encoded.Split(new[] { Envelope._COMPONENT_DELIMITER });
+            var components = encoded.Split(new[] { Dime.ComponentDelimiter });
             if (components.Length != NbrComponentsWithoutSignature && components.Length != NbrComponentsWithSignature) { throw new FormatException($"Unexpected number of components for identity issuing request, expected {NbrComponentsWithoutSignature} or  {NbrComponentsWithSignature}, got {components.Length}."); }
             if (components[TagIndex] != _TAG) { throw new FormatException($"Unexpected item tag, expected: \"{_TAG}\", got \"{components[TagIndex]}\"."); }
             var json = Utility.FromBase64(components[ClaimsIndex]);
@@ -193,7 +194,7 @@ namespace DiME
             _capabilities = new List<string>(_claims.cap).ConvertAll(str => {
                 Enum.TryParse<Capability>(str, true, out var cap); return cap; });
             if (components.Length != NbrComponentsWithSignature) return; // No signature, decoding is done
-            Encoded = encoded[..encoded.LastIndexOf(Envelope._COMPONENT_DELIMITER)];
+            Encoded = encoded[..encoded.LastIndexOf(Dime.ComponentDelimiter)];
             Signature = components[SignatureIndex];
         }
 
@@ -202,7 +203,7 @@ namespace DiME
             if (Encoded != null) return Encoded;
             var builder = new StringBuilder();
             builder.Append(_TAG);
-            builder.Append(Envelope._COMPONENT_DELIMITER);
+            builder.Append(Dime.ComponentDelimiter);
             builder.Append(Utility.ToBase64(JsonSerializer.Serialize(_claims)));
             Encoded = builder.ToString();
             return Encoded;

@@ -192,10 +192,10 @@ namespace DiME
         #endregion
 
         # region -- PROTECTED --
-
+        
         protected override void Decode(string encoded)
         {
-            var components = encoded.Split(new[] { Envelope._COMPONENT_DELIMITER });
+            var components = encoded.Split(new[] { Dime.ComponentDelimiter });
             if (components.Length != NbrExpectedComponents) { throw new FormatException($"Unexpected number of components for identity issuing request, expected {NbrExpectedComponents}, got {components.Length}."); }
             if (components[TagIndex] != _TAG) { throw new FormatException($"Unexpected item tag, expected: \"{_TAG}\", got \"{components[TagIndex]}\"."); }
             var json = Utility.FromBase64(components[ClaimsIndex]);
@@ -208,7 +208,7 @@ namespace DiME
             if (Encoded != null) return Encoded;
             var builder = new StringBuilder();
             builder.Append(_TAG);
-            builder.Append(Envelope._COMPONENT_DELIMITER);
+            builder.Append(Dime.ComponentDelimiter);
             builder.Append(Utility.ToBase64(JsonSerializer.Serialize(_claims)));
             Encoded = builder.ToString();
             return Encoded;

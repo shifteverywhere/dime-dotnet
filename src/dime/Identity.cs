@@ -27,7 +27,8 @@ namespace DiME
         /// <summary>
         /// A shared trusted identity that acts as the root identity in the trust chain.
         /// </summary>
-        public static Identity TrustedIdentity { get { lock(Lock) { return _trustedIdentity; } } }
+        [Obsolete("Obsolete method, use Dime.TrustedIdentity instead.")]        
+        public static Identity TrustedIdentity => Dime.TrustedIdentity;
         /// <summary>
         /// A tag identifying the Di:ME item type, part of the header.
         /// </summary>
@@ -70,7 +71,6 @@ namespace DiME
         /// public key or type IDENTITY.
         /// </summary>
         public Key PublicKey => _claims.pub is {Length: > 0} ? Key.FromBase58Key(_claims.pub) : null;
-
         /// <summary>
         /// Returns the parent identity of a trust chain for an identity. This is the issuing identity.
         /// </summary>
@@ -108,13 +108,8 @@ namespace DiME
         /// instances. This is normally the root identity of a trust chain.
         /// </summary>
         /// <param name="trustedIdentity">The identity to set as the trusted identity.</param>
-        public static void SetTrustedIdentity(Identity trustedIdentity)
-        {
-            lock(Lock)
-            {
-                _trustedIdentity = trustedIdentity;
-            }
-        }
+        [Obsolete("Obsolete method, use Dime.TrustedIdentity instead.")] 
+        public static void SetTrustedIdentity(Identity trustedIdentity) { Dime.TrustedIdentity = trustedIdentity; }
 
         public Identity() { }
 
@@ -211,7 +206,7 @@ namespace DiME
 
         protected override void Decode(string encoded) 
         {
-            var components = encoded.Split(new[] { Envelope._COMPONENT_DELIMITER });
+            var components = encoded.Split(new[] { Dime.ComponentDelimiter });
             if (components.Length != NbrExpectedComponentsMin &&
                 components.Length != NbrExpectedComponentsMax) { throw new FormatException($"Unexpected number of components for identity issuing request, expected {NbrExpectedComponentsMin} or {NbrExpectedComponentsMax}, got {components.Length}."); }
             if (components[TagIndex] != _TAG) { throw new FormatException($"Unexpected item tag, expected: \"{_TAG}\", got \"{components[TagIndex]}\"."); }
@@ -223,7 +218,7 @@ namespace DiME
                 var issIdentity = Utility.FromBase64(components[ChainIndex]);
                 TrustChain = FromEncoded(Encoding.UTF8.GetString(issIdentity, 0, issIdentity.Length));
             }
-            Encoded = encoded[..encoded.LastIndexOf(Envelope._COMPONENT_DELIMITER)];
+            Encoded = encoded[..encoded.LastIndexOf(Dime.ComponentDelimiter)];
             Signature = components[^1];
         }
 
@@ -232,12 +227,12 @@ namespace DiME
             if (Encoded != null) return Encoded;
             var builder = new StringBuilder();
             builder.Append(_TAG);
-            builder.Append(Envelope._COMPONENT_DELIMITER);
+            builder.Append(Dime.ComponentDelimiter);
             builder.Append(Utility.ToBase64(JsonSerializer.Serialize(_claims)));
             if (TrustChain != null)
             {
-                builder.Append(Envelope._COMPONENT_DELIMITER);
-                builder.Append(Utility.ToBase64($"{TrustChain.Encode()}{Envelope._COMPONENT_DELIMITER}{TrustChain.Signature}"));
+                builder.Append(Dime.ComponentDelimiter);
+                builder.Append(Utility.ToBase64($"{TrustChain.Encode()}{Dime.ComponentDelimiter}{TrustChain.Signature}"));
             }
             Encoded = builder.ToString();
             return Encoded;

@@ -71,7 +71,7 @@ namespace DiME
             get 
             {
                 if (_claims.lnk == null) return null;
-                var uid = _claims.lnk.Split(new[] { Envelope._COMPONENT_DELIMITER })[LinkUidIndex];
+                var uid = _claims.lnk.Split(new[] { Dime.ComponentDelimiter })[LinkUidIndex];
                 return new Guid(uid);
             } 
         }
@@ -178,8 +178,8 @@ namespace DiME
             Verify(key);
             if (linkedItem == null) return;
             if (string.IsNullOrEmpty(_claims.lnk)) { throw new InvalidOperationException("No link to Dime item found, unable to verify."); }
-            var item = _claims.lnk.Split(new[] {Envelope._SECTION_DELIMITER})[0]; // This is in preparation of a future change where it would be possible to link more than one item
-            var components = item.Split(new[] { Envelope._COMPONENT_DELIMITER });
+            var item = _claims.lnk.Split(new[] { Dime.SectionDelimiter })[0]; // This is in preparation of a future change where it would be possible to link more than one item
+            var components = item.Split(new[] { Dime.ComponentDelimiter });
             if (components is not {Length: 3}) { throw new FormatException("Invalid data found in item link field."); }
             var msgHash = linkedItem.Thumbprint();
             if (components[LinkItemTypeIndex] != linkedItem.Tag
@@ -253,7 +253,7 @@ namespace DiME
         {
             if (IsSigned) { throw new InvalidOperationException("Unable to link item, message is already signed."); }
             if (item == null) { throw new ArgumentNullException(nameof(item), "Item to link with must not be null."); }
-            _claims.lnk = $"{item.Tag}{Envelope._COMPONENT_DELIMITER}{item.UniqueId.ToString()}{Envelope._COMPONENT_DELIMITER}{item.Thumbprint()}";
+            _claims.lnk = $"{item.Tag}{Dime.ComponentDelimiter}{item.UniqueId.ToString()}{Dime.ComponentDelimiter}{item.Thumbprint()}";
         }
 
         #endregion
@@ -279,13 +279,13 @@ namespace DiME
 
         protected override void Decode(string encoded)
         {
-            var components = encoded.Split(new[] { Envelope._COMPONENT_DELIMITER });
+            var components = encoded.Split(new[] { Dime.ComponentDelimiter });
             if (components.Length is not NbrExpectedComponents) 
             { throw new FormatException($"Unexpected number of components for identity issuing request, expected: '{NbrExpectedComponents}' or , got: '{components.Length}'."); }
             if (components[TagIndex] != _TAG) { throw new FormatException($"Unexpected item tag, expected: \"{_TAG}\", got: \"{components[TagIndex]}\"."); }
             _claims = JsonSerializer.Deserialize<MessageClaims>(Utility.FromBase64(components[ClaimsIndex]));
             _payload = components[PayloadIndex];
-            Encoded = encoded[..encoded.LastIndexOf(Envelope._COMPONENT_DELIMITER)];
+            Encoded = encoded[..encoded.LastIndexOf(Dime.ComponentDelimiter)];
             Signature = components.Last();
         }
 
@@ -294,9 +294,9 @@ namespace DiME
             if (Encoded != null) return Encoded;
             var builder = new StringBuilder();
             builder.Append(_TAG);
-            builder.Append(Envelope._COMPONENT_DELIMITER);
+            builder.Append(Dime.ComponentDelimiter);
             builder.Append(Utility.ToBase64(JsonSerializer.Serialize(_claims)));
-            builder.Append(Envelope._COMPONENT_DELIMITER);
+            builder.Append(Dime.ComponentDelimiter);
             builder.Append(_payload);
             Encoded = builder.ToString();
             return Encoded;

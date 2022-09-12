@@ -92,9 +92,9 @@ namespace DiME
         public static Envelope Import(string exported)
         {
             if (!exported.StartsWith(_HEADER)) { throw new FormatException("Not a Dime envelope object, invalid header."); }
-            var sections = exported.Split(_SECTION_DELIMITER);
+            var sections = exported.Split(Dime.SectionDelimiter);
             // 0: HEADER
-            var components = sections[0].Split(_COMPONENT_DELIMITER);
+            var components = sections[0].Split(Dime.ComponentDelimiter);
             Envelope dime;
             switch (components.Length)
             {
@@ -118,7 +118,7 @@ namespace DiME
                dime._encoded = exported;
             else
             {
-                dime._encoded = exported[..exported.LastIndexOf(_SECTION_DELIMITER)];
+                dime._encoded = exported[..exported.LastIndexOf(Dime.SectionDelimiter)];
                 dime._signature = sections.Last(); 
             }
             return dime;
@@ -202,7 +202,7 @@ namespace DiME
         {
             if (IsAnonymous) return Encode();
             if (_signature == null) { throw new InvalidOperationException("Unable to export, envelope is not signed."); }
-            return $"{Encode()}{_SECTION_DELIMITER}{_signature}";
+            return $"{Encode()}{Dime.SectionDelimiter}{_signature}";
         }
 
         /// <summary>
@@ -213,7 +213,7 @@ namespace DiME
         /// <returns>The hash of the envelope as a hex string.</returns>
         public string Thumbprint()
         {
-            var encoded = IsAnonymous ? Encode() : $"{Encode()}{_SECTION_DELIMITER}{_signature}";
+            var encoded = IsAnonymous ? Encode() : $"{Encode()}{Dime.SectionDelimiter}{_signature}";
             return Thumbprint(encoded);
         }
 
@@ -229,13 +229,6 @@ namespace DiME
         {
             return Utility.ToHex(Crypto.GenerateHash(encoded));
         }
-
-        #region -- INTERNAL --
-        
-        internal const char _COMPONENT_DELIMITER = '.';
-        internal const char _SECTION_DELIMITER = ':';
-
-        #endregion
         
         #region -- PRIVATE --
 
@@ -273,12 +266,12 @@ namespace DiME
             builder.Append(_HEADER);
             if (!IsAnonymous)
             {
-                builder.Append(_COMPONENT_DELIMITER);
+                builder.Append(Dime.ComponentDelimiter);
                 builder.Append(Utility.ToBase64(JsonSerializer.Serialize(_claims)));
             }
             foreach(var item in _items)
             {
-                builder.Append(_SECTION_DELIMITER);
+                builder.Append(Dime.SectionDelimiter);
                 builder.Append(item.ToEncoded());
             }
             _encoded = builder.ToString();

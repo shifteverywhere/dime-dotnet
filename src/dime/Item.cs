@@ -124,7 +124,7 @@ namespace DiME
         
         internal static Item? FromEncoded(string encoded)
         {
-            var t = TypeFromTag(encoded[..encoded.IndexOf(Envelope._COMPONENT_DELIMITER)]);
+            var t = TypeFromTag(encoded[..encoded.IndexOf(Dime.ComponentDelimiter)]);
             if (t == null) return null;
             var item = (Item)Activator.CreateInstance(t)!;
             item.Decode(encoded);
@@ -134,7 +134,7 @@ namespace DiME
         
         internal virtual string ToEncoded()
         {
-            return IsSigned ? $"{Encode()}{Envelope._COMPONENT_DELIMITER}{Signature}" : Encode();
+            return IsSigned ? $"{Encode()}{Dime.ComponentDelimiter}{Signature}" : Encode();
         }
 
         #endregion
