@@ -109,7 +109,7 @@ public class ClaimsMap
         return string.IsNullOrEmpty(key) ? null : Key.FromBase58Key(key);
     }
     
-    internal void Put(Claim claim, object value)
+    internal void Put(Claim claim, object? value)
     {
         switch (value)
         {

@@ -76,7 +76,7 @@ namespace DiME_test
             var encoded = message.Export();
             Assert.IsNotNull(encoded);
             Assert.IsTrue(encoded.Length > 0);
-            Assert.IsTrue(encoded.StartsWith($"{Envelope._HEADER}:{Message._TAG}"));
+            Assert.IsTrue(encoded.StartsWith($"{Envelope.Header}:{Message._TAG}"));
             Assert.IsTrue(encoded.Split(new[] {'.'}).Length == 4);
         }
 

@@ -216,7 +216,7 @@ namespace DiME_test
             var exported = identity.Export();
             Assert.IsNotNull(exported);
             Assert.IsTrue(exported.Length > 0);
-            Assert.IsTrue(exported.StartsWith($"{Envelope._HEADER}:{Identity._TAG}"));
+            Assert.IsTrue(exported.StartsWith($"{Envelope.Header}:{Identity._TAG}"));
             Assert.AreEqual(4, exported.Split(new[] { '.' }).Length);
         }
 

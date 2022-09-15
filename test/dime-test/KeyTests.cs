@@ -50,7 +50,7 @@ namespace DiME_test
             var key = Key.Generate(KeyType.Exchange);
             var encoded = key.Export();
             Assert.IsNotNull(encoded);
-            Assert.IsTrue(encoded.StartsWith($"{Envelope._HEADER}:{Key._TAG}"));
+            Assert.IsTrue(encoded.StartsWith($"{Envelope.Header}:{Key._TAG}"));
             Assert.IsTrue(encoded.Split(".").Length == 2);
         }
 

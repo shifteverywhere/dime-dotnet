@@ -136,7 +136,7 @@ namespace DiME_test
             var exported = iir.Export();
             Assert.IsNotNull(exported);
             Assert.IsTrue(exported.Length > 0);
-            Assert.IsTrue(exported.StartsWith($"{Envelope._HEADER}:{IdentityIssuingRequest._TAG}"));
+            Assert.IsTrue(exported.StartsWith($"{Envelope.Header}:{IdentityIssuingRequest._TAG}"));
             Assert.IsTrue(exported.Split(new[] {'.'}).Length == 3);
         }
 

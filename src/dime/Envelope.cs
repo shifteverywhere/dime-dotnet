@@ -1,17 +1,18 @@
 //
 //  Envelope.cs
-//  Di:ME - Digital Identity Message Envelope
-//  Compact messaging format for assertion and practical use of digital identities
+//  Di:ME - Data Identity Message Envelope
+//  A powerful universal data format that is built for secure, and integrity protected communication between trusted
+//  entities in a network.
 //
 //  Released under the MIT licence, see LICENSE for more information.
 //  Copyright © 2022 Shift Everywhere AB. All rights reserved.
 //
+
+#nullable enable
 using System;
 using System.Text;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text.Json;
-using System.Text.Json.Serialization;
 
 namespace DiME
 {
@@ -22,51 +23,43 @@ namespace DiME
     /// are. A signed envelope can contain one or more items and is itself also signed, it also has a small number of
     /// claims attached to it.
     /// </summary>
-    public class Envelope
+    public class Envelope: Item
     {
         /// <summary>
         /// The maximum length that the context claim may hold. This is also used for the context claim in messages.
         /// </summary>
-        public const int _MAX_CONTEXT_LENGTH = 84;
+        [Obsolete("Obsolete constant, use Dime.MaxContextLength instead.")]
+        public const int _MAX_CONTEXT_LENGTH = Dime.MaxContextLength;
         /// <summary>
         /// The standard envelope header.
         /// </summary>
-        public const string _HEADER = "Di";
+        public const string Header = "Di";
         /// <summary>
         /// The current version of the implemented Di:ME specification.
         /// </summary>
+        ///  [Obsolete("Obsolete constant, use Dime.Version instead.")]
         public const int _DIME_VERSION = 0x01;
         /// <summary>
-        /// Returns the identifier of the issuer of the envelope. Only applicable for signed envelopes.
+        /// Returns the tag of the Di:ME item.
         /// </summary>
-        public Guid? IssuerId => _claims?.iss;
-        /// <summary>
-        /// Returns the date in UTC when this envelope was issued. Only applicable for signed envelopes.
-        /// </summary>
-        public DateTime? IssuedAt => _claims.HasValue ? Utility.FromTimestamp(_claims.Value.iat) : null;
-        /// <summary>
-        /// Returns the context that is attached to the envelope. Only applicable for signed envelopes.
-        /// </summary>
-        public string Context => _claims?.ctx;
+        public override string Tag => Header;
         /// <summary>
         /// Returns any attached Di:ME items. This will be an array of Item instances and may be cast by looking at the
         /// tag of the item (getTag).
         /// </summary>
-        public IList<Item> Items => _items?.AsReadOnly();
-        /// <summary>
-        /// Indicates if the envelope has a signature attached to it. This does not indicate if the envelope is signed
-        /// or anonymous, as a tobe signed envelope will return false here before it is signed.
-        /// </summary>
-        public bool IsSigned => _signature != null;
+        public IList<Item> Items => _items.AsReadOnly();
         /// <summary>
         /// Indicates if the envelope is anonymous (true) or if it is signed (false).
         /// </summary>
-        public bool IsAnonymous => !_claims.HasValue;
+        public bool IsAnonymous => !HasClaims();
 
         /// <summary>
         /// Default constructor for an anonymous envelope.
         /// </summary>
-        public Envelope() { }
+        public Envelope()
+        {
+            _items = new List<Item>();
+        }
 
         /// <summary>
         /// Constructor to create a signed envelope with the identifier of the issuer and a custom context claim. The
@@ -75,53 +68,49 @@ namespace DiME
         /// <param name="issuerId">The identifier of the issuer, may not be null.</param>
         /// <param name="context">The context to attach to the envelope, may be null.</param>
         /// <exception cref="ArgumentException"></exception>
-        public Envelope(Guid issuerId, string context = null)
+        public Envelope(Guid issuerId, string? context = null)
         {
-            var now = Utility.ToTimestamp(DateTime.UtcNow);
-            if (context is {Length: > _MAX_CONTEXT_LENGTH}) { throw new ArgumentException($"Context must not be longer than {_MAX_CONTEXT_LENGTH}.", nameof(context)); }
-            _claims = new DimeClaims(issuerId, now, context);
+            if (context is {Length: > Dime.MaxContextLength}) { throw new ArgumentException($"Context must not be longer than {Dime.MaxContextLength}.", nameof(context)); }
+            _items = new List<Item>();
+            var claims = Claims();
+            claims.Put(Claim.Iss, issuerId);
+            claims.Put(Claim.Iat, Utility.ToTimestamp(DateTime.UtcNow));
+            if (context is not null)
+                claims.Put(Claim.Ctx, context);
         }
 
         /// <summary>
         /// Imports an envelope from a Di:ME encoded string. This will not verify the envelope, this has to be done by
         /// calling verify separately.
         /// </summary>
-        /// <param name="exported">The encoded Di:ME envelope to import.</param>
+        /// <param name="encoded">The encoded Di:ME envelope to import.</param>
         /// <returns>The imported Envelope instance.</returns>
         /// <exception cref="FormatException"></exception>
-        public static Envelope Import(string exported)
+        public static Envelope Import(string encoded)
         {
-            if (!exported.StartsWith(_HEADER)) { throw new FormatException("Not a Dime envelope object, invalid header."); }
-            var sections = exported.Split(Dime.SectionDelimiter);
-            // 0: HEADER
-            var components = sections[0].Split(Dime.ComponentDelimiter);
-            Envelope dime;
-            switch (components.Length)
+            if (!encoded.StartsWith(Header)) { throw new FormatException("Not a Dime envelope object, invalid header."); }
+            var sections = encoded.Split(Dime.SectionDelimiter);
+            // 0: ENVELOPE
+            var array = sections[0].Split(Dime.ComponentDelimiter);
+            var envelope = new Envelope
             {
-                case 1:
-                    dime = new Envelope();
-                    break;
-                case 2:
-                    var claims = JsonSerializer.Deserialize<DimeClaims>(Utility.FromBase64(components[1]));
-                    dime = new Envelope(claims);
-                    break;
-                default:
-                    throw new FormatException($"Not a valid Di:ME envelope object, unexpected number of components in header, got: '{components.Length}', expected: '1' or '2'");
-            }
+                Components = new List<string>(array)
+            };
             // 1 to LAST or LAST - 1 
-            var endIndex = (dime.IsAnonymous) ? sections.Length : sections.Length - 1; // end index dependent on anonymous Di:ME or not
+            var endIndex = (envelope.IsAnonymous) ? sections.Length : sections.Length - 1; // end index dependent on anonymous envelope or not
             var items = new List<Item>(endIndex - 1);
             for (var index = 1; index < endIndex; index++)
-                items.Add(Item.FromEncoded(sections[index]));
-            dime._items = items;
-            if (dime.IsAnonymous)
-               dime._encoded = exported;
+                items.Add(Item.FromEncoded(sections[index]) ?? throw new FormatException("Unable to import Dime item, unexpected format."));
+            envelope._items = items;
+            if (envelope.IsAnonymous)
+                envelope.Encoded = encoded;
             else
             {
-                dime._encoded = exported[..exported.LastIndexOf(Dime.SectionDelimiter)];
-                dime._signature = sections.Last(); 
+                envelope.IsSigned = true;
+                envelope.Encoded = encoded[..encoded.LastIndexOf(Dime.SectionDelimiter)];
+                envelope.Signature = sections.Last(); 
             }
-            return dime;
+            return envelope;
         }
 
         /// <summary>
@@ -133,8 +122,8 @@ namespace DiME
         /// <exception cref="InvalidOperationException"></exception>
         public Envelope AddItem(Item item)
         {
-            if (_signature != null) { throw new InvalidOperationException("Unable to add item, envelope is already signed."); }
-            _items ??= new List<Item>();
+            if (IsSigned) { throw new InvalidOperationException("Unable to add item, envelope is already signed."); }
+            if (item is Envelope) { throw new ArgumentException("Not allowed to add an envelope to another envelope.", nameof(item)); }
             _items.Add(item);
             return this;
         }
@@ -148,9 +137,30 @@ namespace DiME
         /// <exception cref="InvalidOperationException"></exception>
         public Envelope SetItems(IEnumerable<Item> items)
         {
-            if (_signature != null) { throw new InvalidOperationException("Unable to set items, envelope is already signed."); }
+            if (IsSigned) { throw new InvalidOperationException("Unable to set items, envelope is already signed."); }
             _items = items.ToList();
             return this;
+        }
+
+        /// <summary>
+        /// Returns any item inside the envelope that matches the provided context (ctx).
+        /// </summary>
+        /// <param name="context">The context to look for.</param>
+        /// <returns>The found item, or null if none was found.</returns>
+        public Item? GetItem(string context)
+        {
+            if (context.Length == 0 || _items.Count == 0) return null;
+            return (from item in _items let ctx = item.Context where ctx is not null && ctx.Equals(context) select item).FirstOrDefault();
+        }
+        
+        /// <summary>
+        /// Returns any item inside the envelope that matches the provided unique id (uid).
+        /// </summary>
+        /// <param name="uniqueId">The unique id to look for.</param>
+        /// <returns>The found item, or null if none was found.</returns>
+        public Item? GetItem(Guid uniqueId)
+        {
+            return _items.Count == 0 ? null : (from item in _items where item.UniqueId.Equals(uniqueId) select item).FirstOrDefault();
         }
 
         /// <summary>
@@ -159,50 +169,35 @@ namespace DiME
         /// contain any Di:ME items.
         /// </summary>
         /// <param name="key">The key to use when signing.</param>
-        /// <returns>Returns the Envelope instance for convenience.</returns>
         /// <exception cref="InvalidOperationException"></exception>
-        public Envelope Sign(Key key)
+        public override void Sign(Key key)
         {
             if (IsAnonymous) { throw new InvalidOperationException("Unable to sign, envelope is anonymous."); }
-            if (_signature != null) { throw new InvalidOperationException("Unable to sign, envelope is already signed."); }
+            if (IsSigned) { throw new InvalidOperationException("Unable to sign, envelope is already signed."); }
             if (_items == null || _items.Count == 0) { throw new InvalidOperationException("Unable to sign, at least one item must be attached before signing an envelope."); }
-            _signature = Crypto.GenerateSignature(Encode(), key);
-            return this;
-        }
-
-        /// <summary>
-        /// Verifies the signature of the envelope using a provided key.
-        /// </summary>
-        /// <param name="publicKey">The key to used to verify the signature, must not be null.</param>
-        public void Verify(string publicKey)
-        {
-            Verify(new Key(publicKey));
+            base.Sign(key);
         }
         
         /// <summary>
         /// Verifies the signature of the envelope using a provided key.
         /// </summary>
         /// <param name="key">The key to used to verify the signature, must not be null.</param>
-        /// <returns>Returns the Envelope instance for convenience.</returns>
         /// <exception cref="InvalidOperationException"></exception>
-        public Envelope Verify(Key key)
+        public override void Verify(Key key)
         {
             if (IsAnonymous) { throw new InvalidOperationException("Unable to verify, envelope is anonymous."); }
-            if (_signature == null) { throw new InvalidOperationException("Unable to verify, envelope is not signed."); }
-            Crypto.VerifySignature(Encode(), _signature, key);
-            return this;
+            base.Verify(key);
         }
 
         /// <summary>
-        /// Exports the envelope to a Di:ME encoded string.
+        /// Exports the envelope to a Dime encoded string.
         /// </summary>
-        /// <returns>The Di:ME encoded representation of the envelope.</returns>
+        /// <returns>The Dime encoded representation of the envelope.</returns>
         /// <exception cref="InvalidOperationException"></exception>
-        public string Export()
+        public override string Export()
         {
-            if (IsAnonymous) return Encode();
-            if (_signature == null) { throw new InvalidOperationException("Unable to export, envelope is not signed."); }
-            return $"{Encode()}{Dime.SectionDelimiter}{_signature}";
+            if (!IsAnonymous && !IsSigned) { throw new InvalidOperationException("Unable to export, envelope is not signed."); }
+            return Encode(!IsAnonymous);
         }
 
         /// <summary>
@@ -211,73 +206,44 @@ namespace DiME
         /// soon as any content changes.
         /// </summary>
         /// <returns>The hash of the envelope as a hex string.</returns>
-        public string Thumbprint()
+        public override string Thumbprint()
         {
-            var encoded = IsAnonymous ? Encode() : $"{Encode()}{Dime.SectionDelimiter}{_signature}";
-            return Thumbprint(encoded);
+            return Thumbprint(Encode(!IsAnonymous));
         }
 
-        /// <summary>
-        /// Returns the thumbprint of a Di:ME encoded envelope string. This may be used to easily identify an envelope
-        /// or detect if an envelope has been changed. This is created by securely hashing the envelope and will be
-        /// unique and change as soon as any content changes. This will generate the same value as the instance method
-        /// thumbprint or the same (and unchanged) envelope.
-        /// </summary>
-        /// <param name="encoded">The Di:ME encoded envelope string.</param>
-        /// <returns>The hash of the envelope as a hex string.</returns>
-        public static string Thumbprint(string encoded)
+        #region -- PROTECTED --
+
+        protected override void CustomDecoding(List<string> components) { /* ignored */}
+
+        protected override string Encode(bool withSignature)
         {
-            return Utility.ToHex(Crypto.GenerateHash(encoded));
+            if (Encoded is null)
+            {
+                var builder = new StringBuilder();
+                builder.Append(Envelope.Header);
+                if (!IsAnonymous)
+                {
+                    builder.Append(Dime.ComponentDelimiter);
+                    builder.Append((Utility.ToBase64(Claims().ToJson())));
+                }
+                foreach(var item in _items)
+                {
+                    builder.Append(Dime.SectionDelimiter);
+                    builder.Append(item.ForExport());
+                }
+                Encoded = builder.ToString();
+            }
+            if (withSignature && IsSigned)
+                return $"{Encoded}{Dime.SectionDelimiter}{Signature}";
+            return Encoded;
         }
+
+        #endregion
         
         #region -- PRIVATE --
 
         private List<Item> _items;
-        private string _encoded;
-        private string _signature;
-        private readonly DimeClaims? _claims;
-
-        private struct DimeClaims
-        {
-            public Guid iss { get; set; }
-            public string iat { get; set; }
-            [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-            public string ctx { get; set; }
-
-            [JsonConstructor]
-            public DimeClaims(Guid iss, string iat, string ctx)
-            {
-                this.iss = iss;
-                this.iat = iat;
-                this.ctx = ctx;
-            }
-
-        }
-
-        private Envelope(DimeClaims claims)
-        {
-            _claims = claims;
-        }
-
-        private string Encode()
-        {
-            if (_encoded != null) return _encoded;
-            var builder = new StringBuilder();
-            builder.Append(_HEADER);
-            if (!IsAnonymous)
-            {
-                builder.Append(Dime.ComponentDelimiter);
-                builder.Append(Utility.ToBase64(JsonSerializer.Serialize(_claims)));
-            }
-            foreach(var item in _items)
-            {
-                builder.Append(Dime.SectionDelimiter);
-                builder.Append(item.ForExport());
-            }
-            _encoded = builder.ToString();
-            return _encoded;
-        }
-
+        
         #endregion
 
     }

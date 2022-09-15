@@ -146,7 +146,7 @@ namespace DiME_test
             var exported = envelope.Export();
             Assert.IsNotNull(exported);
             Assert.IsTrue(exported.Length > 0);
-            Assert.IsTrue(exported.StartsWith(Envelope._HEADER));
+            Assert.IsTrue(exported.StartsWith(Envelope.Header));
             Assert.IsTrue(exported.Split(new[] { ':' }).Length == 2);
         }
 
@@ -170,7 +170,7 @@ namespace DiME_test
             var exported = envelope.Export();
             Assert.IsNotNull(exported);
             Assert.IsTrue(exported.Length > 0);
-            Assert.IsTrue(exported.StartsWith(Envelope._HEADER));
+            Assert.IsTrue(exported.StartsWith(Envelope.Header));
             Assert.IsTrue(exported.Split(new[] { ':' }).Length == 3);
         }
 
@@ -182,7 +182,7 @@ namespace DiME_test
             var exported = envelope.Export();
             Assert.IsNotNull(exported);
             Assert.IsTrue(exported.Length > 0);
-            Assert.IsTrue(exported.StartsWith(Envelope._HEADER));
+            Assert.IsTrue(exported.StartsWith(Envelope.Header));
             Assert.IsTrue(exported.Split(new[] { ':' }).Length == 2);
         }
 
@@ -224,7 +224,7 @@ namespace DiME_test
             var exported = envelope.Export();
             Assert.IsNotNull(exported);
             Assert.IsTrue(exported.Length > 0);
-            Assert.IsTrue(exported.StartsWith(Envelope._HEADER));
+            Assert.IsTrue(exported.StartsWith(Envelope.Header));
             Assert.IsTrue(exported.Split(new[] { ':' }).Length == 3);
         }
 
@@ -254,7 +254,7 @@ namespace DiME_test
             var exported = envelope.Export();
             Assert.IsNotNull(exported);
             Assert.IsTrue(exported.Length > 0);
-            Assert.IsTrue(exported.StartsWith(Envelope._HEADER));
+            Assert.IsTrue(exported.StartsWith(Envelope.Header));
             Assert.IsTrue(exported.Split(new[] { ':' }).Length == 3);
         }
 

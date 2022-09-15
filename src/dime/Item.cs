@@ -78,10 +78,10 @@ namespace DiME
         }
 
         /// <summary>
-        /// Exports the item to a Di:ME encoded string.
+        /// Exports the item to a Dime encoded string.
         /// </summary>
-        /// <returns>The Di:ME encoded representation of the item.</returns>
-        public string Export()
+        /// <returns>The Dime encoded representation of the item.</returns>
+        public virtual string Export()
         {
             var envelope = new Envelope();
             envelope.AddItem(this);
@@ -123,7 +123,7 @@ namespace DiME
         /// content changes.
         /// </summary>
         /// <returns>The hash of the item as a hex string.</returns>
-        public string Thumbprint()
+        public virtual string Thumbprint()
         {
             return Thumbprint(Encode(true));
         }
@@ -257,7 +257,7 @@ namespace DiME
         /// <returns></returns>
         //protected abstract string Encode();
 
-        protected string Encode(bool withSignature)
+        protected virtual string Encode(bool withSignature)
         {
             if (Encoded is null)
             {
