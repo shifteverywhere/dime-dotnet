@@ -1,18 +1,15 @@
 //
 //  IdentityIssuingRequest.cs
-//  Di:ME - Digital Identity Message Envelope
-//  A secure and compact messaging format for assertion and practical use of digital identities
+//  Dime - Data Integrity Message Envelope
+//  A powerful universal data format that is built for secure, and integrity protected communication between trusted
+//  entities in a network.
 //
 //  Released under the MIT licence, see LICENSE for more information.
 //  Copyright © 2022 Shift Everywhere AB. All rights reserved.
 //
 using System;
-using System.Text;
-using System.Text.Json;
-using System.Text.Json.Serialization;
 using System.Linq;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.Collections.ObjectModel;
 
 namespace DiME
@@ -40,25 +37,50 @@ namespace DiME
         /// </summary>
         public override string Tag => _TAG;
         /// <summary>
-        /// Returns a unique identifier for the instance. This will be generated at instance creation.
-        /// </summary>
-        public override Guid UniqueId => _claims.uid;
-        /// <summary>
-        /// The date and time when this IIR was created.
-        /// </summary>
-        public DateTime IssuedAt => Utility.FromTimestamp(_claims.iat);
-        /// <summary>
         /// Returns the public key attached to the IIR. This is the public key attached by the entity and will get
         /// included in any issued identity. The equivalent secret (private) key was used to sign the IIR, thus the
         /// public key can be used to verify the signature. This must be a key of type IDENTITY.
         /// </summary>
-        public Key PublicKey => _claims.pub is {Length: > 0} ? Key.FromBase58Key(_claims.pub) : null;
+        public Key PublicKey => Claims().GetKey(Claim.Pub);
+        /// <summary>
+        /// Returns a list of any capabilities requested by this IIR. Capabilities are usually used to
+        /// determine what an entity may do with its issued identity.
+        /// </summary>
+        public ReadOnlyCollection<Capability> Capabilities 
+        { 
+            get {
+                if (_capabilities is not null) return _capabilities;
+                var caps = Claims().Get<List<string>>(Claim.Cap);
+                if (caps != null)
+                    _capabilities = caps.ConvertAll(str =>
+                    {
+                        Enum.TryParse(str, true, out Capability cap);
+                        return cap;
+                    }).AsReadOnly();
+                return _capabilities;
+            } 
+        }
+        private ReadOnlyCollection<Capability> _capabilities;
         /// <summary>
         /// Returns all principles provided in the IIR. These are key-value fields that further provide information
         /// about the entity. Using principles are optional.
         /// </summary>
-        public ReadOnlyDictionary<string, object> Principles => _claims.pri != null ? new ReadOnlyDictionary<string, object>(_claims.pri) : null;
+        public Dictionary<string, object> Principles
+        {
+            get
+            {
+                if (_principles is null)
+                {
+                    _principles = Claims().Get<Dictionary<string, object>>(Claim.Pri);
+                }
+                return _principles;
+            }
+        }
+        private Dictionary<string, object> _principles;
         
+        /// <summary>
+        /// Empty constructor, not to be used. Required for Generics.
+        /// </summary>
         public IdentityIssuingRequest() { }
 
         /// <summary>
@@ -76,14 +98,20 @@ namespace DiME
             if (key.Type != KeyType.Identity) { throw new ArgumentException("Key of invalid type.", nameof(key)); }
             if (key.Secret == null) { throw new ArgumentNullException(nameof(key), "Private key must not be null"); }
             var iir = new IdentityIssuingRequest();
-            if (capabilities == null || capabilities.Count == 0) 
-                iir._capabilities = new List<Capability>() { Capability.Generic }; 
+            var claims = iir.Claims();
+            claims.Put(Claim.Uid, Guid.NewGuid());
+            claims.Put(Claim.Iat, DateTime.UtcNow);
+            claims.Put(Claim.Pub, key.Public);
+            var capabilitiesToSet = capabilities;
+            if (capabilitiesToSet == null || capabilitiesToSet.Count == 0) 
+                capabilitiesToSet = new List<Capability>() { Capability.Generic }; 
             else 
-                iir._capabilities = capabilities; 
-            var now = DateTime.UtcNow;
-            var cap = capabilities is {Count: > 0} ? capabilities.ConvertAll(c => c.ToString().ToLower()).ToArray() : new[] { Capability.Generic.ToString().ToLower() };
-            iir._claims = new IirClaims(Guid.NewGuid(), Utility.ToTimestamp(now), key.Public, cap, principles);
-            iir.Signature = Crypto.GenerateSignature(iir.Encode(), key);
+                capabilitiesToSet = capabilities;
+            claims.Put(Claim.Cap, capabilitiesToSet.ConvertAll(obj => obj.ToString().ToLower()));
+            if (principles is not null && principles.Count > 0)
+                claims.Put(Claim.Pri, principles);
+            iir.Signature = Crypto.GenerateSignature(iir.Encode(false), key);
+            iir.IsSigned = true;
             return iir;
         }
 
@@ -118,7 +146,7 @@ namespace DiME
         /// <returns>true or false.</returns>
         public bool WantsCapability(Capability capability)
         {
-            return _capabilities.Any(cap => cap == capability);
+            return Capabilities.Any(cap => cap == capability);
         }
         
         /// <summary>
@@ -139,15 +167,15 @@ namespace DiME
         /// <param name="requiredCapabilities">A list of capabilities that will be added (if not present in the IIR)
         /// before issuing.</param>
         /// <param name="systemName">The name of the system, or network, that the identity should be a part of.</param>
-        /// <param name="ambits">A list of ambits that will apply to the issued identity.</param>
+        /// <param name="ambit">A list of ambit that will apply to the issued identity.</param>
         /// <param name="methods">A list of methods that will apply to the issued identity.</param>
         /// <returns>An Identity instance that may be sent back to the entity that proved the IIR.</returns>
         /// <exception cref="ArgumentNullException"></exception>
-        public Identity Issue(Guid subjectId, long validFor, Key issuerKey, Identity issuerIdentity, bool includeChain, List<Capability> allowedCapabilities, List<Capability> requiredCapabilities = null, string systemName = null, List<string> ambits = null, List<string> methods = null) 
+        public Identity Issue(Guid subjectId, long validFor, Key issuerKey, Identity issuerIdentity, bool includeChain, List<Capability> allowedCapabilities, List<Capability> requiredCapabilities = null, string systemName = null, List<string> ambit = null, List<string> methods = null) 
         {    
             if (issuerIdentity == null) { throw new ArgumentNullException(nameof(issuerIdentity), "Issuer identity must not be null."); }
             var sys = systemName is {Length: > 0} ? systemName : issuerIdentity.SystemName;
-            return IssueNewIdentity(sys, subjectId, validFor, issuerKey, issuerIdentity, includeChain, allowedCapabilities, requiredCapabilities, ambits, methods);
+            return IssueNewIdentity(sys, subjectId, validFor, issuerKey, issuerIdentity, includeChain, allowedCapabilities, requiredCapabilities, ambit, methods);
         }
 
         /// <summary>
@@ -159,14 +187,14 @@ namespace DiME
         /// <param name="validFor">The number of seconds that the identity should be valid for, from the time of issuing.</param>
         /// <param name="issuerKey">The Key of the issuing entity, must contain a secret key of type IDENTIFY.</param>
         /// <param name="systemName">The name of the system, or network, that the identity should be a part of.</param>
-        /// <param name="ambits">A list of ambits that will apply to the issued identity.</param>
+        /// <param name="ambit">A list of ambit that will apply to the issued identity.</param>
         /// <param name="methods">A list of methods that will apply to the issued identity.</param>
         /// <returns></returns>
         /// <exception cref="ArgumentNullException"></exception>
-        public Identity SelfIssue(Guid subjectId, long validFor, Key issuerKey, string systemName, List<string> ambits = null, List<string> methods = null)
+        public Identity SelfIssue(Guid subjectId, long validFor, Key issuerKey, string systemName, List<string> ambit = null, List<string> methods = null)
         {
             if (string.IsNullOrEmpty(systemName)) { throw new ArgumentNullException(nameof(systemName), "System name must not be null or empty."); }
-            return IssueNewIdentity(systemName, subjectId, validFor, issuerKey, null, false, null, null, ambits, methods);
+            return IssueNewIdentity(systemName, subjectId, validFor, issuerKey, null, false, null, null, ambit, methods);
         }
         
         #endregion
@@ -184,64 +212,22 @@ namespace DiME
 
         # region -- PROTECTED --
 
-        protected override void Decode(string encoded) 
+        protected override void CustomDecoding(List<string> components)
         {
-            var components = encoded.Split(new[] { Dime.ComponentDelimiter });
-            if (components.Length != NbrComponentsWithoutSignature && components.Length != NbrComponentsWithSignature) { throw new FormatException($"Unexpected number of components for identity issuing request, expected {NbrComponentsWithoutSignature} or  {NbrComponentsWithSignature}, got {components.Length}."); }
-            if (components[TagIndex] != _TAG) { throw new FormatException($"Unexpected item tag, expected: \"{_TAG}\", got \"{components[TagIndex]}\"."); }
-            var json = Utility.FromBase64(components[ClaimsIndex]);
-            _claims = JsonSerializer.Deserialize<IirClaims>(json);
-            _capabilities = new List<string>(_claims.cap).ConvertAll(str => {
-                Enum.TryParse<Capability>(str, true, out var cap); return cap; });
-            if (components.Length != NbrComponentsWithSignature) return; // No signature, decoding is done
-            Encoded = encoded[..encoded.LastIndexOf(Dime.ComponentDelimiter)];
-            Signature = components[SignatureIndex];
+            IsSigned = true; // Identity issuing requests are always signed
+            Signature = components[^1];
         }
 
-        protected override string Encode()
+        protected override int GetMinNbrOfComponents()
         {
-            if (Encoded != null) return Encoded;
-            var builder = new StringBuilder();
-            builder.Append(_TAG);
-            builder.Append(Dime.ComponentDelimiter);
-            builder.Append(Utility.ToBase64(JsonSerializer.Serialize(_claims)));
-            Encoded = builder.ToString();
-            return Encoded;
+            return MinimumNbrComponents;
         }
 
         #endregion
 
         #region -- PRIVATE --
         
-        private const int NbrComponentsWithoutSignature = 2;
-        private const int NbrComponentsWithSignature = 3;
-        private const int TagIndex = 0;
-        private const int ClaimsIndex = 1;
-        private const int SignatureIndex = 2;
-
-        private IirClaims _claims;
-        private List<Capability> _capabilities { get; set; }
-
-        private struct IirClaims
-        {
-            public Guid uid { get; set; }
-            public string iat { get; set; }
-            public string pub { get; set; }
-            [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-            public string[] cap { get; set; }
-            [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)][JsonConverter(typeof(DictionaryStringObjectJsonConverter))]
-            public Dictionary<string, object> pri {get; set; }
-
-            [JsonConstructor]
-            public IirClaims(Guid uid, string iat, string pub, string[] cap, Dictionary<string, object>pri)
-            {
-                this.uid = uid;
-                this.iat = iat;
-                this.pub = pub;
-                this.cap = cap;
-                this.pri = pri;
-            }
-        }
+        private new const int MinimumNbrComponents = 3;
         
         private Identity IssueNewIdentity(string systemName, Guid subjectId, long validFor, Key issuerKey, Identity issuerIdentity, bool includeChain, List<Capability> allowedCapabilities, IReadOnlyCollection<Capability> requiredCapabilities = null, List<string> ambits = null, List<string> methods = null)
         {
@@ -253,8 +239,17 @@ namespace DiME
             var now = DateTime.UtcNow;
             var expires = now.AddSeconds(validFor);
             var issuerId = issuerIdentity?.SubjectId ?? subjectId;
-            var identity = new Identity(systemName, subjectId, PublicKey.Public, now, expires, issuerId, _capabilities, _claims.pri, ambits, methods);
-            if (Identity.TrustedIdentity != null && issuerIdentity != null && issuerIdentity.SubjectId != Identity.TrustedIdentity.SubjectId)
+            var identity = new Identity(systemName, 
+                subjectId, 
+                PublicKey.Public, 
+                now, 
+                expires, 
+                issuerId, 
+                Claims().Get<List<string>>(Claim.Cap), 
+                Claims().Get<Dictionary<string, object>>(Claim.Pri), 
+                ambits, 
+                methods);
+            if (Dime.TrustedIdentity != null && issuerIdentity != null && issuerIdentity.SubjectId != Dime.TrustedIdentity.SubjectId)
             {
                 issuerIdentity.IsTrusted();
                 // The chain will only be set if this is not the trusted identity (and as long as one is set)
@@ -270,21 +265,21 @@ namespace DiME
 
         private void CompleteCapabilities(List<Capability> allowedCapabilities, IReadOnlyCollection<Capability> requiredCapabilities, bool isSelfSign)
         {
-            _capabilities ??= new List<Capability> {Capability.Generic};
-            if (_capabilities.Count == 0) { _capabilities.Add(Capability.Generic); }
+            var caps = Capabilities != null ? new List<Capability>(Capabilities) : new List<Capability> {Capability.Generic};
+            if (caps.Count == 0) { caps.Add(Capability.Generic); }
             if (isSelfSign)
             {
                 if (!WantsCapability(Capability.Self))
-                {
-                    _capabilities.Add(Capability.Self);
-                }
+                    caps.Add(Capability.Self);
             }
             else 
             {
                 if (allowedCapabilities == null || allowedCapabilities.Count == 0) { throw new ArgumentException("Allowed capabilities must be defined to issue identity.", nameof(allowedCapabilities)); }
-                if (_capabilities.Except(allowedCapabilities).Any()) { throw new IdentityCapabilityException("IIR contains one or more disallowed capabilities."); }
-                if (requiredCapabilities != null && requiredCapabilities.Except(_capabilities).Any()) { throw new IdentityCapabilityException("IIR is missing one or more required capabilities."); }
+                if (caps.Except(allowedCapabilities).Any()) { throw new IdentityCapabilityException("IIR contains one or more disallowed capabilities."); }
+                if (requiredCapabilities != null && requiredCapabilities.Except(caps).Any()) { throw new IdentityCapabilityException("IIR is missing one or more required capabilities."); }
             }
+            Claims().Put(Claim.Cap, caps.ConvertAll(obj => obj.ToString().ToLower()));
+            _capabilities = null;
         }
 
         #endregion

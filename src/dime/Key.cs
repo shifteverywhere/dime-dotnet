@@ -1,16 +1,14 @@
 //
 //  Key.cs
-//  Di:ME - Digital Identity Message Envelope
-//  A secure and compact messaging format for assertion and practical use of digital identities
-//
+//  Dime - Data Integrity Message Envelope
+//  A powerful universal data format that is built for secure, and integrity protected communication between trusted
+//  entities in a network.
+// 
 //  Released under the MIT licence, see LICENSE for more information.
 //  Copyright © 2022 Shift Everywhere AB. All rights reserved.
 //
 using System;
 using System.Collections.Generic;
-using System.Text;
-using System.Text.Json;
-using System.Text.Json.Serialization;
 
 namespace DiME
 {
@@ -34,28 +32,8 @@ namespace DiME
         /// <summary>
         /// Returns the version of the Di:ME specification for which this key was generated.
         /// </summary>
-        public int Version { 
-            get {
-                var key = _claims.key ?? _claims.pub;
-                return key[0];
-            }
-        }
-        /// <summary>
-        /// Returns the identifier of the entity that generated the key (issuer). This is optional.
-        /// </summary>
-         public Guid? IssuerId => _claims.iss;
-         /// <summary>
-         /// Returns a unique identifier for the instance. This will be generated at instance creation.
-         /// </summary>
-        public override Guid UniqueId => _claims.uid;
-         /// <summary>
-         /// The date and time when this key was created.
-         /// </summary>
-         public DateTime IssuedAt => Utility.FromTimestamp(_claims.iat);
-         /// <summary>
-         /// Returns the expiration date of the key. This is optional.
-         /// </summary>
-        public DateTime ExpiresAt => Utility.FromTimestamp(_claims.exp);
+        [Obsolete("This method is no longer used.")]
+        public int Version => Dime.Version;
          /// <summary>
          /// Returns the type of the key. The type determines what the key may be used for, this since it is also
          /// closely associated with the cryptographic algorithm the key is generated for.
@@ -63,8 +41,8 @@ namespace DiME
          public KeyType Type { 
             get
             {
-                var key = _claims.key ?? _claims.pub;
-                return GetAlgorithmFamily(key) switch
+                var key = Claims().Get<string>(Claim.Key) ?? Claims().Get<string>(Claim.Pub);
+                return GetAlgorithmFamily(Base58.Decode(key)) switch
                 {
                     AlgorithmFamily.Aead => KeyType.Encryption,
                     AlgorithmFamily.Ecdh => KeyType.Exchange,
@@ -74,19 +52,19 @@ namespace DiME
                 };
             }
         }
+         
         /// <summary>
         /// The secret part of the key. This part should never be stored or transmitted in plain text.
         /// </summary>
-        public string Secret => _claims.B58Key;
+        public string Secret => Claims().Get<string>(Claim.Key);
         /// <summary>
         /// The public part of the key. This part may be stored or transmitted in plain text.
         /// </summary>
-        public string Public => _claims.B58Pub;
+        public string Public => Claims().Get<string>(Claim.Pub);
+        
         /// <summary>
-        /// Returns the context that is attached to the key.
+        /// Empty constructor, not to be used. Required for Generics.
         /// </summary>
-        public string Context => _claims.ctx;
-
         public Key() { }
 
         /// <summary>
@@ -106,19 +84,20 @@ namespace DiME
         /// <param name="validFor">The number of seconds that the key should be valid for, from the time of issuing.</param>
         /// <param name="issuerId">The identifier of the issuer (creator) of the key, may be null.</param>
         /// <param name="context">The context to attach to the message, may be null.</param>
-        /// <returns></returns>
+        /// <returns>A newly generated key.</returns>
         /// <exception cref="ArgumentException"></exception>
         public static Key Generate(KeyType type, long validFor = -1L, Guid? issuerId = null, string context = null)
         {
-            if (context is {Length: > Envelope._MAX_CONTEXT_LENGTH}) { throw new ArgumentException("Context must not be longer than " + Envelope._MAX_CONTEXT_LENGTH + "."); }
+            if (context is {Length: > Dime.MaxContextLength}) { throw new ArgumentException("Context must not be longer than " + Dime.MaxContextLength + "."); }
             var key = Crypto.GenerateKey(type);
+            var claims = key.Claims();
             if (validFor != -1L)
             {
-                var exp = key.IssuedAt.AddSeconds(validFor);
-                key._claims.exp = Utility.ToTimestamp(exp);
+                var exp = key.IssuedAt?.AddSeconds(validFor);
+                claims.Put(Claim.Exp, exp);
             }
-            key._claims.iss = issuerId;
-            key._claims.ctx = context;
+            claims.Put(Claim.Iss, issuerId);
+            claims.Put(Claim.Ctx, context);
             return key;
         }
 
@@ -139,47 +118,60 @@ namespace DiME
         /// <returns>A new instance of the key with only the public part.</returns>
         public Key PublicCopy()
         {
-            var copy = new Key(UniqueId, Type, null, RawPublic);
-            copy._claims.iat = _claims.iat;
-            copy._claims.exp = _claims.exp;
-            copy._claims.iss = _claims.iss;
-            copy._claims.ctx = _claims.ctx;
-            return copy;
+            var copyKey = new Key(UniqueId, Type, null, RawPublic);
+            var claims = copyKey.Claims();
+            claims.Put(Claim.Iat, IssuedAt);
+            claims.Put(Claim.Exp, ExpiresAt);
+            claims.Put(Claim.Iss, IssuerId);
+            claims.Put(Claim.Ctx, Context);
+            return copyKey;
         }
 
         #endregion
 
         #region -- INTERNAL --
 
-        public byte[] RawSecret => _claims.key != null ? Utility.SubArray(_claims.key, HeaderSize, _claims.key.Length - HeaderSize) : null;
-        public byte[] RawPublic => _claims.pub != null ? Utility.SubArray(_claims.pub, HeaderSize, _claims.pub.Length - HeaderSize) : null;
+        public byte[] RawSecret
+        {
+            get
+            {
+                var key = Claims().Get<string>(Claim.Key);
+                if (key is null) return null;
+                var raw = Base58.Decode(key);
+                return Utility.SubArray(raw, HeaderSize, raw.Length - HeaderSize);
+            }
+        }
+
+        public byte[] RawPublic
+        {
+            get
+            {
+                var pub = Claims().Get<string>(Claim.Pub);
+                if (pub is null) return null;
+                var raw = Base58.Decode(pub);
+                return Utility.SubArray(raw, HeaderSize, raw.Length - HeaderSize);
+            }
+        }
 
         internal Key(Guid id, KeyType type, byte[] key, byte[] pub)
         {
-            DateTime iat = DateTime.UtcNow;
-            _claims = new KeyClaims(null, 
-                id, 
-                Utility.ToTimestamp(iat),
-                null,
-                key != null ? Utility.Combine(HeaderFrom(type, KeyVariant.Secret), key) : null,
-                pub != null ? Utility.Combine(HeaderFrom(type, KeyVariant.Public), pub) : null,
-                null);
+            var claims = Claims();
+            claims.Put(Claim.Uid, id);
+            claims.Put(Claim.Iat, DateTime.UtcNow);
+            if (key is not null)
+                claims.Put(Claim.Key, Base58.Encode(Utility.Combine(HeaderFrom(type, KeyVariant.Secret), key), null));
+            if (pub is not null)
+                claims.Put(Claim.Pub, Base58.Encode(Utility.Combine(HeaderFrom(type, KeyVariant.Public), pub), null));
         }
 
         internal Key(string base58Key)
         {
             if (base58Key is not {Length: > 0}) return;
             var bytes = Base58.Decode(base58Key);
-            if (bytes is {Length: > 0})
-            {
-                _claims = GetKeyVariant(bytes) switch
-                {
-                    KeyVariant.Secret => new KeyClaims(null, Guid.Empty, null, null, bytes, null, null),
-                    KeyVariant.Public => new KeyClaims(null, Guid.Empty, null, null, null, bytes, null),
-                    _ => throw new FormatException("Invalid key. (K1010)")
-                };
-            }
-
+            if (bytes is not {Length: > 0}) return;
+            var claims = Claims();
+            claims.Put(Claim.Uid, Guid.Empty);
+            claims.Put(GetKeyVariant(bytes) == KeyVariant.Secret ? Claim.Key : Claim.Pub, base58Key);
         }
 
         internal new static Key FromEncoded(string encoded)
@@ -192,83 +184,20 @@ namespace DiME
         #endregion
 
         # region -- PROTECTED --
-        
-        protected override void Decode(string encoded)
-        {
-            var components = encoded.Split(new[] { Dime.ComponentDelimiter });
-            if (components.Length != NbrExpectedComponents) { throw new FormatException($"Unexpected number of components for identity issuing request, expected {NbrExpectedComponents}, got {components.Length}."); }
-            if (components[TagIndex] != _TAG) { throw new FormatException($"Unexpected item tag, expected: \"{_TAG}\", got \"{components[TagIndex]}\"."); }
-            var json = Utility.FromBase64(components[ClaimsIndex]);
-            _claims = JsonSerializer.Deserialize<KeyClaims>(json);
-            Encoded = encoded;
-        }
 
-        protected override string Encode()
+        protected override void CustomDecoding(List<string> components)
         {
-            if (Encoded != null) return Encoded;
-            var builder = new StringBuilder();
-            builder.Append(_TAG);
-            builder.Append(Dime.ComponentDelimiter);
-            builder.Append(Utility.ToBase64(JsonSerializer.Serialize(_claims)));
-            Encoded = builder.ToString();
-            return Encoded;
+            if (components.Count > MinimumNbrComponents + 1)
+                throw new FormatException(
+                    $"More components in item than expected, got {components.Count}, expected {MinimumNbrComponents + 1}");
+            IsSigned = components.Count > MinimumNbrComponents;
         }
 
         #endregion
 
         #region -- PRIVATE --
 
-        private const int NbrExpectedComponents = 2;
-        private const int TagIndex = 0;
-        private const int ClaimsIndex = 1;
         private const int HeaderSize = 6;
-        private KeyClaims _claims;
-
-        private struct KeyClaims
-        {
-            [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-            public Guid? iss { get; set; }
-            public Guid uid { get; set; }
-            [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-            public string iat { get; set; }
-            [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-            public string exp { get; set; }
-            [JsonIgnore(Condition = JsonIgnoreCondition.Always)]
-            public byte[] key { get; set; }
-            [JsonIgnore(Condition = JsonIgnoreCondition.Always)]
-            public byte[] pub { get; set; }
-
-            [JsonPropertyName("key")][JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-            public string B58Key => (key != null) ? Base58.Encode(key, null) : null;
-
-            [JsonPropertyName("pub")][JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-            public string B58Pub => pub != null ? Base58.Encode(pub, null) : null;
-
-            [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-            public string ctx { get; set; }
-
-            public KeyClaims(Guid? iss, Guid uid, string iat, string exp, byte[] key, byte[] pub, string ctx)
-            {
-                this.iss = iss;
-                this.uid = uid;
-                this.iat = iat;
-                this.exp = exp;
-                this.key = key;
-                this.pub = pub;
-                this.ctx = ctx;
-            }
-
-            [JsonConstructor]
-            public KeyClaims(Guid? iss, Guid uid, string iat, string exp, string b58Key, string b58Pub, string ctx) {
-                this.iss = iss;
-                this.uid = uid;
-                this.iat = iat;
-                this.exp = exp;
-                key = b58Key != null ? Base58.Decode(b58Key) : null;
-                pub = b58Pub != null ? Base58.Decode(b58Pub) : null;
-                this.ctx = ctx;
-            }
-        }
 
         private static byte[] HeaderFrom(KeyType type, KeyVariant variant) {
             var algorithmFamily = GetAlgorithmFamilyFromType(type);

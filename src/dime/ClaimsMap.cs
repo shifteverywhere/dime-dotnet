@@ -7,13 +7,16 @@
 //  Released under the MIT licence, see LICENSE for more information.
 //  Copyright © 2022 Shift Everywhere AB. All rights reserved.
 //
+
+#nullable enable
 using System;
 using System.Collections.Generic;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace DiME;
 
-internal class ClaimsMap
+public class ClaimsMap
 {
     #region -- INTERNAL --
 
@@ -24,7 +27,17 @@ internal class ClaimsMap
 
     internal ClaimsMap(string encoded)
     {
-        _claims = JsonSerializer.Deserialize<Dictionary<string, object>>(encoded);
+        var serializeOptions = new JsonSerializerOptions
+        {
+            WriteIndented = true,
+            Converters =
+            {
+                new ClaimsJsonConverter()
+            }
+        };
+        _claims = JsonSerializer.Deserialize<Dictionary<string, object>>(encoded, serializeOptions);
+        if (_claims == null)
+            throw new FormatException("Unable to parse claims of Dime item.");
     }
 
     internal string ToJson()
@@ -34,12 +47,14 @@ internal class ClaimsMap
 
     internal int size()
     {
-        return _claims.Count;
+        return _claims!.Count;
     }
     
-    internal T Get<T>(Claim claim)
+    internal T? Get<T>(Claim claim)
     {
-        return (T)_claims[ClaimsMap.ClaimToString(claim)];
+        var key = ClaimToString(claim);
+        if (_claims != null && !_claims.ContainsKey(key)) return default;
+        return (T) _claims?[key]!;
     }
 
     internal Guid? GetGuid(Claim claim)
@@ -84,38 +99,119 @@ internal class ClaimsMap
     {
         var obj = Get<object>(claim);
         if (obj is string str)
-        {
-            return Base58.Decode(str);
-        }
-        return null;
+           return Base58.Decode(str);
+        return Array.Empty<byte>();
+    }
+
+    internal Key? GetKey(Claim claim)
+    {
+        var key = Get<string>(claim);
+        return string.IsNullOrEmpty(key) ? null : Key.FromBase58Key(key);
     }
     
     internal void Put(Claim claim, object value)
     {
-        if (value is byte[] bytes)
+        switch (value)
         {
-            _claims[ClaimsMap.ClaimToString(claim)] = Base58.Encode(bytes, null);
-        }
-        else
-        {
-            _claims[ClaimsMap.ClaimToString(claim)] = value;
+            case null:
+                return;
+            case byte[] bytes:
+                _claims![ClaimToString(claim)] = Base58.Encode(bytes, null);
+                break;
+            default:
+                _claims![ClaimToString(claim)] = value;
+                break;
         }
     }
 
     internal void Remove(Claim claim)
     {
-        _claims.Remove(ClaimsMap.ClaimToString(claim));
+        _claims!.Remove(ClaimToString(claim));
     }
 
     #endregion
     
     #region -- PRIVATE --
 
-    private readonly Dictionary<string, object> _claims;
+    private readonly Dictionary<string, object>? _claims;
 
     private static string ClaimToString(Claim claim)
     {
         return claim.ToString().ToLower();
+    }
+    
+    private class ClaimsJsonConverter : JsonConverter<Dictionary<string, object>>
+    {
+        public override Dictionary<string, object> Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+        {
+            if (reader.TokenType != JsonTokenType.StartObject)
+                throw new JsonException($"Unsupported JsonTokenType: {reader.TokenType}.");
+            var claims = new Dictionary<string, object>();
+            while (reader.Read())
+            {
+                if (reader.TokenType == JsonTokenType.EndObject)
+                    return claims;
+                if (reader.TokenType != JsonTokenType.PropertyName)
+                    throw new JsonException($"Unexpected JsonTokenType, got {reader.TokenType}, expected PropertyName.");
+                var propertyName = reader.GetString();
+                if (string.IsNullOrWhiteSpace(propertyName))
+                    throw new JsonException("Unable to get property name.");
+                reader.Read();
+                var obj = ExtractObject(ref reader, propertyName, options);
+                if (obj is not null)
+                    claims.Add(propertyName, obj);
+            }
+            return claims;
+        }
+
+        public override void Write(Utf8JsonWriter writer, Dictionary<string, object> value, JsonSerializerOptions options)
+        {
+            JsonSerializer.Serialize(writer, value, options);
+        }
+
+        private object? ExtractObject(ref Utf8JsonReader reader, string propertyName, JsonSerializerOptions options)
+        {
+            switch (reader.TokenType)
+            {
+                case JsonTokenType.StartObject:
+                    return Read(ref reader, null, options);
+                case JsonTokenType.StartArray:
+                    var list = new List<object>();
+                    var isStringType = true;
+                    while (reader.Read() && reader.TokenType != JsonTokenType.EndArray)
+                    {
+                        var obj = ExtractObject(ref reader, propertyName, options);
+                        if (obj is not null)
+                        {
+                            list.Add(obj);
+                            if (isStringType)
+                                isStringType = obj is string;
+                        }
+                    }
+
+                    if (isStringType)
+                        return list.ConvertAll(obj => obj.ToString());
+                    else
+                        return list;
+                case JsonTokenType.String:
+                    return reader.GetString();
+                case JsonTokenType.Number:
+                    return true;
+                case JsonTokenType.True:
+                    break;
+                case JsonTokenType.False:
+                    return false;
+                case JsonTokenType.None:
+                case JsonTokenType.EndObject:
+                case JsonTokenType.EndArray:
+                case JsonTokenType.PropertyName:
+                case JsonTokenType.Null:
+                case JsonTokenType.Comment:
+                default:
+                    break;
+            }
+            return null;
+        }
     }
     
     #endregion

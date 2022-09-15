@@ -17,9 +17,8 @@ namespace DiME_test
     [TestClass]
     public class PerformanceTests
     {
+        private const int PerformanceRounds = 100;
 
-        public static int PerformanceRounds = 100;
-        
         [TestMethod]
         public void IdentityPerformanceTest()
         {
@@ -30,7 +29,7 @@ namespace DiME_test
             var sw = new Stopwatch();
             totalSw.Start();
             
-            Identity.SetTrustedIdentity(Commons.TrustedIdentity);
+            Dime.TrustedIdentity = Commons.TrustedIdentity;
             var caps = new List<Capability> { Capability.Generic, Capability.Identify };
             var keyList = new List<Key>();
             var iirList = new List<IdentityIssuingRequest>();
@@ -61,7 +60,7 @@ namespace DiME_test
             sw.Start();
             for(var i = 0; i < PerformanceRounds; i++) {
                 var iir = iirList[i];
-                var identity = iir.Issue(Guid.NewGuid(), IdentityIssuingRequest._VALID_FOR_1_YEAR, Commons.IntermediateKey, Commons.IntermediateIdentity, true, caps);
+                var identity = iir.Issue(Guid.NewGuid(), Dime.ValidFor1Year, Commons.IntermediateKey, Commons.IntermediateIdentity, true, caps);
                 identityList.Add(identity);
             }
             sw.Stop();

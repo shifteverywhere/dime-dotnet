@@ -272,7 +272,7 @@ namespace DiME
             foreach(var item in _items)
             {
                 builder.Append(Dime.SectionDelimiter);
-                builder.Append(item.ToEncoded());
+                builder.Append(item.ForExport());
             }
             _encoded = builder.ToString();
             return _encoded;

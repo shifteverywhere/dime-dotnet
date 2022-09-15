@@ -8,6 +8,7 @@
 //
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using DiME;
 
@@ -48,7 +49,7 @@ namespace DiME_test
         [TestMethod]
         public void IssueTest1()
         {
-            Identity.SetTrustedIdentity(Commons.TrustedIdentity);
+            Dime.TrustedIdentity = Commons.TrustedIdentity;
             var key1 = Key.Generate(KeyType.Identity);
             var caps = new List<Capability> {Capability.Generic};
             var iir1 = IdentityIssuingRequest.Generate(key1, caps);
@@ -84,7 +85,7 @@ namespace DiME_test
         [TestMethod]
         public void IssueTest3()
         {
-            Identity.SetTrustedIdentity(Commons.TrustedIdentity);
+            Dime.TrustedIdentity = Commons.TrustedIdentity;
             var caps = new List<Capability> {Capability.Generic};
             var identity = IdentityIssuingRequest.Generate(Key.Generate(KeyType.Identity)).Issue(Guid.NewGuid(), 100L,
                 Commons.IntermediateKey, Commons.IntermediateIdentity, true, caps);
@@ -94,7 +95,7 @@ namespace DiME_test
         [TestMethod]
         public void IssueTest4()
         {
-            Identity.SetTrustedIdentity(Commons.TrustedIdentity);
+            Dime.TrustedIdentity = Commons.TrustedIdentity;
             var caps = new List<Capability> {Capability.Generic};
             var identity = IdentityIssuingRequest.Generate(Key.Generate(KeyType.Identity)).Issue(Guid.NewGuid(), 100L,
                 Commons.IntermediateKey, Commons.IntermediateIdentity, false, caps);
@@ -156,12 +157,12 @@ namespace DiME_test
         [TestMethod]
         public void CapabilityTest1()
         {
-            Identity.SetTrustedIdentity(Commons.TrustedIdentity);
+            Dime.TrustedIdentity = Commons.TrustedIdentity;
             var requestedCapabilities = new List<Capability> {Capability.Generic, Capability.Identify};
             var iir = IdentityIssuingRequest.Generate(Key.Generate(KeyType.Identity), requestedCapabilities);
             try
             {
-                _ = iir.Issue(Guid.NewGuid(), IdentityIssuingRequest._VALID_FOR_1_YEAR, Commons.IntermediateKey,
+                _ = iir.Issue(Guid.NewGuid(), Dime.ValidFor1Year, Commons.IntermediateKey,
                     Commons.IntermediateIdentity, true, null);
             }
             catch (ArgumentException)
@@ -176,14 +177,14 @@ namespace DiME_test
         [TestMethod]
         public void CapabilityTest2()
         {
-            Identity.SetTrustedIdentity(Commons.TrustedIdentity);
+            Dime.TrustedIdentity = Commons.TrustedIdentity;
             var requestedCapabilities = new List<Capability>
                 {Capability.Generic, Capability.Identify, Capability.Issue};
             var allowedCapabilities = new List<Capability> {Capability.Generic, Capability.Identify};
             var iir = IdentityIssuingRequest.Generate(Key.Generate(KeyType.Identity), requestedCapabilities);
             try
             {
-                _ = iir.Issue(Guid.NewGuid(), IdentityIssuingRequest._VALID_FOR_1_YEAR, Commons.IntermediateKey,
+                _ = iir.Issue(Guid.NewGuid(), Dime.ValidFor1Year, Commons.IntermediateKey,
                     Commons.IntermediateIdentity, true, allowedCapabilities);
             }
             catch (IdentityCapabilityException)
@@ -197,14 +198,14 @@ namespace DiME_test
         [TestMethod]
         public void CapabilityTest3()
         {
-            Identity.SetTrustedIdentity(Commons.TrustedIdentity);
+            Dime.TrustedIdentity = Commons.TrustedIdentity;
             var requestedCapabilities = new List<Capability> {Capability.Generic};
             var allowedCapabilities = new List<Capability> {Capability.Generic, Capability.Identify};
             var requiredCapabilities = new List<Capability> {Capability.Identify};
             var iir = IdentityIssuingRequest.Generate(Key.Generate(KeyType.Identity), requestedCapabilities);
             try
             {
-                _ = iir.Issue(Guid.NewGuid(), IdentityIssuingRequest._VALID_FOR_1_YEAR, Commons.IntermediateKey,
+                _ = iir.Issue(Guid.NewGuid(), Dime.ValidFor1Year, Commons.IntermediateKey,
                     Commons.IntermediateIdentity, true, allowedCapabilities, requiredCapabilities);
             }
             catch (IdentityCapabilityException)
@@ -218,12 +219,12 @@ namespace DiME_test
         [TestMethod]
         public void CapabilityTest4()
         {
-            Identity.SetTrustedIdentity(Commons.TrustedIdentity);
+            Dime.TrustedIdentity = Commons.TrustedIdentity;
             var requestedCapabilities = new List<Capability> {Capability.Generic, Capability.Identify};
             var allowedCapabilities = new List<Capability> {Capability.Generic, Capability.Identify};
             var requiredCapabilities = new List<Capability> {Capability.Identify};
             var iir = IdentityIssuingRequest.Generate(Key.Generate(KeyType.Identity), requestedCapabilities);
-            var identity = iir.Issue(Guid.NewGuid(), IdentityIssuingRequest._VALID_FOR_1_YEAR, Commons.IntermediateKey,
+            var identity = iir.Issue(Guid.NewGuid(), Dime.ValidFor1Year, Commons.IntermediateKey,
                 Commons.IntermediateIdentity, true, allowedCapabilities, requiredCapabilities);
             Assert.IsTrue(identity.HasCapability(requestedCapabilities[0]));
             Assert.IsTrue(identity.HasCapability(requestedCapabilities[1]));
@@ -232,7 +233,7 @@ namespace DiME_test
         [TestMethod]
         public void CapabilityTest5()
         {
-            Identity.SetTrustedIdentity(Commons.TrustedIdentity);
+            Dime.TrustedIdentity = Commons.TrustedIdentity;
             var allowedCapabilities = new List<Capability> {Capability.Generic, Capability.Identify};
             var requestedCapabilities = new List<Capability> {Capability.Issue};
             try
@@ -251,7 +252,7 @@ namespace DiME_test
         [TestMethod]
         public void CapabilityTest6()
         {
-            Identity.SetTrustedIdentity(null);
+            Dime.TrustedIdentity = Commons.TrustedIdentity;
             var caps = new List<Capability> {Capability.Issue};
             try
             {
@@ -295,8 +296,8 @@ namespace DiME_test
                 new List<Capability> {Capability.Generic}, principles);
             var iir2 = Item.Import<IdentityIssuingRequest>(iir1.Export());
             Assert.AreEqual("Racecar is racecar backwards.", iir2.Principles["tag"]);
-            var nbr = (object[]) iir2.Principles["nbr"];
-            Assert.AreEqual(3, nbr.Length);
+            var nbr = (List<string>) iir2.Principles["nbr"];
+            Assert.AreEqual(3, nbr.Count);
             Assert.AreEqual("three", nbr[2]);
         }
 
@@ -318,6 +319,19 @@ namespace DiME_test
                 Commons.IntermediateKey, Commons.IntermediateIdentity, true, caps, null, system);
             Assert.AreNotEqual(Commons.IntermediateIdentity.SystemName, identity.SystemName);
             Assert.AreEqual(system, identity.SystemName);
+        }
+
+        [TestMethod]
+        public void AlienIdentityIssuingRequestTest1()
+        {
+            var caps = new List<Capability> {Capability.Generic};
+            const string exported = "Di:IIR.eyJjYXAiOlsiZ2VuZXJpYyJdLCJpYXQiOiIyMDIyLTA3LTAxVDA5OjI1OjAwLjIyNTcwM1oiLCJwdWIiOiIyVERYZG9OdnVjd1dmdjNwUE1EWnV3UmFnTVpaQURia0dYTGRIS1ZSOENyZGFBRVFnVmlrZHRUQlYiLCJ1aWQiOiIyZGYyOTExNS05YjFmLTQ0NTYtOGQzYS1jMzJmZjcwZDVmOTcifQ.3Dfa4O6oPzyZH62q0p46sNA6syL5C317grIdSpWZhny52HVZzN5uEnbiSGetHUCe8BcZsxT09NLZ40wVcrl6Bw";
+            var iir = Item.Import<IdentityIssuingRequest>(exported);
+            Assert.IsNotNull(iir);
+            iir.Verify();
+            var identity = iir.Issue(Guid.NewGuid(), IdentityIssuingRequest._VALID_FOR_1_YEAR,
+                Commons.IntermediateKey, Commons.IntermediateIdentity, true, caps);
+            Assert.IsNotNull(identity);
         }
 
     }

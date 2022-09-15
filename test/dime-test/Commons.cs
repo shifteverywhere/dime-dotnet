@@ -18,7 +18,8 @@ namespace DiME_test
     {
         #region -- PUBLIC --
 
-        public const string _SYSTEM_NAME = "dime-dotnet-ref";
+        public const string SystemName = "io.dimeformat.ref.csharp";
+        public const string Payload = "Racecar is racecar backwards.";
         public static Key TrustedKey => _trustedKey ??= Item.Import<Key>(EncodedTrustedKey);
         public static Identity TrustedIdentity => _trustedIdentity ??= Item.Import<Identity>(EncodedTrustedIdentity);
         public static Key IntermediateKey => _intermediateKey ??= Item.Import<Key>(EncodedIntermediateKey);
@@ -35,7 +36,7 @@ namespace DiME_test
         [TestMethod]
         public void GenerateCommons() 
         {
-            Identity.SetTrustedIdentity(null);
+            Dime.TrustedIdentity = null;
             var trustedKey = Key.Generate(KeyType.Identity);
             var trustedIdentity = GenerateIdentity(trustedKey, trustedKey, null, IdentityIssuingRequest._VALID_FOR_1_YEAR * 10, new List<Capability>() { Capability.Generic, Capability.Issue });
             Console.WriteLine("#region -- TRUSTED IDENTITY --");
@@ -98,7 +99,7 @@ namespace DiME_test
         private static Identity GenerateIdentity(Key subjectKey, Key issuerKey, Identity issuerIdentity, long validFor, List<Capability> capabilities) {
             var subjectId = Guid.NewGuid();
             var iir = IdentityIssuingRequest.Generate(subjectKey, capabilities);
-            var identity = issuerIdentity == null ? iir.SelfIssue(subjectId, validFor, issuerKey, _SYSTEM_NAME) : iir.Issue(subjectId, validFor, issuerKey, issuerIdentity, true, capabilities);
+            var identity = issuerIdentity == null ? iir.SelfIssue(subjectId, validFor, issuerKey, SystemName) : iir.Issue(subjectId, validFor, issuerKey, issuerIdentity, true, capabilities);
             return identity;
         }
     }

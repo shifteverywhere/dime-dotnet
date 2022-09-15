@@ -47,7 +47,7 @@ namespace DiME_test
         [TestMethod]
         public void ExportTest1()
         {
-            var key = Key.Generate(KeyType.Identity);
+            var key = Key.Generate(KeyType.Exchange);
             var encoded = key.Export();
             Assert.IsNotNull(encoded);
             Assert.IsTrue(encoded.StartsWith($"{Envelope._HEADER}:{Key._TAG}"));
@@ -160,13 +160,15 @@ namespace DiME_test
         }
 
         [TestMethod]
-        public void ContextTest3() {
+        public void ContextTest3() 
+        {
             const string context = "123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890";
             try {
                 Key.Generate(KeyType.Identity, context);
             } catch (ArgumentException) { return; } // All is well
             Assert.IsTrue(false, "Should not happen.");
         }
-
+        
     }
+    
 }
