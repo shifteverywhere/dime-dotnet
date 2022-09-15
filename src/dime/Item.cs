@@ -52,7 +52,11 @@ namespace DiME
         /// Checks if the item has been signed or not.
         /// </summary>
         public bool IsSigned { get; protected set; }
-
+        /// <summary>
+        /// Returns if the item is marked as legacy (compatible with Dime format before official version 1). 
+        /// </summary>
+        public bool IsLegacy { get; protected set; } = false;
+        
         /// <summary>
         /// Will import an item from a Dime encoded string.Dime envelopes cannot be imported using this method, for
         /// envelopes use Envelope.importFromEncoded(String) instead.
@@ -101,6 +105,19 @@ namespace DiME
         }
 
         /// <summary>
+        ///  Will remove the signature of an item.
+        /// </summary>
+        /// <returns>True if the item was stripped of the signature, false otherwise.</returns>
+        public bool strip()
+        {
+            Encoded = null;
+            Components = null;
+            Signature = null;
+            IsSigned = false;
+            return true;
+        }
+        
+        /// <summary>
         /// Returns the thumbprint of the item. This may be used to easily identify an item or detect if an item has
         /// been changed. This is created by securely hashing the item and will be unique and change as soon as any
         /// content changes.
@@ -146,6 +163,15 @@ namespace DiME
             }
 
             Crypto.VerifySignature(Encode(false), Signature, key);
+        }
+
+        /// <summary>
+        /// Converts the item to legacy (compatible with earlier version of the Dime specification, before version 1)
+        /// </summary>
+        public void ConvertToLegacy()
+        {
+            strip();
+           IsLegacy = true;
         }
 
         #endregion
