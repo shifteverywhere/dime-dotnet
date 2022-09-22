@@ -41,7 +41,7 @@ namespace DiME
         /// included in any issued identity. The equivalent secret (private) key was used to sign the IIR, thus the
         /// public key can be used to verify the signature. This must be a key of type IDENTITY.
         /// </summary>
-        public Key PublicKey => Claims().GetKey(Claim.Pub);
+        public Key PublicKey => Claims().GetKey(Claim.Pub, new List<KeyUse>() { KeyUse.Sign });
         /// <summary>
         /// Returns a list of any capabilities requested by this IIR. Capabilities are usually used to
         /// determine what an entity may do with its issued identity.
@@ -110,7 +110,7 @@ namespace DiME
             claims.Put(Claim.Cap, capabilitiesToSet.ConvertAll(obj => obj.ToString().ToLower()));
             if (principles is not null && principles.Count > 0)
                 claims.Put(Claim.Pri, principles);
-            iir.Signature = Crypto.GenerateSignature(iir.Encode(false), key);
+            iir.Signature = Utility.ToBase64(Dime.Crypto.GenerateSignature(iir.Encode(false), key));
             iir.IsSigned = true;
             return iir;
         }

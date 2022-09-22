@@ -17,7 +17,7 @@ namespace DiME_test
     [TestClass]
     public class PerformanceTests
     {
-        private const int PerformanceRounds = 100;
+        private const int PerformanceRounds = 10;
 
         [TestMethod]
         public void IdentityPerformanceTest()
@@ -39,7 +39,7 @@ namespace DiME_test
             Console.Write("* Running key generation tests...");
             sw.Start();
             for(var i = 0; i < PerformanceRounds; i++) {
-                var key = Key.Generate(KeyType.Identity);
+                var key = Key.Generate(new List<KeyUse>() {KeyUse.Sign}, null);
                 keyList.Add(key);
             }
             sw.Stop();

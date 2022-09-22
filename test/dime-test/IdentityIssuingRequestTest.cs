@@ -8,7 +8,6 @@
 //
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using DiME;
 
@@ -21,7 +20,7 @@ namespace DiME_test
         [TestMethod]
         public void GetTagTest1()
         {
-            var iir = IdentityIssuingRequest.Generate(Key.Generate(KeyType.Identity));
+            var iir = IdentityIssuingRequest.Generate(Key.Generate(new List<KeyUse>() {KeyUse.Sign}, null));
             Assert.AreEqual("IIR", iir.Tag);
         }
 
@@ -30,7 +29,7 @@ namespace DiME_test
         {
             try
             {
-                _ = IdentityIssuingRequest.Generate(Key.Generate(KeyType.Exchange));
+                _ = IdentityIssuingRequest.Generate(Key.Generate(new List<KeyUse>() {KeyUse.Exchange}, null));
             }
             catch (ArgumentException)
             {
@@ -43,20 +42,20 @@ namespace DiME_test
         [TestMethod]
         public void GenerateRequestTest2()
         {
-            _ = IdentityIssuingRequest.Generate(Key.Generate(KeyType.Identity));
+            _ = IdentityIssuingRequest.Generate(Key.Generate(new List<KeyUse>() {KeyUse.Sign}, null));
         }
 
         [TestMethod]
         public void IssueTest1()
         {
             Dime.TrustedIdentity = Commons.TrustedIdentity;
-            var key1 = Key.Generate(KeyType.Identity);
+            var key1 = Key.Generate(new List<KeyUse>() {KeyUse.Sign}, null);
             var caps = new List<Capability> {Capability.Generic};
             var iir1 = IdentityIssuingRequest.Generate(key1, caps);
             var components = iir1.Export().Split(new[] {'.'});
             var json = Utility.FromBase64(components[1]);
             var original = System.Text.Encoding.UTF8.GetString(json, 0, json.Length);
-            var key2 = Key.Generate(KeyType.Identity);
+            var key2 = Key.Generate(new List<KeyUse>() {KeyUse.Sign}, null);
             var modified = original.Replace(key1.Public, key2.Public);
             var iir2 = Item.Import<IdentityIssuingRequest>(components[0] + "." + Utility.ToBase64(modified) + "." +
                                                            components[2]);
@@ -77,7 +76,7 @@ namespace DiME_test
         public void IssueTest2()
         {
             var caps = new List<Capability> {Capability.Generic};
-            var identity = IdentityIssuingRequest.Generate(Key.Generate(KeyType.Identity)).Issue(Guid.NewGuid(), 100L,
+            var identity = IdentityIssuingRequest.Generate(Key.Generate(new List<KeyUse>() {KeyUse.Sign}, null)).Issue(Guid.NewGuid(), 100L,
                 Commons.TrustedKey, Commons.TrustedIdentity, true, caps);
             Assert.IsNull(identity.TrustChain);
         }
@@ -87,7 +86,7 @@ namespace DiME_test
         {
             Dime.TrustedIdentity = Commons.TrustedIdentity;
             var caps = new List<Capability> {Capability.Generic};
-            var identity = IdentityIssuingRequest.Generate(Key.Generate(KeyType.Identity)).Issue(Guid.NewGuid(), 100L,
+            var identity = IdentityIssuingRequest.Generate(Key.Generate(new List<KeyUse>() {KeyUse.Sign}, null)).Issue(Guid.NewGuid(), 100L,
                 Commons.IntermediateKey, Commons.IntermediateIdentity, true, caps);
             Assert.IsNotNull(identity.TrustChain);
         }
@@ -97,7 +96,7 @@ namespace DiME_test
         {
             Dime.TrustedIdentity = Commons.TrustedIdentity;
             var caps = new List<Capability> {Capability.Generic};
-            var identity = IdentityIssuingRequest.Generate(Key.Generate(KeyType.Identity)).Issue(Guid.NewGuid(), 100L,
+            var identity = IdentityIssuingRequest.Generate(Key.Generate(new List<KeyUse>() {KeyUse.Sign}, null)).Issue(Guid.NewGuid(), 100L,
                 Commons.IntermediateKey, Commons.IntermediateIdentity, false, caps);
             Assert.IsNull(identity.TrustChain);
         }
@@ -105,14 +104,14 @@ namespace DiME_test
         [TestMethod]
         public void VerifyTest1()
         {
-            var iir = IdentityIssuingRequest.Generate(Key.Generate(KeyType.Identity));
+            var iir = IdentityIssuingRequest.Generate(Key.Generate(new List<KeyUse>() {KeyUse.Sign}, null));
             iir.Verify();
         }
 
         [TestMethod]
         public void ThumbprintTest1()
         {
-            var iir = IdentityIssuingRequest.Generate(Key.Generate(KeyType.Identity));
+            var iir = IdentityIssuingRequest.Generate(Key.Generate(new List<KeyUse>() {KeyUse.Sign}, null));
             var thumbprint = iir.Thumbprint();
             Assert.IsNotNull(thumbprint);
             Assert.IsTrue(thumbprint.Length > 0, "Thumbprint should not be empty string");
@@ -122,8 +121,8 @@ namespace DiME_test
         [TestMethod]
         public void ThumbprintTest2()
         {
-            var iir1 = IdentityIssuingRequest.Generate(Key.Generate(KeyType.Identity));
-            var iir2 = IdentityIssuingRequest.Generate(Key.Generate(KeyType.Identity));
+            var iir1 = IdentityIssuingRequest.Generate(Key.Generate(new List<KeyUse>() {KeyUse.Sign}, null));
+            var iir2 = IdentityIssuingRequest.Generate(Key.Generate(new List<KeyUse>() {KeyUse.Sign}, null));
             Assert.IsFalse(iir1.Thumbprint() == iir2.Thumbprint(),
                 "Thumbprints of different iirs should not be the same");
         }
@@ -131,7 +130,7 @@ namespace DiME_test
         [TestMethod]
         public void ExportTest1()
         {
-            var key = Key.Generate(KeyType.Identity);
+            var key = Key.Generate(new List<KeyUse>() {KeyUse.Sign}, null);
             var iir = IdentityIssuingRequest.Generate(key);
             var exported = iir.Export();
             Assert.IsNotNull(exported);
@@ -159,7 +158,7 @@ namespace DiME_test
         {
             Dime.TrustedIdentity = Commons.TrustedIdentity;
             var requestedCapabilities = new List<Capability> {Capability.Generic, Capability.Identify};
-            var iir = IdentityIssuingRequest.Generate(Key.Generate(KeyType.Identity), requestedCapabilities);
+            var iir = IdentityIssuingRequest.Generate(Key.Generate(new List<KeyUse>() {KeyUse.Sign}, null), requestedCapabilities);
             try
             {
                 _ = iir.Issue(Guid.NewGuid(), Dime.ValidFor1Year, Commons.IntermediateKey,
@@ -181,7 +180,7 @@ namespace DiME_test
             var requestedCapabilities = new List<Capability>
                 {Capability.Generic, Capability.Identify, Capability.Issue};
             var allowedCapabilities = new List<Capability> {Capability.Generic, Capability.Identify};
-            var iir = IdentityIssuingRequest.Generate(Key.Generate(KeyType.Identity), requestedCapabilities);
+            var iir = IdentityIssuingRequest.Generate(Key.Generate(new List<KeyUse>() {KeyUse.Sign}, null), requestedCapabilities);
             try
             {
                 _ = iir.Issue(Guid.NewGuid(), Dime.ValidFor1Year, Commons.IntermediateKey,
@@ -202,7 +201,7 @@ namespace DiME_test
             var requestedCapabilities = new List<Capability> {Capability.Generic};
             var allowedCapabilities = new List<Capability> {Capability.Generic, Capability.Identify};
             var requiredCapabilities = new List<Capability> {Capability.Identify};
-            var iir = IdentityIssuingRequest.Generate(Key.Generate(KeyType.Identity), requestedCapabilities);
+            var iir = IdentityIssuingRequest.Generate(Key.Generate(new List<KeyUse>() {KeyUse.Sign}, null), requestedCapabilities);
             try
             {
                 _ = iir.Issue(Guid.NewGuid(), Dime.ValidFor1Year, Commons.IntermediateKey,
@@ -223,7 +222,7 @@ namespace DiME_test
             var requestedCapabilities = new List<Capability> {Capability.Generic, Capability.Identify};
             var allowedCapabilities = new List<Capability> {Capability.Generic, Capability.Identify};
             var requiredCapabilities = new List<Capability> {Capability.Identify};
-            var iir = IdentityIssuingRequest.Generate(Key.Generate(KeyType.Identity), requestedCapabilities);
+            var iir = IdentityIssuingRequest.Generate(Key.Generate(new List<KeyUse>() {KeyUse.Sign}, null), requestedCapabilities);
             var identity = iir.Issue(Guid.NewGuid(), Dime.ValidFor1Year, Commons.IntermediateKey,
                 Commons.IntermediateIdentity, true, allowedCapabilities, requiredCapabilities);
             Assert.IsTrue(identity.HasCapability(requestedCapabilities[0]));
@@ -238,7 +237,7 @@ namespace DiME_test
             var requestedCapabilities = new List<Capability> {Capability.Issue};
             try
             {
-                IdentityIssuingRequest.Generate(Key.Generate(KeyType.Identity), requestedCapabilities).Issue(
+                IdentityIssuingRequest.Generate(Key.Generate(new List<KeyUse>() {KeyUse.Sign}, null), requestedCapabilities).Issue(
                     Guid.NewGuid(), 100L, Commons.TrustedKey, Commons.TrustedIdentity, true, allowedCapabilities);
             }
             catch (IdentityCapabilityException)
@@ -256,7 +255,7 @@ namespace DiME_test
             var caps = new List<Capability> {Capability.Issue};
             try
             {
-                IdentityIssuingRequest.Generate(Key.Generate(KeyType.Identity), caps)
+                IdentityIssuingRequest.Generate(Key.Generate(new List<KeyUse>() {KeyUse.Sign}, null), caps)
                     .Issue(Guid.NewGuid(), 100L, Commons.TrustedKey, null, true, caps);
             }
             catch (ArgumentNullException)
@@ -275,7 +274,7 @@ namespace DiME_test
                 ["tag"] = "Racecar is racecar backwards.",
                 ["nbr"] = new List<string> {"one", "two", "three"}
             };
-            var iir = IdentityIssuingRequest.Generate(Key.Generate(KeyType.Identity),
+            var iir = IdentityIssuingRequest.Generate(Key.Generate(new List<KeyUse>() {KeyUse.Sign}, null),
                 new List<Capability> {Capability.Generic}, principles);
             var pri = iir.Principles;
             Assert.AreEqual("Racecar is racecar backwards.", pri["tag"]);
@@ -292,7 +291,7 @@ namespace DiME_test
                 ["tag"] = "Racecar is racecar backwards.",
                 ["nbr"] = new[] {"one", "two", "three"}
             };
-            var iir1 = IdentityIssuingRequest.Generate(Key.Generate(KeyType.Identity),
+            var iir1 = IdentityIssuingRequest.Generate(Key.Generate(new List<KeyUse>() {KeyUse.Sign}, null),
                 new List<Capability> {Capability.Generic}, principles);
             var iir2 = Item.Import<IdentityIssuingRequest>(iir1.Export());
             Assert.AreEqual("Racecar is racecar backwards.", iir2.Principles["tag"]);
@@ -305,7 +304,7 @@ namespace DiME_test
         public void SystemNameTest1()
         {
             var caps = new List<Capability> {Capability.Generic};
-            var identity = IdentityIssuingRequest.Generate(Key.Generate(KeyType.Identity)).Issue(Guid.NewGuid(), 100L,
+            var identity = IdentityIssuingRequest.Generate(Key.Generate(new List<KeyUse>() {KeyUse.Sign}, null)).Issue(Guid.NewGuid(), 100L,
                 Commons.IntermediateKey, Commons.IntermediateIdentity, true, caps);
             Assert.AreEqual(Commons.IntermediateIdentity.SystemName, identity.SystemName);
         }
@@ -315,7 +314,7 @@ namespace DiME_test
         {
             const string system = "racecar:is:racecar:backwards";
             var caps = new List<Capability> {Capability.Generic};
-            var identity = IdentityIssuingRequest.Generate(Key.Generate(KeyType.Identity)).Issue(Guid.NewGuid(), 100L,
+            var identity = IdentityIssuingRequest.Generate(Key.Generate(new List<KeyUse>() {KeyUse.Sign}, null)).Issue(Guid.NewGuid(), 100L,
                 Commons.IntermediateKey, Commons.IntermediateIdentity, true, caps, null, system);
             Assert.AreNotEqual(Commons.IntermediateIdentity.SystemName, identity.SystemName);
             Assert.AreEqual(system, identity.SystemName);
@@ -329,7 +328,7 @@ namespace DiME_test
             var iir = Item.Import<IdentityIssuingRequest>(exported);
             Assert.IsNotNull(iir);
             iir.Verify();
-            var identity = iir.Issue(Guid.NewGuid(), IdentityIssuingRequest._VALID_FOR_1_YEAR,
+            var identity = iir.Issue(Guid.NewGuid(), Dime.ValidFor1Year,
                 Commons.IntermediateKey, Commons.IntermediateIdentity, true, caps);
             Assert.IsNotNull(identity);
         }

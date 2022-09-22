@@ -8,6 +8,7 @@
 //
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
+using System.Collections.Generic;
 using System.Text;
 using System.Linq;
 using DiME;
@@ -124,7 +125,7 @@ namespace DiME_test
             var envelope = new Envelope();
             envelope.AddItem(Commons.IssuerKey);
             var exported = envelope.Export();
-            Assert.AreEqual(envelope.Thumbprint(), Envelope.Thumbprint(exported));
+            Assert.AreEqual(envelope.Thumbprint(), Item.Thumbprint(exported));
         }
 
         [TestMethod]
@@ -134,13 +135,13 @@ namespace DiME_test
             envelope.AddItem(Commons.IssuerKey);
             envelope.Sign(Commons.IssuerKey);
             var exported = envelope.Export();
-            Assert.AreEqual(envelope.Thumbprint(), Envelope.Thumbprint(exported));
+            Assert.AreEqual(envelope.Thumbprint(), Item.Thumbprint(exported));
         }
 
         [TestMethod]
         public void IirExportTest1()
         {
-            var iir = IdentityIssuingRequest.Generate(Key.Generate(KeyType.Identity));
+            var iir = IdentityIssuingRequest.Generate(Key.Generate(new List<KeyUse>() {KeyUse.Sign}, null));
             var envelope = new Envelope();
             envelope.AddItem(iir);
             var exported = envelope.Export();

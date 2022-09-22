@@ -100,7 +100,7 @@ namespace DiME
                 throw new InvalidOperationException("Unable to sign item, it is already signed.");
             if (key.Secret == null)
                 throw new ArgumentNullException(nameof(key), "Unable to sign item, key for signing must not be null.");
-            Signature = Crypto.GenerateSignature(Encode(false), key);
+            Signature = Utility.ToBase64(Dime.Crypto.GenerateSignature(Encode(false), key));
             IsSigned = true;
         }
 
@@ -138,16 +138,7 @@ namespace DiME
         /// <returns>The hash of the item as a hex string.</returns>
         public static string Thumbprint(string encoded)
         {
-            return Utility.ToHex(Crypto.GenerateHash(encoded));
-        }
-
-        /// <summary>
-        /// Verifies the signature of the item using a provided key.
-        /// </summary>
-        /// <param name="publicKey">The key to used to verify the signature, must not be null.</param>
-        public void Verify(string publicKey)
-        {
-            Verify(new Key(publicKey));
+            return Utility.ToHex(Dime.Crypto.GenerateHash(Encoding.UTF8.GetBytes(encoded)));
         }
 
         /// <summary>
@@ -158,17 +149,14 @@ namespace DiME
         public virtual void Verify(Key key)
         {
             if (!IsSigned)
-            {
                 throw new InvalidOperationException("Unable to verify, item is not signed.");
-            }
-
-            Crypto.VerifySignature(Encode(false), Signature, key);
+            Dime. Crypto.VerifySignature(Encode(false), Utility.FromBase64(Signature!), key);
         }
 
         /// <summary>
         /// Converts the item to legacy (compatible with earlier version of the Dime specification, before version 1)
         /// </summary>
-        public void ConvertToLegacy()
+        public virtual void ConvertToLegacy()
         {
             strip();
            IsLegacy = true;
@@ -191,29 +179,8 @@ namespace DiME
         {
             return Encode(true);
         }
- 
-        #endregion
-
-        #region -- PROTECTED --
-
-        protected const int MinimumNbrComponents = 2;
-        protected const int ComponentsIdentifierIndex = 0;
-        protected const int ComponentsClaimsIndex = 1;
         
-        /// <summary>
-        /// The encoded Di:ME item. Needs to remain intact once created or imported, this so thumbprints and signature
-        /// verifications will be correct. 
-        /// </summary>
-        protected string? Encoded;
-
-        protected List<string>? Components;
-
-        /// <summary>
-        /// The signature of the Di:ME item, if any. Cannot be reproduced without the private key.
-        /// </summary>
-        protected string? Signature;
-
-        protected ClaimsMap Claims()
+        internal ClaimsMap Claims()
         {
             if (_claims is not null) return _claims;
             if (Components is not null && Components.Count > ComponentsClaimsIndex)
@@ -225,7 +192,33 @@ namespace DiME
                 _claims = new ClaimsMap();
             return _claims;
         }
+        
+        #endregion
 
+        #region -- PROTECTED --
+
+        /// <summary>The minimum number of components that must be present for a DiME item.</summary>
+        protected const int MinimumNbrComponents = 2;
+        /// <summary>The index number of the DiME item identifier string.</summary>
+        protected const int ComponentsIdentifierIndex = 0;
+        /// <summary>The index number of the DiME item claims.</summary>
+        protected const int ComponentsClaimsIndex = 1;
+        /// <summary>
+        /// The encoded DiME item. Needs to remain intact once created or imported, this so thumbprints and signature
+        /// verifications will be correct. 
+        /// </summary>
+        protected string? Encoded;
+        /// <summary>A list of raw and encoded components of the DiME item.</summary>
+        protected List<string>? Components;
+        /// <summary>
+        /// The signature of the Di:ME item, if any. Cannot be reproduced without the private key.
+        /// </summary>
+        protected string? Signature;
+
+        /// <summary>
+        /// Indicates if an item has any claims attached to it.
+        /// </summary>
+        /// <returns>True if claims exists, false otherwise.</returns>
         protected bool HasClaims()
         {
             if (_claims is null && Components is not null)
@@ -248,6 +241,10 @@ namespace DiME
             Encoded = IsSigned ? encoded[..encoded.LastIndexOf(Dime.ComponentDelimiter)] : encoded;
         }
 
+        /// <summary>
+        /// Any additional decoding done by subclasses of Item.
+        /// </summary>
+        /// <param name="components">Components to decode.</param>
         protected abstract void CustomDecoding(List<string> components);
 
         /// <summary>

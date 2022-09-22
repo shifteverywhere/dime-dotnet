@@ -139,17 +139,6 @@ namespace DiME
         /// Verifies the signature of the message using a provided key and verifies a linked item from the proved item.
         /// To verify correctly the linkedItem must be the original item that the message was linked to.
         /// </summary>
-        /// <param name="publicKey">The key to used to verify the signature, must not be null.</param>
-        /// <param name="linkedItem">The item the message was linked to.</param>
-        public void Verify(string publicKey, Item linkedItem)
-        {
-            Verify(new Key(publicKey), linkedItem);
-        }
-
-        /// <summary>
-        /// Verifies the signature of the message using a provided key and verifies a linked item from the proved item.
-        /// To verify correctly the linkedItem must be the original item that the message was linked to.
-        /// </summary>
         /// <param name="key">The key to used to verify the signature, must not be null.</param>
         /// <param name="linkedItem">The item the message was linked to.</param>
         /// <exception cref="InvalidOperationException"></exception>
@@ -190,12 +179,11 @@ namespace DiME
         public void SetPayload(byte[] payload, Key issuerKey, Key audienceKey)
         {
             ThrowIfSigned();
-            if (issuerKey == null) { throw new ArgumentNullException(nameof(issuerKey), "Provided local key may not be null."); }
-            if (audienceKey == null) { throw new ArgumentNullException(nameof(audienceKey), "Provided remote key may not be null."); }
-            if (issuerKey.Type != KeyType.Exchange) { throw new ArgumentException("Unable to encrypt, local key of invalid key type.", nameof(issuerKey)); }
-            if (audienceKey.Type != KeyType.Exchange) { throw new ArgumentException("Unable to encrypt, remote key invalid key type.", nameof(audienceKey)); }
-            var key = Crypto.GenerateSharedSecret(issuerKey, audienceKey);
-            SetPayload(Crypto.Encrypt(payload, key));
+            if (payload == null || payload.Length == 0) { throw new ArgumentException("Unable to set payload, payload must not be null or empty."); }
+            if (issuerKey == null) { throw new ArgumentNullException(nameof(issuerKey), "Unable to encrypt, issuer key must not be null."); }
+            if (audienceKey == null) { throw new ArgumentNullException(nameof(audienceKey), "Unable to encrypt, audience key may not be null."); }
+            var sharedKey = issuerKey.GenerateSharedSecret(audienceKey, new List<KeyUse>() { KeyUse.Encrypt });
+            SetPayload(Dime.Crypto.Encrypt(payload, sharedKey));
         }
 
         /// <summary>
@@ -217,11 +205,10 @@ namespace DiME
         /// <exception cref="ArgumentException"></exception>
         public byte[] GetPayload(Key issuerKey, Key audienceKey)
         {
-            if (issuerKey == null) { throw new ArgumentNullException(nameof(issuerKey), "Provided local key may not be null."); }
-            if (audienceKey?.Public == null) { throw new ArgumentNullException(nameof(audienceKey), "Provided remote key may not be null."); }
-            if (issuerKey.Type != KeyType.Exchange) { throw new ArgumentException("Unable to decrypt, invalid key type.", nameof(issuerKey)); }
-            var key = Crypto.GenerateSharedSecret(issuerKey, audienceKey);
-            return Crypto.Decrypt(GetPayload(), key);
+            if (issuerKey == null) { throw new ArgumentNullException(nameof(issuerKey), "Unable to decrypt, issuer key may not be null."); }
+            if (audienceKey == null) { throw new ArgumentNullException(nameof(audienceKey), "Unable to decrypt, audience key may not be null."); }
+            var sharedKey = issuerKey.GenerateSharedSecret(audienceKey, new List<KeyUse>() { KeyUse.Encrypt });
+            return Dime.Crypto.Decrypt(GetPayload(), sharedKey);
         }
 
         /// <summary>

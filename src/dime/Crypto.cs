@@ -1,188 +1,249 @@
 //
 //  Crypto.cs
-//  Di:ME - Digital Identity Message Envelope
-//  Compact messaging format for assertion and practical use of digital identities
+//  DiME - Data Integrity Message Envelope
+//  A powerful universal data format that is built for secure, and integrity protected communication between trusted
+//  entities in a network.
 //
 //  Released under the MIT licence, see LICENSE for more information.
 //  Copyright © 2022 Shift Everywhere AB. All rights reserved.
 //
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Text;
-using ASodium;
 
-namespace DiME
+namespace DiME;
+
+/// <summary>
+/// Cryptographic helper methods, which also abstracts the rest of the implementation from any underlying
+/// cryptographic library used.
+/// </summary>
+public class Crypto
 {
+        
+    #region --- PUBLIC ---
+        
     /// <summary>
-    /// Cryptographic helper methods, which also abstracts the rest of the implementation from any underlying
-    /// cryptographic library used.
+    /// Default constructor.
     /// </summary>
-    public static class Crypto
+    public Crypto()
     {
-        /// <summary>
-        /// Generates a cryptographic signature from a data string.
-        /// </summary>
-        /// <param name="data">The string to sign.</param>
-        /// <param name="key">The key to use for the signature.</param>
-        /// <returns>The signature that was generated, encoded in Base 64.</returns>
-        /// <exception cref="ArgumentNullException"></exception>
-        /// <exception cref="ArgumentException"></exception>
-        public static string GenerateSignature(string data, Key key)
-        {
-            if (key == null) { throw new ArgumentNullException(nameof(key), "Unable to sign, key must not be null."); }
-            if (key.RawSecret == null) { throw new ArgumentNullException(nameof(key), "Unable to sign, key in key must not be null."); }
-            if (key.Type != KeyType.Identity) { throw new ArgumentException($"Unable to sign, wrong key type provided, got: {key.Type}, expected: KeyType.Identity."); }
-            var signature = SodiumPublicKeyAuth.SignDetached(Encoding.UTF8.GetBytes(data), key.RawSecret);
-            return Utility.ToBase64(signature);
-        }
-
-        /// <summary>
-        /// Verifies a cryptographic signature for a data string.
-        /// </summary>
-        /// <param name="data">The string that should be verified with the signature.</param>
-        /// <param name="signature">The signature that should be verified.</param>
-        /// <param name="key">The key that should be used for the verification.</param>
-        /// <exception cref="ArgumentNullException"></exception>
-        /// <exception cref="ArgumentException"></exception>
-        /// <exception cref="IntegrityException">If the signature could not be verified.</exception>
-        public static void VerifySignature(string data, string signature, Key key)
-        {
-            if (key == null) { throw new ArgumentNullException(nameof(key), "Unable to verify signature, key must not be null."); }
-            if (data == null) { throw new ArgumentNullException(nameof(data), "Data must not be null."); }
-            if (signature == null) { throw new ArgumentNullException(nameof(signature), "Signature must not be null."); }
-            if (key.RawPublic == null) { throw new ArgumentNullException(nameof(key), "Unable to sign, public key in key must not be null."); }
-            if (key.Type != KeyType.Identity) { throw new ArgumentException($"Unable to sign, wrong key type provided, got: {key.Type}, expected: KeyType.Identity."); }
-            var rawSignature = Utility.FromBase64(signature);
-            if (!SodiumPublicKeyAuth.VerifyDetached(rawSignature, Encoding.UTF8.GetBytes(data), key.RawPublic)) {
-                throw new IntegrityException();
-            }
-        }
-
-        /// <summary>
-        /// Generates a cryptographic key of a provided type.
-        /// </summary>
-        /// <param name="type">The type of the key to generate.</param>
-        /// <returns>The generated key.</returns>
-        /// <exception cref="ArgumentException"></exception>
-        public static Key GenerateKey(KeyType type)
-        {
-            if (type is KeyType.Encryption or KeyType.Authentication) {
-                var secretKey = Utility.RandomBytes(NbrSKeyBytes);
-                return new Key(Guid.NewGuid(), type, secretKey, null);
-            }
-            // If it wasn't Encryption or Authentication generation continues here
-            var keypair = type switch
-            {
-                KeyType.Identity => SodiumPublicKeyAuth.GenerateRevampedKeyPair(),
-                KeyType.Exchange => SodiumKeyExchange.GenerateRevampedKeyPair(),
-                _ => throw new ArgumentException("Unknown key type.", nameof(type))
-            };
-            return new Key(Guid.NewGuid(), 
-                type, 
-                keypair.PrivateKey,
-                keypair.PublicKey);
-        }
-
-        #region -- KEY AGREEMENT --
-
-        /// <summary>
-        /// Generates a shared secret from two keys of type EXCHANGE. The initiator of the key exchange is always the
-        /// server and the receiver of the key exchange is always the client (no matter on which side this method is
-        /// called). The returned key will be of type ENCRYPTION.
-        /// </summary>
-        /// <param name="clientKey">The client key to use (the receiver of the exchange).</param>
-        /// <param name="serverKey">The server key to use (the initiator of the exchange).</param>
-        /// <returns>The generated shared secret key.</returns>
-        /// <exception cref="KeyMismatchException">If provided keys are of the wrong type.</exception>
-        public static Key GenerateSharedSecret(Key clientKey, Key serverKey)
-        {  
-            if (clientKey.Version != serverKey.Version) { throw new KeyMismatchException("Unable to generate shared key, source keys from different versions."); }
-            if (clientKey.Type != KeyType.Exchange || serverKey.Type != KeyType.Exchange) { throw new KeyMismatchException("Keys must be of type 'Exchange'."); }
-            byte[] shared;
-            if (clientKey.RawSecret != null) 
-            {
-                var clientSharedSecretBox = SodiumKeyExchange.CalculateClientSharedSecret(clientKey.RawPublic, clientKey.RawSecret, serverKey.RawPublic);
-                shared = clientSharedSecretBox.TransferSharedSecret;
-            } 
-            else if (serverKey.RawSecret != null)
-            {
-                var serverSharedSecretBox = SodiumKeyExchange.CalculateServerSharedSecret(serverKey.RawPublic, serverKey.RawSecret, clientKey.RawPublic);
-                shared = serverSharedSecretBox.ReadSharedSecret;
-            }
-            else
-                throw new KeyMismatchException("Invalid keys provided.");
-            return new Key(Guid.NewGuid(), KeyType.Encryption, shared, null);
-        }
-
-        #endregion
-
-        #region -- ENCRYPTION/DECRYPTION --
-
-        /// <summary>
-        /// Encrypts a plain text byte array using the provided key.
-        /// </summary>
-        /// <param name="plainText">The byte array to encrypt.</param>
-        /// <param name="key">The key to use for the encryption.</param>
-        /// <returns>The encrypted cipher text.</returns>
-        /// <exception cref="ArgumentNullException"></exception>
-        public static byte[] Encrypt(byte[] plainText, Key key)
-        {
-            if (plainText == null || plainText.Length == 0) { throw new ArgumentNullException(nameof(plainText), "Plain text to encrypt must not be null and not have a length of 0."); }
-            if (key?.RawSecret == null) { throw new ArgumentNullException(nameof(key), "Key must not be null."); }
-            var nonce = Utility.RandomBytes(NbrNonceBytes);
-            var cipherText = SodiumSecretBox.Create(plainText, nonce, key.RawSecret);
-            return Utility.Combine(nonce, cipherText);
-        }
-
-        /// <summary>
-        /// Decrypts a cipher text byte array using the provided key.
-        /// </summary>
-        /// <param name="cipherText">The byte array to decrypt.</param>
-        /// <param name="key">The key to use for the decryption.</param>
-        /// <returns>The decrypted plain text.</returns>
-        /// <exception cref="ArgumentNullException"></exception>
-        public static byte[] Decrypt(byte[] cipherText, Key key)
-        {
-            if (cipherText == null ||cipherText.Length == 0) { throw new ArgumentNullException(nameof(cipherText), "Cipher text to decrypt must not be null and not have a length of 0."); }
-            if (key?.RawSecret == null) { throw new ArgumentNullException(nameof(key), "Key must not be null."); }
-            var nonce = Utility.SubArray(cipherText, 0, NbrNonceBytes);
-            var data = Utility.SubArray(cipherText, NbrNonceBytes);
-            return SodiumSecretBox.Open(data, nonce, key.RawSecret);
-        }
-
-        #endregion
-
-        #region -- HASHING --
-
-        /// <summary>
-        /// Generates a secure hash of a string.
-        /// </summary>
-        /// <param name="data">The data that should be hashed.</param>
-        /// <returns>The generated secure hash.</returns>
-        public static byte[] GenerateHash(string data)
-        {
-            return GenerateHash(Encoding.UTF8.GetBytes(data));
-        }
-
-        /// <summary>
-        /// Generates a secure hash of a byte array.
-        /// </summary>
-        /// <param name="data">The data that should be hashed.</param>
-        /// <returns>The generated secure hash.</returns>
-        public static byte[] GenerateHash(byte[] data)
-        {
-            return SodiumGenericHash.ComputeHash(NbrHashBytes, data);
-        }
-
-        #endregion
-
-        #region -- PRIVATE --
-
-        private const int NbrSKeyBytes = 32;
-        private const int NbrHashBytes = 32;
-        private const int NbrNonceBytes = 24;
-
-        #endregion
-
+        var impl = new CryptoSuiteStandard();
+        RegisterCryptoSuite(impl);
+        _defaultSuiteName = impl.Name();
     }
+
+    /// <summary>
+    /// Holds the default cryptographic suite name. This will be used when no suite is specified for cryptographic
+    /// operations. This will be set by default to the Dime standard cryptographic suite (STN).
+    /// </summary>
+    public string DefaultSuiteName
+    {
+        get
+        {
+            lock(_lock)
+                return _defaultSuiteName;
+        }
+        set
+        {
+            lock(_lock)
+                _defaultSuiteName = value;
+        }
+    }
+
+    /// <summary>
+    /// Will generate a unique key identifier from the provided key. This will be used to extract which key was used to
+    /// create a signature. How a key identifier is generated is specific to the cryptographic suite used.
+    /// </summary>
+    /// <param name="key">The key to generate an identifier for.</param>
+    /// <returns>A key identifier, as a String.</returns>
+    /// <exception cref="ArgumentNullException"></exception>
+    public string GenerateKeyIdentifier(Key key)
+    {
+        if (key is null) { throw new ArgumentNullException(nameof(key), "Unable to generate, key must not be null."); }
+        var impl = CryptoSuite(key.CryptoSuiteName);
+        var id = impl.GenerateKeyIdentifier(new byte[][] { key.KeyBytes(Claim.Key), key.KeyBytes(Claim.Pub) });
+        return id is not null ? Utility.ToHex(id) : null;
+    }
+
+    /// <summary>
+    /// Generates a cryptographic signature from a data string.
+    /// </summary>
+    /// <param name="data">The string to sign.</param>
+    /// <param name="key">The key to use for the signature.</param>
+    /// <returns>The signature that was generated.</returns>
+    /// <exception cref="ArgumentException"></exception>
+    public byte[] GenerateSignature(string data, Key key)
+    {
+        if (!key.HasUse(KeyUse.Sign)) { throw new ArgumentException("Unable to sign, provided key does not specify Sign usage."); }
+        var impl = CryptoSuite(key.CryptoSuiteName);
+        return impl.GenerateSignature(Encoding.UTF8.GetBytes(data), key.KeyBytes(Claim.Key));
+    }
+
+    /// <summary>
+    /// Verifies a cryptographic signature for a data string.
+    /// </summary>
+    /// <param name="data">The string that should be verified with the signature.</param>
+    /// <param name="signature">The signature that should be verified.</param>
+    /// <param name="key">The key that should be used for the verification.</param>
+    /// <exception cref="ArgumentException"></exception>
+    /// <exception cref="IntegrityException"></exception>
+    public void VerifySignature(string data, byte[] signature, Key key)
+    {
+        if (!key.HasUse(KeyUse.Sign)) { throw new ArgumentException("Unable to sign, provided key does not specify Sign usage."); }
+        var impl = CryptoSuite(key.CryptoSuiteName);
+        var pub = key.KeyBytes(Claim.Pub);
+        if (!impl.VerifySignature(Encoding.UTF8.GetBytes(data), signature, key.KeyBytes(Claim.Pub)))
+            throw new IntegrityException("Unable to verify signature.");
+    }
+
+    /// <summary>
+    /// Generates a shared secret from two keys with use 'Exchange'. The initiator of the key exchange is always the
+    /// server and the receiver of the key exchange is always the client (no matter on which side this method is
+    /// called).
+    /// </summary>
+    /// <param name="clientKey">The client key to use (the receiver of the exchange).</param>
+    /// <param name="serverKey">The server key to use (the initiator of the exchange).</param>
+    /// <param name="use">The use that should be specified for the generated key.</param>
+    /// <returns>The generated shared secret key.</returns>
+    /// <exception cref="ArgumentException"></exception>
+    public byte[] GenerateSharedSecret(Key clientKey, Key serverKey, List<KeyUse> use)
+    {
+        if (!clientKey.HasUse(KeyUse.Exchange) || !serverKey.HasUse(KeyUse.Exchange)) { throw new ArgumentException("Unable to generate, provided keys do not specify 'Exchange' use."); }
+        if (!clientKey.CryptoSuiteName.Equals(serverKey.CryptoSuiteName)) { throw new ArgumentException("Unable to generate, both keys must be generated using the same cryptographic suite."); }
+        var impl = CryptoSuite(clientKey.CryptoSuiteName);
+        var rawClientKeys = new byte[][] { clientKey.KeyBytes(Claim.Key), clientKey.KeyBytes(Claim.Pub) };
+        var rawServerKeys = new byte[][] { serverKey.KeyBytes(Claim.Key), serverKey.KeyBytes(Claim.Pub) };
+        return impl.GenerateSharedSecret(rawClientKeys, rawServerKeys, use);
+    }
+
+    /// <summary>
+    /// Encrypts a plain text byte array using the provided key.
+    /// </summary>
+    /// <param name="plainText">The byte array to encrypt.</param>
+    /// <param name="key">The key to use for the encryption.</param>
+    /// <returns>The encrypted cipher text.</returns>
+    /// <exception cref="ArgumentException"></exception>
+    public byte[] Encrypt(byte[] plainText, Key key)
+    {
+        if (!key.HasUse(KeyUse.Encrypt)) { throw new ArgumentException("Unable to encrypt, provided key does not specify 'Encrypt' use."); }
+        var impl = CryptoSuite(key.CryptoSuiteName);
+        return impl.Encrypt(plainText, key.KeyBytes(Claim.Key));
+    }
+
+    /// <summary>
+    /// Decrypts a cipher text byte array using the provided key.
+    /// </summary>
+    /// <param name="cipherText">The byte array to decrypt.</param>
+    /// <param name="key">The key to use for the decryption.</param>
+    /// <returns>The decrypted plain text.</returns>
+    /// <exception cref="ArgumentException"></exception>
+    public byte[] Decrypt(byte[] cipherText, Key key)
+    {
+        if (!key.HasUse(KeyUse.Encrypt)) { throw new ArgumentException("Unable to decrypt, provided key does not specify 'Encrypt' use."); }
+        var impl = CryptoSuite(key.CryptoSuiteName);
+        return impl.Decrypt(cipherText, key.KeyBytes(Claim.Key));
+    }
+
+    /// <summary>
+    /// Generates a cryptographic key of a provided type. This will use the cryptographic suite that is set as the
+    /// default.
+    /// </summary>
+    /// <param name="use">The use of the key to generate.</param>
+    /// <returns>The generated key.</returns>
+    public byte[][] GenerateKey(List<KeyUse> use)
+    {
+        return GenerateKey(use, DefaultSuiteName);
+    }
+
+    /// <summary>
+    /// Generates a cryptographic key of a provided type.
+    /// </summary>
+    /// <param name="use">The use of the key to generate.</param>
+    /// <param name="suiteName">The cryptographic suite that should be used when generating the key.</param>
+    /// <returns>The generated key.</returns>
+    public byte[][] GenerateKey(List<KeyUse> use, string suiteName)
+    {
+        var impl = CryptoSuite(suiteName);
+        return impl.GenerateKey(use);
+    }
+
+    /// <summary>
+    /// Generates a secure hash of a byte array. This will use the cryptographic suite that is set as the default.
+    /// </summary>
+    /// <param name="data">The data that should be hashed.</param>
+    /// <returns>The generated secure hash.</returns>
+    public byte[] GenerateHash(byte[] data)
+    {
+        return GenerateHash(data, DefaultSuiteName);
+    }
+
+    /// <summary>
+    /// Generates a secure hash of a byte array.
+    /// </summary>
+    /// <param name="data">The data that should be hashed.</param>
+    /// <param name="suiteName">The cryptographic suite that should be used to generate the hash.</param>
+    /// <returns>The generated secure hash.</returns>
+    public byte[] GenerateHash(byte[] data, string suiteName)
+    {
+        ICryptoSuite impl = CryptoSuite(suiteName);
+        return impl.GenerateHash(data);
+    }
+    
+    
+    /// <summary>
+    /// Registers a cryptographic suite. If a cryptographic suite is already register with the same name as the
+    /// provided cryptographic suite then IllegalArgumentException will be thrown.
+    /// </summary>
+    /// <param name="impl">The implementation instance of ICryptoSuite.</param>
+    /// <exception cref="ArgumentNullException"></exception>
+    /// <exception cref="ArgumentException"></exception>
+    public void RegisterCryptoSuite(ICryptoSuite impl) {
+        if (impl == null) { throw new ArgumentNullException(nameof(impl), "Instance of ICrypto implementation must not be null."); }
+        var name = impl.Name();
+        if (_suiteMap == null)
+            _suiteMap = new Dictionary<string, ICryptoSuite>();
+        else if (_suiteMap.ContainsKey(name))
+            throw new ArgumentException("Cryptographic suite already exists with name: " + name, nameof(impl));
+        _suiteMap.Add(name, impl);
+    }
+
+    /// <summary>
+    /// Indicates if a cryptographic suite with the provided name is supported (and registered).
+    /// </summary>
+    /// <param name="name">The name of the cryptographic suite to check for.</param>
+    /// <returns>True if supported, false if not.</returns>
+    public bool HasCryptoSuite(string name)
+    {
+        return _suiteMap != null && _suiteMap.ContainsKey(name);
+    }
+
+    /// <summary>
+    /// Returns a set of the names of all registered cryptographic suites.
+    /// </summary>
+    /// <returns>Set of registered cryptographic suites, names only.</returns>
+    public List<string> AllCryptoSuites()
+    {
+        //if (_suiteMap == null) return null;
+        return _suiteMap.Keys.ToList();
+    }
+
+    #endregion
+
+    #region -- PRIVATE --
+
+    private Dictionary<string, ICryptoSuite> _suiteMap;
+    private string _defaultSuiteName;
+    private readonly object _lock = new();
+
+    private ICryptoSuite CryptoSuite(string name)
+    {
+        if (_suiteMap == null || _suiteMap.Count == 0) { throw new InvalidOperationException("Unable to perform cryptographic operations, no suites registered."); }
+        var impl = _suiteMap[name];
+        if (impl == null) { throw new InvalidOperationException($"Unable to find cryptographic suite with name: {name}."); }
+        return impl;
+    }
+        
+    #endregion
 
 }

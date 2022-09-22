@@ -20,6 +20,7 @@ namespace DiME_test
 
         public const string SystemName = "io.dimeformat.ref.csharp";
         public const string Payload = "Racecar is racecar backwards.";
+        public const string Context = "test-context";
         public static Key TrustedKey => _trustedKey ??= Item.Import<Key>(EncodedTrustedKey);
         public static Identity TrustedIdentity => _trustedIdentity ??= Item.Import<Identity>(EncodedTrustedIdentity);
         public static Key IntermediateKey => _intermediateKey ??= Item.Import<Key>(EncodedIntermediateKey);
@@ -37,27 +38,27 @@ namespace DiME_test
         public void GenerateCommons() 
         {
             Dime.TrustedIdentity = null;
-            var trustedKey = Key.Generate(KeyType.Identity);
-            var trustedIdentity = GenerateIdentity(trustedKey, trustedKey, null, IdentityIssuingRequest._VALID_FOR_1_YEAR * 10, new List<Capability>() { Capability.Generic, Capability.Issue });
+            var trustedKey = Key.Generate(new List<KeyUse>() {KeyUse.Sign}, null);
+            var trustedIdentity = GenerateIdentity(trustedKey, trustedKey, null, Dime.ValidFor1Year * 10, new List<Capability>() { Capability.Generic, Capability.Issue });
             Console.WriteLine("#region -- TRUSTED IDENTITY --");
             Console.WriteLine("private static readonly string _encodedTrustedKey = \"" + trustedKey.Export() + "\";");
             Console.WriteLine("private static readonly string _encodedTrustedIdentity = \"" + trustedIdentity.Export() + "\";\n");
 
-            Identity.SetTrustedIdentity(trustedIdentity);
-            var intermediateKey = Key.Generate(KeyType.Identity);
-            var intermediateIdentity = GenerateIdentity(intermediateKey, trustedKey, trustedIdentity, IdentityIssuingRequest._VALID_FOR_1_YEAR * 5, new List<Capability>() { Capability.Generic, Capability.Identify, Capability.Issue });
+            Dime.TrustedIdentity = trustedIdentity;
+            var intermediateKey = Key.Generate(new List<KeyUse>() {KeyUse.Sign}, null);
+            var intermediateIdentity = GenerateIdentity(intermediateKey, trustedKey, trustedIdentity, Dime.ValidFor1Year * 5, new List<Capability>() { Capability.Generic, Capability.Identify, Capability.Issue });
             Console.WriteLine("#region -- INTERMEDIATE IDENTITY ---");
             Console.WriteLine("private static readonly string _encodedIntermediateKey = \"" + intermediateKey.Export() + "\";");
             Console.WriteLine("private static readonly string _encodedIntermediateIdentity = \""+ intermediateIdentity.Export() + "\";\n");
 
-            var issuerKey = Key.Generate(KeyType.Identity);
-            var issuerIdentity = GenerateIdentity(issuerKey, intermediateKey, intermediateIdentity, IdentityIssuingRequest._VALID_FOR_1_YEAR, new List<Capability>() { Capability.Generic, Capability.Identify });
+            var issuerKey = Key.Generate(new List<KeyUse>() {KeyUse.Sign}, null);
+            var issuerIdentity = GenerateIdentity(issuerKey, intermediateKey, intermediateIdentity, Dime.ValidFor1Year, new List<Capability>() { Capability.Generic, Capability.Identify });
             Console.WriteLine("#region -- ISSUER IDENTITY (SENDER) --");
             Console.WriteLine("private static readonly string _encodedIssuerKey = \"" + issuerKey.Export() + "\";");
             Console.WriteLine("private static readonly string _encodedIssuerIdentity = \""+ issuerIdentity.Export() +"\";\n");
 
-            var audienceKey = Key.Generate(KeyType.Identity);
-            var audienceIdentity = GenerateIdentity(audienceKey, intermediateKey, intermediateIdentity, IdentityIssuingRequest._VALID_FOR_1_YEAR, new List<Capability>() { Capability.Generic, Capability.Identify });
+            var audienceKey = Key.Generate(new List<KeyUse>() {KeyUse.Sign}, null);
+            var audienceIdentity = GenerateIdentity(audienceKey, intermediateKey, intermediateIdentity, Dime.ValidFor1Year, new List<Capability>() { Capability.Generic, Capability.Identify });
 
             Console.WriteLine("#region -- AUDIENCE IDENTITY (RECEIVER) --");
             Console.WriteLine("private static readonly string _encodedAudienceKey = \"" + audienceKey.Export() + "\";");

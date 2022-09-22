@@ -1,6 +1,6 @@
 //
 //  Dime.cs
-//  Dime - Data Integrity Message Envelope
+//  DiME - Data Integrity Message Envelope
 //  A powerful universal data format that is built for secure, and integrity protected communication between trusted
 //  entities in a network.
 //
@@ -17,6 +17,10 @@ public abstract class Dime
 
     #region -- PUBLIC --
 
+    /// <summary>
+    ///  Manager of cryptographic suites and operations. May be used to add additional cryptographic suits in run-time.
+    /// </summary>
+    public static readonly Crypto Crypto = new Crypto();
     /// <summary>
     /// The maximum length that the context claim may hold.
     /// </summary>

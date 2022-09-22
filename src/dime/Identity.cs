@@ -58,7 +58,7 @@ namespace DiME
         /// Returns the public key attached to the identity of an entity. The Key instance returned will only contain a
         /// public key or type IDENTITY.
         /// </summary>
-        public Key PublicKey => Claims().GetKey(Claim.Pub);
+        public Key PublicKey => Claims().GetKey(Claim.Pub, new List<KeyUse>() { KeyUse.Sign });
         /// <summary>
         /// Returns a list of any capabilities given to an identity. These are requested by an entity and approved (and
         /// potentially modified) by the issuing entity when issuing a new identity. Capabilities are usually used to
