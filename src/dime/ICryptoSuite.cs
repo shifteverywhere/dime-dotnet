@@ -29,7 +29,7 @@ public interface ICryptoSuite
     /// </summary>
     /// <param name="key">The key to generate an identifier for.</param>
     /// <returns>A unique identifier.</returns>
-    byte[] GenerateKeyIdentifier(byte[][] key);
+    byte[] GenerateKeyName(byte[][] key);
 
     /// <summary>
     /// Generates a cryptographic signature from a data byte array using the provided key.

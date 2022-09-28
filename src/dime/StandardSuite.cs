@@ -15,7 +15,10 @@ using System.Linq;
 
 namespace DiME;
 
-class CryptoSuiteStandard: ICryptoSuite
+/// <summary>
+/// Implements the Dime standard cryptographic suite (STN).
+/// </summary>
+internal class StandardSuite: ICryptoSuite
 {
     private const string SuiteName = "STN";
 
@@ -24,7 +27,7 @@ class CryptoSuiteStandard: ICryptoSuite
         return SuiteName;
     }
 
-    public byte[] GenerateKeyIdentifier(byte[][] key)
+    public byte[] GenerateKeyName(byte[][] key)
     {
         // This only supports key identifier for public keys, may be different for other crypto suites
         var bytes = key[(int)KeyIndex.PublicKey];

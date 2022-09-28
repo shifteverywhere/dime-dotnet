@@ -28,7 +28,7 @@ public class Crypto
     /// </summary>
     public Crypto()
     {
-        var impl = new CryptoSuiteStandard();
+        var impl = new StandardSuite();
         RegisterCryptoSuite(impl);
         _defaultSuiteName = impl.Name();
     }
@@ -62,7 +62,7 @@ public class Crypto
     {
         if (key is null) { throw new ArgumentNullException(nameof(key), "Unable to generate, key must not be null."); }
         var impl = CryptoSuite(key.CryptoSuiteName);
-        var name = impl.GenerateKeyIdentifier(new byte[][] { key.KeyBytes(Claim.Key), key.KeyBytes(Claim.Pub) });
+        var name = impl.GenerateKeyName(new byte[][] { key.KeyBytes(Claim.Key), key.KeyBytes(Claim.Pub) });
         return name is not null ? Utility.ToHex(name) : null;
     }
 
