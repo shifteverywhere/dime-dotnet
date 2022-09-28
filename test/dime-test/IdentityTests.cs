@@ -1,7 +1,8 @@
 //
 //  IdentityTests.cs
-//  Di:ME - Digital Identity Message Envelope
-//  A secure and compact messaging format for assertion and practical use of digital identities
+//  DiME - Data Identity Message Envelope
+//  A powerful universal data format that is built for secure, and integrity protected communication between trusted
+//  entities in a network.
 //
 //  Released under the MIT licence, see LICENSE for more information.
 //  Copyright © 2022 Shift Everywhere AB. All rights reserved.

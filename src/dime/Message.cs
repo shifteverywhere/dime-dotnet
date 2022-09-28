@@ -7,6 +7,8 @@
 //  Released under the MIT licence, see LICENSE for more information.
 //  Copyright © 2022 Shift Everywhere AB. All rights reserved.
 //
+
+#nullable enable
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -50,14 +52,13 @@ namespace DiME
         /// If the message is linked to another Di:ME item, thus creating a cryptographic link between them, then this
         /// will return the identifier, as a UUID, of the linked item. This is optional.
         /// </summary>
+        [Obsolete("Obsolete method, use Item.GetItemLinks() instead.")]
         public Guid? LinkedId 
         { 
             get
             {
-                var lnk = Claims().Get<string>(Claim.Lnk);
-                if (lnk is null) return null;
-                var uid = lnk.Split(new[] { Dime.ComponentDelimiter })[LinkUidIndex];
-                return new Guid(uid);
+                var links = GetItemLinks();
+                return links is not null && links.Count > 0 ? links[0].UniqueId : null;
             } 
         }
 
@@ -140,23 +141,15 @@ namespace DiME
         /// To verify correctly the linkedItem must be the original item that the message was linked to.
         /// </summary>
         /// <param name="key">The key to used to verify the signature, must not be null.</param>
-        /// <param name="linkedItem">The item the message was linked to.</param>
+        /// <param name="linkedItems">Items that are linked to the item being verified.</param>
         /// <exception cref="InvalidOperationException"></exception>
         /// <exception cref="FormatException">If no item has been linked with the message.</exception>
         /// <exception cref="IntegrityException">If the signature is invalid.</exception>
-        public void Verify(Key key, Item linkedItem)
+        public void Verify(Key key, List<Item>? linkedItems)
         {
             Verify(key);
-            if (linkedItem == null) return;
-            if (string.IsNullOrEmpty(Claims().Get<string>(Claim.Lnk))) { throw new InvalidOperationException("No link to Dime item found, unable to verify."); }
-            var item = Claims().Get<string>(Claim.Lnk).Split(new[] { Dime.SectionDelimiter })[0]; // This is in preparation of a future change where it would be possible to link more than one item
-            var components = item.Split(new[] { Dime.ComponentDelimiter });
-            if (components is not {Length: 3}) { throw new FormatException("Invalid data found in item link field."); }
-            var msgHash = linkedItem.Thumbprint();
-            if (components[LinkItemTypeIndex] != linkedItem.Identifier
-                || components[LinkUidIndex] != linkedItem.UniqueId.ToString() 
-                || components[LinkThumbprintIndex] != msgHash) 
-            { throw new IntegrityException("Failed to verify link Dime item (provided item did not match)."); }
+            if (linkedItems == null || linkedItems.Count == 0) return;
+            VerifyLinkedItems(linkedItems);
         }
         
         /// <summary>
@@ -218,11 +211,10 @@ namespace DiME
         /// <param name="item">The item to link to the message.</param>
         /// <exception cref="InvalidOperationException"></exception>
         /// <exception cref="ArgumentNullException"></exception>
+        [Obsolete("Method obsolete, use Item.AddItemLink(Item) instead.")]
         public void LinkItem(Item item)
         {
-            if (IsSigned) { throw new InvalidOperationException("Unable to link item, message is already signed."); }
-            if (item == null) { throw new ArgumentNullException(nameof(item), "Item to link with must not be null."); }
-            Claims().Put(Claim.Lnk, $"{item.Identifier}{Dime.ComponentDelimiter}{item.UniqueId.ToString()}{Dime.ComponentDelimiter}{item.Thumbprint()}");
+            AddItemLink(item);
         }
 
         #endregion

@@ -105,8 +105,13 @@ public class ClaimsMap
 
     internal Key? GetKey(Claim claim, List<KeyUse> use)
     {
-        var str = Get<string>(claim);
-        return string.IsNullOrEmpty(str) ? null : new Key(use, str, claim);
+        var value = Get<string>(claim);
+        return string.IsNullOrEmpty(value) ? null : new Key(use, value, claim);
+    }
+    
+    internal List<ItemLink>? GetItemLinks(Claim claim) {
+        var value = Get<string>(claim);
+        return string.IsNullOrEmpty(value) ? null : ItemLink.FromEncodedList(value);
     }
     
     internal void Put(Claim claim, object? value)

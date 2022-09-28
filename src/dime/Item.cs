@@ -9,6 +9,7 @@
 //
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 
@@ -169,12 +170,59 @@ namespace DiME
         }
 
         /// <summary>
+        /// Will cryptographically link an item link from provided item to this item.
+        /// </summary>
+        /// <param name="item">The item to link to the tag.</param>
+        public void AddItemLink(Item item)
+        {
+            ThrowIfSigned();
+            ItemLinks ??= new List<ItemLink>();
+            ItemLinks.Add(new ItemLink(item));
+        }
+
+        /// <summary>
+        /// Will cryptographically link item links of provided items to this item.
+        /// </summary>
+        /// <param name="items">The items to link.</param>
+        public void SetItemLinks(List<Item> items)
+        {
+            ThrowIfSigned();
+            ItemLinks = new List<ItemLink>();
+            foreach (var item in items)
+                ItemLinks.Add(new ItemLink(item));
+        }
+        
+        /// <summary>
+        /// Returns a list of item links.
+        /// </summary>
+        /// <returns>A list of ItemLink instances, null if there are no links.</returns>
+        public List<ItemLink>? GetItemLinks()
+        {
+            if (ItemLinks is not null) return ItemLinks;
+            var lnk = Claims().Get<string>(Claim.Lnk);
+            if (string.IsNullOrEmpty(lnk)) return null;
+            ItemLinks = ItemLink.FromEncodedList(lnk);
+            return ItemLinks;
+        }
+
+        /// <summary>
+        /// Removes all item links.
+        /// </summary>
+        public void removeLinkItems()
+        {
+            if (Claims().Get<string>(Claim.Lnk) is null) return;
+            ThrowIfSigned();
+            Claims().Remove(Claim.Lnk);
+            ItemLinks = null;
+        }
+        
+        /// <summary>
         /// Converts the item to legacy (compatible with earlier version of the Dime specification, before version 1)
         /// </summary>
         public virtual void ConvertToLegacy()
-        {
+        { 
             strip();
-           IsLegacy = true;
+            IsLegacy = true;
         }
 
         #endregion
@@ -225,10 +273,8 @@ namespace DiME
         protected string? Encoded;
         /// <summary>A list of raw and encoded components of the DiME item.</summary>
         protected List<string>? Components;
-        /// <summary>
-        /// The signature of the Di:ME item, if any. Cannot be reproduced without the private key.
-        /// </summary>
-        //protected string? Signature;
+        /// <summary>A list of linked items.</summary>
+        protected List<ItemLink>? ItemLinks;
 
         /// <summary>
         /// Indicates if an item has any claims attached to it.
@@ -241,6 +287,9 @@ namespace DiME
             return _claims is not null && _claims.size() > 0;
         }
 
+        /// <summary>
+        /// Holds all signatures attached to the item.
+        /// </summary>
         protected List<Signature> Signatures
         {
             get
@@ -251,6 +300,19 @@ namespace DiME
             }
         }
 
+        /// <summary>
+        /// Verifies linked items with a provided list of items. 
+        /// </summary>
+        /// <param name="linkedItems">List of items to verify with.</param>
+        protected void VerifyLinkedItems(List<Item> linkedItems)
+        {
+            ItemLinks ??= Claims().GetItemLinks(Claim.Lnk);
+            if (ItemLinks is not null)
+                ItemLink.Verify(linkedItems, ItemLinks);
+            else
+                throw new InternalBufferOverflowException("Unable to verify, no linked items found.");
+        }
+        
         /// <summary>
         /// Decodes an item. Abstract method that needs to be implemented in any subclass.
         /// </summary>
@@ -309,6 +371,8 @@ namespace DiME
             if (_claims is null) throw new FormatException("Unable to encode, item is missing claims.");
             builder.Append(Identifier);
             builder.Append(Dime.ComponentDelimiter);
+            if (ItemLinks is not null && ItemLinks.Count > 0)
+                Claims().Put(Claim.Lnk, ItemLink.ToEncoded(ItemLinks));
             builder.Append((Utility.ToBase64(_claims.ToJson())));    
         }
 

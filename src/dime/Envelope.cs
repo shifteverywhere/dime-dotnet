@@ -1,13 +1,12 @@
 //
 //  Envelope.cs
-//  Di:ME - Data Identity Message Envelope
+//  DiME - Data Identity Message Envelope
 //  A powerful universal data format that is built for secure, and integrity protected communication between trusted
 //  entities in a network.
 //
 //  Released under the MIT licence, see LICENSE for more information.
 //  Copyright © 2022 Shift Everywhere AB. All rights reserved.
 //
-
 #nullable enable
 using System;
 using System.Text;

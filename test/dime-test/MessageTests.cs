@@ -332,11 +332,11 @@ namespace DiME_test
             var receivedMessage = Item.Import<Message>(issuerEncoded);
             var responseMessage = new Message(issuer.SubjectId, receiver.SubjectId, 100L);
             responseMessage.SetPayload(Encoding.UTF8.GetBytes("It is!"));
-            responseMessage.LinkItem(receivedMessage);
+            responseMessage.AddItemLink(receivedMessage);
             responseMessage.Sign(Commons.AudienceKey);
             var responseEncoded = responseMessage.Export();
             var finalMessage = Item.Import<Message>(responseEncoded);
-            finalMessage.Verify(Commons.AudienceKey, receivedMessage);
+            finalMessage.Verify(Commons.AudienceKey, new List<Item>() { receivedMessage });
         }
 
         [TestMethod]
@@ -345,10 +345,10 @@ namespace DiME_test
             Dime.TrustedIdentity = Commons.TrustedIdentity;
             var message = new Message(Commons.AudienceIdentity.SubjectId, Commons.IssuerIdentity.SubjectId, 100L);
             message.SetPayload(Encoding.UTF8.GetBytes(Commons.Payload));
-            message.LinkItem(Key.Generate(new List<KeyUse>() {KeyUse.Exchange}, null));
+            message.AddItemLink(Key.Generate(new List<KeyUse>() {KeyUse.Exchange}, null));
             message.Sign(Commons.IssuerKey);
             try {
-                message.Verify(Commons.IssuerKey, Commons.IssuerKey);
+                message.Verify(Commons.IssuerKey, new List<Item>() { Commons.IssuerKey });
             } catch (IntegrityException) { return; } // All is well
             Assert.IsTrue(false, "Should not happen.");
         }
