@@ -96,11 +96,15 @@ namespace DiME
         /// <exception cref="ArgumentNullException"></exception>
         public virtual void Sign(Key key)
         {
-            if (IsSigned)
-                throw new InvalidOperationException("Unable to sign item, it is already signed.");
-            if (key.Secret == null)
-                throw new ArgumentNullException(nameof(key), "Unable to sign item, key for signing must not be null.");
-            Signature = Utility.ToBase64(Dime.Crypto.GenerateSignature(Encode(false), key));
+            if (IsLegacy && IsSigned)
+                throw new InvalidOperationException("Unable to sign, legacy item is already signed.");
+            if (key.Secret is null)
+                throw new ArgumentNullException(nameof(key), "Unable to sign, key for signing must not be null.");
+            if (IsSigned && Signature.Find(Dime.Crypto.GenerateKeyIdentifier(key), Signatures) is not null)
+                throw new InvalidOperationException("Item already signed with provided key.");
+            var signature = Dime.Crypto.GenerateSignature(Encode(false), key);
+            var name = IsLegacy ? null : Dime.Crypto.GenerateKeyIdentifier(key);
+            Signatures.Add(new Signature(signature, name));
             IsSigned = true;
         }
 
@@ -112,7 +116,7 @@ namespace DiME
         {
             Encoded = null;
             Components = null;
-            Signature = null;
+            _signatures = null;
             IsSigned = false;
             return true;
         }
@@ -150,7 +154,16 @@ namespace DiME
         {
             if (!IsSigned)
                 throw new InvalidOperationException("Unable to verify, item is not signed.");
-            Dime. Crypto.VerifySignature(Encode(false), Utility.FromBase64(Signature!), key);
+            if (IsLegacy)
+                Dime.Crypto.VerifySignature(Encode(false), Signatures[0].Bytes, key);
+            else
+            {
+                var signature = Signature.Find(Dime.Crypto.GenerateKeyIdentifier(key), Signatures);
+                if (signature is not null)
+                    Dime.Crypto.VerifySignature(Encode(false), signature.Bytes, key);
+                else
+                    throw new IntegrityException("Unable to verify signature, item not signed with provided key.");
+            }
         }
 
         /// <summary>
@@ -213,7 +226,7 @@ namespace DiME
         /// <summary>
         /// The signature of the Di:ME item, if any. Cannot be reproduced without the private key.
         /// </summary>
-        protected string? Signature;
+        //protected string? Signature;
 
         /// <summary>
         /// Indicates if an item has any claims attached to it.
@@ -224,6 +237,16 @@ namespace DiME
             if (_claims is null && Components is not null)
                 return Components.Count >= MinimumNbrComponents;
             return _claims is not null && _claims.size() > 0;
+        }
+
+        protected List<Signature> Signatures
+        {
+            get
+            {
+                if (_signatures is not null) return _signatures;
+                _signatures = IsSigned ? Signature.FromEncoded(Components?[^1]) : new List<Signature>();
+                return _signatures;
+            }
         }
 
         /// <summary>
@@ -238,7 +261,13 @@ namespace DiME
             if (!array[ComponentsIdentifierIndex].Equals(Tag)) throw new FormatException($"Unexpected Dime item identifier, expected: {Tag}, got {array[ComponentsClaimsIndex]}.");
             Components = new List<string>(array);
             CustomDecoding(Components);
-            Encoded = IsSigned ? encoded[..encoded.LastIndexOf(Dime.ComponentDelimiter)] : encoded;
+            if (IsSigned)
+            {
+                IsLegacy = Signatures[0].IsLegacy;
+                Encoded = encoded[..encoded.LastIndexOf(Dime.ComponentDelimiter)];
+            }
+            else
+                Encoded = encoded;
         }
 
         /// <summary>
@@ -267,7 +296,7 @@ namespace DiME
                 return new StringBuilder()
                     .Append(Encoded)
                     .Append(Dime.ComponentDelimiter)
-                    .Append(Signature)
+                    .Append(Signature.ToEncoded(Signatures))
                     .ToString();
             }
             return Encoded;
@@ -298,6 +327,7 @@ namespace DiME
         #region -- PRIVATE --
 
         private ClaimsMap? _claims;
+        private List<Signature>? _signatures;
         
         private static Type? TypeFromTag(string tag)
         {

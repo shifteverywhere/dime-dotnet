@@ -234,7 +234,6 @@ namespace DiME
                     TrustChain = Identity.FromEncoded(Encoding.UTF8.GetString(issuer));
                 }
                 IsSigned = true; // Identities are always signed
-                Signature = components[^1];
             }
             else
                 throw new FormatException(

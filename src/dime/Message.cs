@@ -258,7 +258,6 @@ namespace DiME
                 throw new FormatException(
                     $"More components in item than expected, got {components.Count}, expected maximum {MaximumNbrComponents}.");
             _payload = components[ComponentsPayloadIndex];
-            Signature = components[^1];
             IsSigned = true; // Messages are always signed
         }
 

@@ -107,8 +107,10 @@ namespace DiME
             else
             {
                 envelope.IsSigned = true;
+                envelope.Components.Add(sections[^1]);
                 envelope.Encoded = encoded[..encoded.LastIndexOf(Dime.SectionDelimiter)];
-                envelope.Signature = sections.Last(); 
+                if (envelope.Signatures[0].IsLegacy)
+                    envelope.IsLegacy = true;
             }
             return envelope;
         }
@@ -234,7 +236,7 @@ namespace DiME
                 Encoded = builder.ToString();
             }
             if (withSignature && IsSigned)
-                return $"{Encoded}{Dime.SectionDelimiter}{Signature}";
+                return $"{Encoded}{Dime.SectionDelimiter}{Signature.ToEncoded(Signatures)}";
             return Encoded;
         }
 

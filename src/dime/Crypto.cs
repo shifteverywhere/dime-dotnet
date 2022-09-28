@@ -62,8 +62,8 @@ public class Crypto
     {
         if (key is null) { throw new ArgumentNullException(nameof(key), "Unable to generate, key must not be null."); }
         var impl = CryptoSuite(key.CryptoSuiteName);
-        var id = impl.GenerateKeyIdentifier(new byte[][] { key.KeyBytes(Claim.Key), key.KeyBytes(Claim.Pub) });
-        return id is not null ? Utility.ToHex(id) : null;
+        var name = impl.GenerateKeyIdentifier(new byte[][] { key.KeyBytes(Claim.Key), key.KeyBytes(Claim.Pub) });
+        return name is not null ? Utility.ToHex(name) : null;
     }
 
     /// <summary>

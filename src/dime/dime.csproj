@@ -16,6 +16,7 @@
     <PackageReleaseNotes>https://github.com/shifteverywhere/dime-dotnet-ref/blob/main/CHANGES.md</PackageReleaseNotes>
     <PackageIcon>icon.png</PackageIcon>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <LangVersion>10</LangVersion>
   </PropertyGroup>
 
   <ItemGroup>

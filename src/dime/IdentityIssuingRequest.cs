@@ -110,8 +110,7 @@ namespace DiME
             claims.Put(Claim.Cap, capabilitiesToSet.ConvertAll(obj => obj.ToString().ToLower()));
             if (principles is not null && principles.Count > 0)
                 claims.Put(Claim.Pri, principles);
-            iir.Signature = Utility.ToBase64(Dime.Crypto.GenerateSignature(iir.Encode(false), key));
-            iir.IsSigned = true;
+            iir.Sign(key);
             return iir;
         }
 
@@ -215,7 +214,6 @@ namespace DiME
         protected override void CustomDecoding(List<string> components)
         {
             IsSigned = true; // Identity issuing requests are always signed
-            Signature = components[^1];
         }
 
         protected override int GetMinNbrOfComponents()
