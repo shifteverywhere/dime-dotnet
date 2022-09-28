@@ -31,11 +31,11 @@ namespace DiME
         /// <summary>
         /// A tag identifying the Di:ME item type, part of the header.
         /// </summary>
-        public const string _TAG = "IIR";
+        public const string ItemIdentifier = "IIR";
         /// <summary>
         /// Returns the tag of the Di:ME item.
         /// </summary>
-        public override string Tag => _TAG;
+        public override string Identifier => ItemIdentifier;
         /// <summary>
         /// Returns the public key attached to the IIR. This is the public key attached by the entity and will get
         /// included in any issued identity. The equivalent secret (private) key was used to sign the IIR, thus the

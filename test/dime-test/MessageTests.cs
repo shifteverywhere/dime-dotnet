@@ -22,7 +22,7 @@ namespace DiME_test
         public void GetTagTest1()
         {
             var message = new Message(Guid.NewGuid());
-            Assert.AreEqual("MSG", message.Tag);
+            Assert.AreEqual("MSG", message.Identifier);
         }
 
         [TestMethod]
@@ -77,7 +77,7 @@ namespace DiME_test
             var encoded = message.Export();
             Assert.IsNotNull(encoded);
             Assert.IsTrue(encoded.Length > 0);
-            Assert.IsTrue(encoded.StartsWith($"{Envelope.Header}:{Message._TAG}"));
+            Assert.IsTrue(encoded.StartsWith($"{Envelope.Header}:{Message.ItemIdentifier}"));
             Assert.IsTrue(encoded.Split(new[] {'.'}).Length == 4);
         }
 

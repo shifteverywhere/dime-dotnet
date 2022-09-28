@@ -16,20 +16,22 @@ using System.Text;
 namespace DiME
 {
     /// <summary>
-    /// Base class for any other type of Dime items that can be included inside an Envelope instance.
+    /// Base class for any other type of DiME items that can be included inside an Envelope instance.
     /// </summary>
     public abstract class Item
     {
         #region -- PUBLIC --
 
         /// <summary>
-        /// Returns the tag of the Di:ME item. Must be overridden by any subclass.
+        /// Returns the type identifier of the DiME item. This can be used to identify the type of DiME object held in
+        /// this generic class. It is also used in the exported DiME format to indicate the beginning of a DiME item
+        /// inside an envelope. Typically, this is represented by a short series of letters.
         /// </summary>
-        public abstract string Tag { get; }
+        public abstract string Identifier { get; }
         /// <summary>
         /// Returns a unique identifier for the instance. This will be generated at instance creation.
         /// </summary>
-        public Guid UniqueId => (Guid) Claims().GetGuid(Claim.Uid);
+        public Guid UniqueId => (Guid) Claims()!.GetGuid(Claim.Uid)!;
         /// <summary>
         /// Returns the issuer's subject identifier. The issuer is the entity that has issued the identity to another
         /// entity. If this value is equal to the subject identifier, then this identity is self-issued.
@@ -258,7 +260,7 @@ namespace DiME
             var array = encoded.Split(new[] { Dime.ComponentDelimiter });
             if (array.Length < GetMinNbrOfComponents())
                 throw new FormatException($"Unexpected number of components for Dime item, expected at least {GetMinNbrOfComponents()}, got {array.Length}.");
-            if (!array[ComponentsIdentifierIndex].Equals(Tag)) throw new FormatException($"Unexpected Dime item identifier, expected: {Tag}, got {array[ComponentsClaimsIndex]}.");
+            if (!array[ComponentsIdentifierIndex].Equals(Identifier)) throw new FormatException($"Unexpected Dime item identifier, expected: {Identifier}, got {array[ComponentsClaimsIndex]}.");
             Components = new List<string>(array);
             CustomDecoding(Components);
             if (IsSigned)
@@ -305,7 +307,7 @@ namespace DiME
         protected virtual void CustomEncoding(StringBuilder builder)
         {
             if (_claims is null) throw new FormatException("Unable to encode, item is missing claims.");
-            builder.Append(Tag);
+            builder.Append(Identifier);
             builder.Append(Dime.ComponentDelimiter);
             builder.Append((Utility.ToBase64(_claims.ToJson())));    
         }
@@ -333,10 +335,10 @@ namespace DiME
         {
             return tag switch
             {
-                Identity._TAG => typeof(Identity),
-                IdentityIssuingRequest._TAG => typeof(IdentityIssuingRequest),
-                Message._TAG => typeof(Message),
-                Key._TAG => typeof(Key),
+                Identity.ItemIdentifier => typeof(Identity),
+                IdentityIssuingRequest.ItemIdentifier => typeof(IdentityIssuingRequest),
+                Message.ItemIdentifier => typeof(Message),
+                Key.ItemIdentifier => typeof(Key),
                 _ => null
             };
         }

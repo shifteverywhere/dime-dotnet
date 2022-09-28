@@ -26,11 +26,11 @@ namespace DiME
         /// <summary>
         /// A tag identifying the Di:ME item type, part of the header.
         /// </summary>
-        public const string _TAG = "MSG"; 
+        public const string ItemIdentifier = "MSG"; 
         /// <summary>
         /// Returns the tag of the Di:ME item.
         /// </summary>
-        public override string Tag => _TAG;
+        public override string Identifier => ItemIdentifier;
         /// <summary>
         /// Returns the audience (receiver) identifier. This is optional, although required if encrypting the message
         /// payload.
@@ -153,7 +153,7 @@ namespace DiME
             var components = item.Split(new[] { Dime.ComponentDelimiter });
             if (components is not {Length: 3}) { throw new FormatException("Invalid data found in item link field."); }
             var msgHash = linkedItem.Thumbprint();
-            if (components[LinkItemTypeIndex] != linkedItem.Tag
+            if (components[LinkItemTypeIndex] != linkedItem.Identifier
                 || components[LinkUidIndex] != linkedItem.UniqueId.ToString() 
                 || components[LinkThumbprintIndex] != msgHash) 
             { throw new IntegrityException("Failed to verify link Dime item (provided item did not match)."); }
@@ -222,7 +222,7 @@ namespace DiME
         {
             if (IsSigned) { throw new InvalidOperationException("Unable to link item, message is already signed."); }
             if (item == null) { throw new ArgumentNullException(nameof(item), "Item to link with must not be null."); }
-            Claims().Put(Claim.Lnk, $"{item.Tag}{Dime.ComponentDelimiter}{item.UniqueId.ToString()}{Dime.ComponentDelimiter}{item.Thumbprint()}");
+            Claims().Put(Claim.Lnk, $"{item.Identifier}{Dime.ComponentDelimiter}{item.UniqueId.ToString()}{Dime.ComponentDelimiter}{item.Thumbprint()}");
         }
 
         #endregion

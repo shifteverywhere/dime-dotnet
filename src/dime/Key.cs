@@ -26,11 +26,11 @@ namespace DiME
         /// <summary>
         /// A tag identifying the Di:ME item type, part of the header.
         /// </summary>
-        public const string _TAG = "KEY";
+        public const string ItemIdentifier = "KEY";
         /// <summary>
         /// Returns the tag of the Di:ME item.
         /// </summary>
-        public override string Tag => _TAG;
+        public override string Identifier => ItemIdentifier;
 
         /// <summary>
         /// Returns the version of the Di:ME specification for which this key was generated.

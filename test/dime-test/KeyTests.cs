@@ -21,7 +21,7 @@ namespace DiME_test
         [TestMethod]
         public void GetTagTest1() {
             var key = Key.Generate(new List<KeyUse>() {KeyUse.Sign}, null);
-            Assert.AreEqual("KEY", key.Tag);
+            Assert.AreEqual("KEY", key.Identifier);
         }
         
         [TestMethod]
@@ -52,7 +52,7 @@ namespace DiME_test
             var key = Key.Generate(new List<KeyUse>() {KeyUse.Exchange}, null);
             var encoded = key.Export();
             Assert.IsNotNull(encoded);
-            Assert.IsTrue(encoded.StartsWith($"{Envelope.Header}:{Key._TAG}"));
+            Assert.IsTrue(encoded.StartsWith($"{Envelope.Header}:{Key.ItemIdentifier}"));
             Assert.IsTrue(encoded.Split(".").Length == 2);
         }
 

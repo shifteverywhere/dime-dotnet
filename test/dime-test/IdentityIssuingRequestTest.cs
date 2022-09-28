@@ -21,7 +21,7 @@ namespace DiME_test
         public void GetTagTest1()
         {
             var iir = IdentityIssuingRequest.Generate(Key.Generate(new List<KeyUse>() {KeyUse.Sign}, null));
-            Assert.AreEqual("IIR", iir.Tag);
+            Assert.AreEqual("IIR", iir.Identifier);
         }
 
         [TestMethod]
@@ -135,7 +135,7 @@ namespace DiME_test
             var exported = iir.Export();
             Assert.IsNotNull(exported);
             Assert.IsTrue(exported.Length > 0);
-            Assert.IsTrue(exported.StartsWith($"{Envelope.Header}:{IdentityIssuingRequest._TAG}"));
+            Assert.IsTrue(exported.StartsWith($"{Envelope.Header}:{IdentityIssuingRequest.ItemIdentifier}"));
             Assert.IsTrue(exported.Split(new[] {'.'}).Length == 3);
         }
 
