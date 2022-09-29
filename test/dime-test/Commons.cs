@@ -21,6 +21,12 @@ namespace DiME_test
         public const string SystemName = "io.dimeformat.ref.csharp";
         public const string Payload = "Racecar is racecar backwards.";
         public const string Context = "test-context";
+        public const string SignKeyContext = "id-key";
+        
+        public static string FullHeaderFor(string itemIdentifier) {
+            return $"{Envelope.Header}:{itemIdentifier}";
+        }
+        
         public static Key TrustedKey => _trustedKey ??= Item.Import<Key>(EncodedTrustedKey);
         public static Identity TrustedIdentity => _trustedIdentity ??= Item.Import<Identity>(EncodedTrustedIdentity);
         public static Key IntermediateKey => _intermediateKey ??= Item.Import<Key>(EncodedIntermediateKey);

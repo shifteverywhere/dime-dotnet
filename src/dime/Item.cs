@@ -403,6 +403,7 @@ namespace DiME
                 IdentityIssuingRequest.ItemIdentifier => typeof(IdentityIssuingRequest),
                 Message.ItemIdentifier => typeof(Message),
                 Key.ItemIdentifier => typeof(Key),
+                Tag.ItemIdentifier => typeof(Tag),
                 _ => null
             };
         }
