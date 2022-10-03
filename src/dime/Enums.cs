@@ -176,6 +176,8 @@ public enum Claim
     Lnk,
     /// <summary>Method</summary>
     Mtd,
+    /// <summary>MIME Type</summary>
+    Mim,
     /// <summary>Public key</summary>
     Pub,
     /// <summary>Principle</summary>

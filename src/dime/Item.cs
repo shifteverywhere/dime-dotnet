@@ -404,6 +404,7 @@ namespace DiME
                 Message.ItemIdentifier => typeof(Message),
                 Key.ItemIdentifier => typeof(Key),
                 Tag.ItemIdentifier => typeof(Tag),
+                Data.ItemIdentifier => typeof(Data),
                 _ => null
             };
         }

@@ -20,6 +20,7 @@ namespace DiME_test
 
         public const string SystemName = "io.dimeformat.ref.csharp";
         public const string Payload = "Racecar is racecar backwards.";
+        public const string Mimetype = "text/plain";
         public const string Context = "test-context";
         public const string SignKeyContext = "id-key";
         
