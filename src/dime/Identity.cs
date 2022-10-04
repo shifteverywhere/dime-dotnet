@@ -58,13 +58,13 @@ public class Identity: Item
     /// Returns the public key attached to the identity of an entity. The Key instance returned will only contain a
     /// public key or type IDENTITY.
     /// </summary>
-    public Key PublicKey => Claims().GetKey(Claim.Pub, new List<KeyUse>() { KeyUse.Sign });
+    public Key PublicKey => Claims().GetKey(Claim.Pub, new List<KeyCapability>() { KeyCapability.Sign });
     /// <summary>
     /// Returns a list of any capabilities given to an identity. These are requested by an entity and approved (and
     /// potentially modified) by the issuing entity when issuing a new identity. Capabilities are usually used to
     /// determine what an entity may do with its issued identity.
     /// </summary>
-    public ReadOnlyCollection<Capability> Capabilities 
+    public ReadOnlyCollection<IdentityCapability> Capabilities 
     { 
         get {
             if (_capabilities is not null) return _capabilities;
@@ -72,13 +72,13 @@ public class Identity: Item
             if (caps != null)
                 _capabilities = caps.ConvertAll(str =>
                 {
-                    Enum.TryParse(str, true, out Capability cap);
+                    Enum.TryParse(str, true, out IdentityCapability cap);
                     return cap;
                 }).AsReadOnly();
             return _capabilities;
         } 
     }
-    private ReadOnlyCollection<Capability> _capabilities;
+    private ReadOnlyCollection<IdentityCapability> _capabilities;
     /// <summary>
     /// Returns all principles assigned to an identity. These are key-value fields that further provide information
     /// about the entity. Using principles are optional.
@@ -113,7 +113,7 @@ public class Identity: Item
     /// <summary>
     /// Returns if the identity has been self-issued. Self-issuing happens when the same entity issues its own identity.
     /// </summary>
-    public bool IsSelfSigned => SubjectId == IssuerId && HasCapability(Capability.Self);
+    public bool IsSelfSigned => SubjectId == IssuerId && HasCapability(IdentityCapability.Self);
     /// <summary>
     /// Returns the parent identity of a trust chain for an identity. This is the issuing identity.
     /// </summary>
@@ -180,11 +180,11 @@ public class Identity: Item
     /// <summary>
     /// Will check if the identity has a specific capability.
     /// </summary>
-    /// <param name="capability">The capability to check for.</param>
+    /// <param name="identityCapability">The capability to check for.</param>
     /// <returns>Boolean to indicate if the identity has the capability or not.</returns>
-    public bool HasCapability(Capability capability)
+    public bool HasCapability(IdentityCapability identityCapability)
     {
-        return Capabilities.Contains(capability);
+        return Capabilities.Contains(identityCapability);
     }
 
     /// <summary>

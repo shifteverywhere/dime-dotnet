@@ -30,7 +30,7 @@ namespace DiME_test
             totalSw.Start();
             
             Dime.TrustedIdentity = Commons.TrustedIdentity;
-            var caps = new List<Capability> { Capability.Generic, Capability.Identify };
+            var caps = new List<IdentityCapability> { IdentityCapability.Generic, IdentityCapability.Identify };
             var keyList = new List<Key>();
             var iirList = new List<IdentityIssuingRequest>();
             var identityList = new List<Identity>();
@@ -39,7 +39,7 @@ namespace DiME_test
             Console.Write("* Running key generation tests...");
             sw.Start();
             for(var i = 0; i < PerformanceRounds; i++) {
-                var key = Key.Generate(new List<KeyUse>() {KeyUse.Sign}, null);
+                var key = Key.Generate(new List<KeyCapability>() {KeyCapability.Sign}, null);
                 keyList.Add(key);
             }
             sw.Stop();

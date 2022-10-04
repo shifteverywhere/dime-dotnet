@@ -45,27 +45,27 @@ namespace DiME_test
         public void GenerateCommons() 
         {
             Dime.TrustedIdentity = null;
-            var trustedKey = Key.Generate(new List<KeyUse>() {KeyUse.Sign}, null);
-            var trustedIdentity = GenerateIdentity(trustedKey, trustedKey, null, Dime.ValidFor1Year * 10, new List<Capability>() { Capability.Generic, Capability.Issue });
+            var trustedKey = Key.Generate(new List<KeyCapability>() {KeyCapability.Sign}, null);
+            var trustedIdentity = GenerateIdentity(trustedKey, trustedKey, null, Dime.ValidFor1Year * 10, new List<IdentityCapability>() { IdentityCapability.Generic, IdentityCapability.Issue });
             Console.WriteLine("#region -- TRUSTED IDENTITY --");
             Console.WriteLine("private static readonly string _encodedTrustedKey = \"" + trustedKey.Export() + "\";");
             Console.WriteLine("private static readonly string _encodedTrustedIdentity = \"" + trustedIdentity.Export() + "\";\n");
 
             Dime.TrustedIdentity = trustedIdentity;
-            var intermediateKey = Key.Generate(new List<KeyUse>() {KeyUse.Sign}, null);
-            var intermediateIdentity = GenerateIdentity(intermediateKey, trustedKey, trustedIdentity, Dime.ValidFor1Year * 5, new List<Capability>() { Capability.Generic, Capability.Identify, Capability.Issue });
+            var intermediateKey = Key.Generate(new List<KeyCapability>() {KeyCapability.Sign}, null);
+            var intermediateIdentity = GenerateIdentity(intermediateKey, trustedKey, trustedIdentity, Dime.ValidFor1Year * 5, new List<IdentityCapability>() { IdentityCapability.Generic, IdentityCapability.Identify, IdentityCapability.Issue });
             Console.WriteLine("#region -- INTERMEDIATE IDENTITY ---");
             Console.WriteLine("private static readonly string _encodedIntermediateKey = \"" + intermediateKey.Export() + "\";");
             Console.WriteLine("private static readonly string _encodedIntermediateIdentity = \""+ intermediateIdentity.Export() + "\";\n");
 
-            var issuerKey = Key.Generate(new List<KeyUse>() {KeyUse.Sign}, null);
-            var issuerIdentity = GenerateIdentity(issuerKey, intermediateKey, intermediateIdentity, Dime.ValidFor1Year, new List<Capability>() { Capability.Generic, Capability.Identify });
+            var issuerKey = Key.Generate(new List<KeyCapability>() {KeyCapability.Sign}, null);
+            var issuerIdentity = GenerateIdentity(issuerKey, intermediateKey, intermediateIdentity, Dime.ValidFor1Year, new List<IdentityCapability>() { IdentityCapability.Generic, IdentityCapability.Identify });
             Console.WriteLine("#region -- ISSUER IDENTITY (SENDER) --");
             Console.WriteLine("private static readonly string _encodedIssuerKey = \"" + issuerKey.Export() + "\";");
             Console.WriteLine("private static readonly string _encodedIssuerIdentity = \""+ issuerIdentity.Export() +"\";\n");
 
-            var audienceKey = Key.Generate(new List<KeyUse>() {KeyUse.Sign}, null);
-            var audienceIdentity = GenerateIdentity(audienceKey, intermediateKey, intermediateIdentity, Dime.ValidFor1Year, new List<Capability>() { Capability.Generic, Capability.Identify });
+            var audienceKey = Key.Generate(new List<KeyCapability>() {KeyCapability.Sign}, null);
+            var audienceIdentity = GenerateIdentity(audienceKey, intermediateKey, intermediateIdentity, Dime.ValidFor1Year, new List<IdentityCapability>() { IdentityCapability.Generic, IdentityCapability.Identify });
 
             Console.WriteLine("#region -- AUDIENCE IDENTITY (RECEIVER) --");
             Console.WriteLine("private static readonly string _encodedAudienceKey = \"" + audienceKey.Export() + "\";");
@@ -104,7 +104,7 @@ namespace DiME_test
         private static Identity _audienceIdentity;
         #endregion
 
-        private static Identity GenerateIdentity(Key subjectKey, Key issuerKey, Identity issuerIdentity, long validFor, List<Capability> capabilities) {
+        private static Identity GenerateIdentity(Key subjectKey, Key issuerKey, Identity issuerIdentity, long validFor, List<IdentityCapability> capabilities) {
             var subjectId = Guid.NewGuid();
             var iir = IdentityIssuingRequest.Generate(subjectKey, capabilities);
             var identity = issuerIdentity == null ? iir.SelfIssue(subjectId, validFor, issuerKey, SystemName) : iir.Issue(subjectId, validFor, issuerKey, issuerIdentity, true, capabilities);

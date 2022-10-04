@@ -51,11 +51,11 @@ internal class StandardSuite: ICryptoSuite
         return SodiumPublicKeyAuth.VerifyDetached(signature, data, key);
     }
 
-    public byte[][] GenerateKey(List<KeyUse> use)
+    public byte[][] GenerateKey(List<KeyCapability> capabilities)
     {
-        if (use is not {Count: 1}) { throw new ArgumentNullException(nameof(use), "Unable to generate, invalid key usage requested."); }
-        var firstUse = use[0];
-        if (firstUse == KeyUse.Encrypt)
+        if (capabilities is not {Count: 1}) { throw new ArgumentNullException(nameof(capabilities), "Unable to generate, invalid key usage requested."); }
+        var firstUse = capabilities[0];
+        if (firstUse == KeyCapability.Encrypt)
         {
             var secretKey = Utility.RandomBytes(NbrSKeyBytes);
             return new [] { secretKey };
@@ -63,16 +63,16 @@ internal class StandardSuite: ICryptoSuite
         // If it wasn't Encryption or Authentication generation continues here
         var keypair = firstUse switch
         {
-            KeyUse.Sign => SodiumPublicKeyAuth.GenerateRevampedKeyPair(),
-            KeyUse.Exchange => SodiumKeyExchange.GenerateRevampedKeyPair(),
-            _ => throw new ArgumentException($"Unknown key type: {firstUse}.", nameof(use))
+            KeyCapability.Sign => SodiumPublicKeyAuth.GenerateRevampedKeyPair(),
+            KeyCapability.Exchange => SodiumKeyExchange.GenerateRevampedKeyPair(),
+            _ => throw new ArgumentException($"Unknown key type: {firstUse}.", nameof(capabilities))
         };
         return new [] { keypair.PrivateKey.ToArray(), keypair.PublicKey.ToArray() };
     }
 
-    public byte[] GenerateSharedSecret(byte[][] clientKey, byte[][] serverKey, List<KeyUse> use)
+    public byte[] GenerateSharedSecret(byte[][] clientKey, byte[][] serverKey, List<KeyCapability> use)
     {
-        if (!use.Contains(KeyUse.Encrypt)) { throw new ArgumentNullException(nameof(use), "Unable to generate, key usage for shared secret must be Encrypt."); }
+        if (!use.Contains(KeyCapability.Encrypt)) { throw new ArgumentNullException(nameof(use), "Unable to generate, key usage for shared secret must be Encrypt."); }
         if (use.Count > 1) { throw new ArgumentNullException(nameof(use), "Unable to generate, key usage for shared secret may only be Encrypt."); }
         byte[] shared;
         if (clientKey[(int)KeyIndex.SecretKey] != null && clientKey.Length == 2) // has both private and public key 

@@ -41,12 +41,12 @@ namespace DiME
         /// included in any issued identity. The equivalent secret (private) key was used to sign the IIR, thus the
         /// public key can be used to verify the signature. This must be a key of type IDENTITY.
         /// </summary>
-        public Key PublicKey => Claims().GetKey(Claim.Pub, new List<KeyUse>() { KeyUse.Sign });
+        public Key PublicKey => Claims().GetKey(Claim.Pub, new List<KeyCapability>() { KeyCapability.Sign });
         /// <summary>
         /// Returns a list of any capabilities requested by this IIR. Capabilities are usually used to
         /// determine what an entity may do with its issued identity.
         /// </summary>
-        public ReadOnlyCollection<Capability> Capabilities 
+        public ReadOnlyCollection<IdentityCapability> Capabilities 
         { 
             get {
                 if (_capabilities is not null) return _capabilities;
@@ -54,13 +54,13 @@ namespace DiME
                 if (caps != null)
                     _capabilities = caps.ConvertAll(str =>
                     {
-                        Enum.TryParse(str, true, out Capability cap);
+                        Enum.TryParse(str, true, out IdentityCapability cap);
                         return cap;
                     }).AsReadOnly();
                 return _capabilities;
             } 
         }
-        private ReadOnlyCollection<Capability> _capabilities;
+        private ReadOnlyCollection<IdentityCapability> _capabilities;
         /// <summary>
         /// Returns all principles provided in the IIR. These are key-value fields that further provide information
         /// about the entity. Using principles are optional.
@@ -93,7 +93,7 @@ namespace DiME
         /// <returns>An IIR that can be used to issue a new identity (or sent to a trusted entity for issuing).</returns>
         /// <exception cref="ArgumentException"></exception>
         /// <exception cref="ArgumentNullException"></exception>
-        public static IdentityIssuingRequest Generate(Key key, List<Capability> capabilities = null, Dictionary<string, object> principles = null) 
+        public static IdentityIssuingRequest Generate(Key key, List<IdentityCapability> capabilities = null, Dictionary<string, object> principles = null) 
         {
             if (key.Type != KeyType.Identity) { throw new ArgumentException("Key of invalid type.", nameof(key)); }
             if (key.Secret == null) { throw new ArgumentNullException(nameof(key), "Private key must not be null"); }
@@ -104,7 +104,7 @@ namespace DiME
             claims.Put(Claim.Pub, key.Public);
             var capabilitiesToSet = capabilities;
             if (capabilitiesToSet == null || capabilitiesToSet.Count == 0) 
-                capabilitiesToSet = new List<Capability>() { Capability.Generic }; 
+                capabilitiesToSet = new List<IdentityCapability>() { IdentityCapability.Generic }; 
             else 
                 capabilitiesToSet = capabilities;
             claims.Put(Claim.Cap, capabilitiesToSet.ConvertAll(obj => obj.ToString().ToLower()));
@@ -141,11 +141,11 @@ namespace DiME
         /// <summary>
         /// Checks if the IIR includes a request for a particular capability.
         /// </summary>
-        /// <param name="capability">The capability to check for.</param>
+        /// <param name="identityCapability">The capability to check for.</param>
         /// <returns>true or false.</returns>
-        public bool WantsCapability(Capability capability)
+        public bool WantsCapability(IdentityCapability identityCapability)
         {
-            return Capabilities.Any(cap => cap == capability);
+            return Capabilities.Any(cap => cap == identityCapability);
         }
         
         /// <summary>
@@ -170,7 +170,7 @@ namespace DiME
         /// <param name="methods">A list of methods that will apply to the issued identity.</param>
         /// <returns>An Identity instance that may be sent back to the entity that proved the IIR.</returns>
         /// <exception cref="ArgumentNullException"></exception>
-        public Identity Issue(Guid subjectId, long validFor, Key issuerKey, Identity issuerIdentity, bool includeChain, List<Capability> allowedCapabilities, List<Capability> requiredCapabilities = null, string systemName = null, List<string> ambit = null, List<string> methods = null) 
+        public Identity Issue(Guid subjectId, long validFor, Key issuerKey, Identity issuerIdentity, bool includeChain, List<IdentityCapability> allowedCapabilities, List<IdentityCapability> requiredCapabilities = null, string systemName = null, List<string> ambit = null, List<string> methods = null) 
         {    
             if (issuerIdentity == null) { throw new ArgumentNullException(nameof(issuerIdentity), "Issuer identity must not be null."); }
             var sys = systemName is {Length: > 0} ? systemName : issuerIdentity.SystemName;
@@ -227,12 +227,12 @@ namespace DiME
         
         private new const int MinimumNbrComponents = 3;
         
-        private Identity IssueNewIdentity(string systemName, Guid subjectId, long validFor, Key issuerKey, Identity issuerIdentity, bool includeChain, List<Capability> allowedCapabilities, IReadOnlyCollection<Capability> requiredCapabilities = null, List<string> ambits = null, List<string> methods = null)
+        private Identity IssueNewIdentity(string systemName, Guid subjectId, long validFor, Key issuerKey, Identity issuerIdentity, bool includeChain, List<IdentityCapability> allowedCapabilities, IReadOnlyCollection<IdentityCapability> requiredCapabilities = null, List<string> ambits = null, List<string> methods = null)
         {
             Verify(PublicKey);
             var isSelfSign = issuerIdentity == null || PublicKey.Public.Equals(issuerKey.Public);
             CompleteCapabilities(allowedCapabilities, requiredCapabilities, isSelfSign);
-            if (!isSelfSign && !issuerIdentity.HasCapability(Capability.Issue))
+            if (!isSelfSign && !issuerIdentity.HasCapability(IdentityCapability.Issue))
                 throw new IdentityCapabilityException("Issuing identity missing 'issue' capability.");
             var now = DateTime.UtcNow;
             var expires = now.AddSeconds(validFor);
@@ -261,14 +261,14 @@ namespace DiME
             return identity;
         }
 
-        private void CompleteCapabilities(List<Capability> allowedCapabilities, IReadOnlyCollection<Capability> requiredCapabilities, bool isSelfSign)
+        private void CompleteCapabilities(List<IdentityCapability> allowedCapabilities, IReadOnlyCollection<IdentityCapability> requiredCapabilities, bool isSelfSign)
         {
-            var caps = Capabilities != null ? new List<Capability>(Capabilities) : new List<Capability> {Capability.Generic};
-            if (caps.Count == 0) { caps.Add(Capability.Generic); }
+            var caps = Capabilities != null ? new List<IdentityCapability>(Capabilities) : new List<IdentityCapability> {IdentityCapability.Generic};
+            if (caps.Count == 0) { caps.Add(IdentityCapability.Generic); }
             if (isSelfSign)
             {
-                if (!WantsCapability(Capability.Self))
-                    caps.Add(Capability.Self);
+                if (!WantsCapability(IdentityCapability.Self))
+                    caps.Add(IdentityCapability.Self);
             }
             else 
             {

@@ -51,9 +51,9 @@ public interface ICryptoSuite
     /// <summary>
     /// Generates a cryptographic key for the provided usage, if possible.
     /// </summary>
-    /// <param name="use">The intended usage of the generated key.</param>
+    /// <param name="capabilities">The intended capabilities of the generated key.</param>
     /// <returns>The generated key.</returns>
-    byte[][] GenerateKey(List<KeyUse> use);
+    byte[][] GenerateKey(List<KeyCapability> capabilities);
        
     /// <summary>
     /// Generates a shared secret from two keys or key pars. These keys must have {#{@link Key.Use#EXCHANGE}} listad as
@@ -64,7 +64,7 @@ public interface ICryptoSuite
     /// <param name="serverKey">The key or key pair from the server (usually the issuer).</param>
     /// <param name="use">TThe intended use of the generated key.</param>
     /// <returns>The generated shared key.</returns>
-    byte[] GenerateSharedSecret(byte[][] clientKey, byte[][] serverKey, List<KeyUse> use);
+    byte[] GenerateSharedSecret(byte[][] clientKey, byte[][] serverKey, List<KeyCapability> use);
         
     /// <summary>
     /// Encrypts a plain text byte array using the provided key.

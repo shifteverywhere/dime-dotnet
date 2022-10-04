@@ -21,16 +21,16 @@ namespace DiME_test
         
         [TestMethod]
         public void GetTagTest1() {
-            var key = Key.Generate(new List<KeyUse>() {KeyUse.Sign}, null);
+            var key = Key.Generate(new List<KeyCapability>() {KeyCapability.Sign}, null);
             Assert.AreEqual("KEY", key.Identifier);
         }
         
         [TestMethod]
         public void KeyTest1()
         {
-            var key = Key.Generate(new List<KeyUse>() {KeyUse.Sign}, null);
-            Assert.IsTrue(key.HasUse(KeyUse.Sign));
-            Assert.IsFalse(key.HasUse(KeyUse.Exchange));
+            var key = Key.Generate(new List<KeyCapability>() {KeyCapability.Sign}, null);
+            Assert.IsTrue(key.HasCapability(KeyCapability.Sign));
+            Assert.IsFalse(key.HasCapability(KeyCapability.Exchange));
             Assert.IsNotNull(key.UniqueId);
             Assert.IsNotNull(key.Public);
             Assert.IsNotNull(key.Secret);
@@ -39,9 +39,9 @@ namespace DiME_test
         [TestMethod]
         public void KeyTest2()
         {
-            var key = Key.Generate(new List<KeyUse>() {KeyUse.Exchange}, null);
-            Assert.IsTrue(key.HasUse(KeyUse.Exchange));
-            Assert.IsFalse(key.HasUse(KeyUse.Sign));
+            var key = Key.Generate(new List<KeyCapability>() {KeyCapability.Exchange}, null);
+            Assert.IsTrue(key.HasCapability(KeyCapability.Exchange));
+            Assert.IsFalse(key.HasCapability(KeyCapability.Sign));
             Assert.IsNotNull(key.UniqueId);
             Assert.IsNotNull(key.Public);
             Assert.IsNotNull(key.Secret);
@@ -50,7 +50,7 @@ namespace DiME_test
         [TestMethod]
         public void ExportTest1()
         {
-            var key = Key.Generate(new List<KeyUse>() {KeyUse.Exchange}, null);
+            var key = Key.Generate(new List<KeyCapability>() {KeyCapability.Exchange}, null);
             var encoded = key.Export();
             Assert.IsNotNull(encoded);
             Assert.IsTrue(encoded.StartsWith($"{Envelope.Header}:{Key.ItemIdentifier}"));
@@ -62,7 +62,7 @@ namespace DiME_test
         {
             const string encoded = "Di:KEY.eyJ1aWQiOiI3ZmE2OGU4OC02ZDVjLTQwMmItOThkOC1mZDg2NjQwY2Y0ZjIiLCJpYXQiOiIyMDIxLTEyLTAxVDIwOjUzOjIzLjM4MzczM1oiLCJrZXkiOiIyVERYZDlXVXR3dVliaTROaFNRRUhmTjg5QmhLVkNTQWVqUFpmRlFRZ1BxaVJadXNUTkdtcll0ZVEiLCJwdWIiOiIyVERYZG9OdXNiNXlWQXB6WTIzYXR1UTNzbUdiOExuZ0o0QVpYRWhpck1mQ0t5OHFkNEZwM1c5OHMifQ";
             var key = Item.Import<Key>(encoded);
-            Assert.IsTrue(key.HasUse(KeyUse.Sign));
+            Assert.IsTrue(key.HasCapability(KeyCapability.Sign));
             Assert.AreEqual(new Guid("7fa68e88-6d5c-402b-98d8-fd86640cf4f2"), key.UniqueId);
             Assert.AreEqual(DateTime.Parse("2021-12-01T20:53:23.383733Z").ToUniversalTime(), key.IssuedAt);
             Assert.AreEqual("2TDXd9WUtwuYbi4NhSQEHfN89BhKVCSAejPZfFQQgPqiRZusTNGmrYteQ", key.Secret);
@@ -72,7 +72,7 @@ namespace DiME_test
         [TestMethod]
         public void PublicOnlyTest1()
         {
-            var key = Key.Generate(new List<KeyUse>() {KeyUse.Sign}, 120, Guid.NewGuid(), Commons.Context);
+            var key = Key.Generate(new List<KeyCapability>() {KeyCapability.Sign}, 120, Guid.NewGuid(), Commons.Context);
             Assert.IsNotNull(key.Secret);
             var pubOnly = key.PublicCopy();
             Assert.IsNull(pubOnly.Secret);
@@ -97,14 +97,14 @@ namespace DiME_test
         [TestMethod]
         public void ContextTest1() {
             const string context = "123456789012345678901234567890123456789012345678901234567890123456789012345678901234";
-            var key = Key.Generate(new List<KeyUse>() {KeyUse.Sign}, context);
+            var key = Key.Generate(new List<KeyCapability>() {KeyCapability.Sign}, context);
             Assert.AreEqual(context, key.Context);
         }
 
         [TestMethod]
         public void ContextTest2() {
             const string context = "123456789012345678901234567890123456789012345678901234567890123456789012345678901234";
-            var key1 = Key.Generate(new List<KeyUse>() {KeyUse.Sign}, context);
+            var key1 = Key.Generate(new List<KeyCapability>() {KeyCapability.Sign}, context);
             var exported = key1.Export();
             var key2 = Item.Import<Key>(exported);
             Assert.AreEqual(context, key2.Context);
@@ -115,7 +115,7 @@ namespace DiME_test
         {
             const string context = "123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890";
             try {
-                Key.Generate(new List<KeyUse>() {KeyUse.Sign}, context);
+                Key.Generate(new List<KeyCapability>() {KeyCapability.Sign}, context);
             } catch (ArgumentException) { return; } // All is well
             Assert.IsTrue(false, "Should not happen.");
         }

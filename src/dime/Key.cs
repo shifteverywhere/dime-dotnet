@@ -41,7 +41,7 @@ namespace DiME
          /// Returns the type of the key. The type determines what the key may be used for, this since it is also
          /// closely associated with the cryptographic algorithm the key is generated for.
          /// </summary>
-         [Obsolete("This method is no longer used, use Key.Use instead.")]
+         [Obsolete("This method is no longer used, use Key.Capability instead.")]
          public KeyType Type { 
             get
             {
@@ -59,11 +59,11 @@ namespace DiME
                 }
                 else
                 {
-                    if (HasUse(KeyUse.Sign))
+                    if (HasCapability(KeyCapability.Sign))
                         _type = KeyType.Identity;
-                    else if (HasUse(KeyUse.Exchange))
+                    else if (HasCapability(KeyCapability.Exchange))
                         _type = KeyType.Exchange;
-                    else if (HasUse(KeyUse.Encrypt))
+                    else if (HasCapability(KeyCapability.Encrypt))
                         _type = KeyType.Encryption;
                 }
                 Debug.Assert(_type != null, "Unexpected error, unable to get legacy type of key.");
@@ -124,18 +124,18 @@ namespace DiME
         /// <summary>
         /// A list of cryptographic uses that the key may perform.
         /// </summary>
-        public ReadOnlyCollection<KeyUse> Use
+        public ReadOnlyCollection<KeyCapability> Capabilities
         {
             get
             {
-                if (_use is not null) return _use;
-                var usage = Claims().Get<List<string>>(Claim.Use);
-                if (usage is not null)
+                if (_capabilities is not null) return _capabilities;
+                var caps = Claims().Get<List<string>>(Claim.Cap);
+                if (caps is not null)
                 {
-                    _use = usage.ConvertAll(input =>
+                    _capabilities = caps.ConvertAll(input =>
                     {
-                        Enum.TryParse(input, true, out KeyUse use);
-                        return use;
+                        Enum.TryParse(input, true, out KeyCapability cap);
+                        return cap;
                     }).AsReadOnly();
                 }
                 else
@@ -143,20 +143,20 @@ namespace DiME
                     // This may be legacy
                     KeyBytes(Claim.Pub);
                     KeyBytes(Claim.Key);
-                    _use = new ReadOnlyCollection<KeyUse>(new List<KeyUse>(){ Key.KeyUseFromKeyType(Type) });
+                    _capabilities = new ReadOnlyCollection<KeyCapability>(new List<KeyCapability>(){ Key.KeyCapabilityFromKeyType(Type) });
                 }
-                return _use;
+                return _capabilities;
             }
         }
 
         /// <summary>
-        /// Indicates if a key may be used for a specific cryptographic use.
+        /// Indicates if a key has a specific cryptographic capability.
         /// </summary>
-        /// <param name="use">The use to test for.</param>
-        /// <returns>True if key supports the use, false otherwise.</returns>
-        public bool HasUse(KeyUse use)
+        /// <param name="capability">The capability to test for.</param>
+        /// <returns>True if key supports the capability, false otherwise.</returns>
+        public bool HasCapability(KeyCapability capability)
         {
-            return Use.Contains(use);
+            return Capabilities.Contains(capability);
         }
         
         /// <summary>
@@ -172,7 +172,7 @@ namespace DiME
         /// <returns>A newly generated key.</returns>
         [Obsolete("Obsolete method, use Generate(List<KeyUse>, string) instead.")]
         public static Key Generate(KeyType type, string context) {
-            return Generate(new List<KeyUse>() { KeyUseFromKeyType(type) }, Dime.NoExpiration, null, context);
+            return Generate(new List<KeyCapability>() { KeyCapabilityFromKeyType(type) }, Dime.NoExpiration, null, context);
         }
 
         /// <summary>
@@ -187,18 +187,18 @@ namespace DiME
         [Obsolete("Obsolete method, use Generate(List<KeyUse>, long, Guid?, string, string) instead.")]
         public static Key Generate(KeyType type, long validFor = Dime.NoExpiration, Guid? issuerId = null, string context = null)
         {
-            return Generate(new List<KeyUse>() { KeyUseFromKeyType(type) }, validFor, issuerId, context);
+            return Generate(new List<KeyCapability>() { KeyCapabilityFromKeyType(type) }, validFor, issuerId, context);
         }
 
         /// <summary>
         /// Will generate a new Key for a specific cryptographic usage and attach a specified context.
         /// </summary>
-        /// <param name="use">The use of the key.</param>
+        /// <param name="capabilities">The use of the key.</param>
         /// <param name="context">The context to attach to the key, may be null.</param>
         /// <returns>A newly generated key.</returns>
-        public static Key Generate(List<KeyUse> use, string context = null)
+        public static Key Generate(List<KeyCapability> capabilities, string context = null)
         {
-            return Key.Generate(use, Dime.NoExpiration, null, context);
+            return Key.Generate(capabilities, Dime.NoExpiration, null, context);
         }
 
         /// <summary>
@@ -208,19 +208,19 @@ namespace DiME
         /// will be attached to the generated key. The cryptographic suite specified will be used when generating the
         /// key.
         /// </summary>
-        /// <param name="use">The use of the key.</param>
+        /// <param name="capabilities">The capabilities of the key.</param>
         /// <param name="validFor">The number of seconds that the key should be valid for, from the time of issuing.</param>
         /// <param name="issuerId">The identifier of the issuer (creator) of the key, may be null.</param>
         /// <param name="context">The context to attach to the key, may be null.</param>
         /// <param name="suiteName">The name of the cryptographic suite to use, if null, then the default suite will be used.</param>
         /// <returns>A newly generated key.</returns>
         /// <exception cref="ArgumentException"></exception>
-        public static Key Generate(List<KeyUse> use, long validFor = Dime.NoExpiration, Guid? issuerId = null, string context = null, string suiteName = null)
+        public static Key Generate(List<KeyCapability> capabilities, long validFor = Dime.NoExpiration, Guid? issuerId = null, string context = null, string suiteName = null)
         {
             if (context is {Length: > Dime.MaxContextLength}) { throw new ArgumentException("Context must not be longer than " + Dime.MaxContextLength + "."); }
-            var keyBytes = Dime.Crypto.GenerateKey(use, suiteName ?? Dime.Crypto.DefaultSuiteName);
+            var keyBytes = Dime.Crypto.GenerateKey(capabilities, suiteName ?? Dime.Crypto.DefaultSuiteName);
             var key = new Key(Guid.NewGuid(), 
-                use, 
+                capabilities, 
                 keyBytes[(int)KeyIndex.SecretKey], 
                 keyBytes.Length == 2 ? keyBytes[(int)KeyIndex.PublicKey] : null,
                 suiteName);
@@ -239,7 +239,7 @@ namespace DiME
         /// <returns>A new instance of the key with only the public part.</returns>
         public Key PublicCopy()
         {
-            var copyKey = new Key(Use.ToList(), null, Public, _suiteName);
+            var copyKey = new Key(Capabilities.ToList(), null, Public, _suiteName);
             var claims = copyKey.Claims();
             claims.Put(Claim.Uid, UniqueId);
             claims.Put(Claim.Iat, IssuedAt);
@@ -254,23 +254,23 @@ namespace DiME
         /// 'Exchange' specified.
         /// </summary>
         /// <param name="key">The other key to use with the key exchange (generation of shared key).</param>
-        /// <param name="use">The requested usage of the generated shared key, usually 'Encrypt'.</param>
+        /// <param name="capabilities">The requested capabilities of the generated shared key, usually 'Encrypt'.</param>
         /// <returns>The generated shared key.</returns>
-        public Key GenerateSharedSecret(Key key, List<KeyUse> use)
+        public Key GenerateSharedSecret(Key key, List<KeyCapability> capabilities)
         {
-            var sharedKey = Dime.Crypto.GenerateSharedSecret(this, key, use);
-            return new Key(Guid.NewGuid(), use, sharedKey, null, _suiteName);
+            var sharedKey = Dime.Crypto.GenerateSharedSecret(this, key, capabilities);
+            return new Key(Guid.NewGuid(), capabilities, sharedKey, null, _suiteName);
         }
         
         #endregion
 
         #region -- INTERNAL --
 
-        internal Key(Guid id, List<KeyUse> use, byte[] key, byte[] pub, string suiteName)
+        internal Key(Guid id, List<KeyCapability> capabilities, byte[] key, byte[] pub, string suiteName)
         {
             _suiteName = suiteName ?? Dime.Crypto.DefaultSuiteName;
             var claims = Claims();
-            claims.Put(Claim.Use, use.ConvertAll(keyUse => keyUse.ToString().ToLower()));
+            claims.Put(Claim.Cap, capabilities.ConvertAll(keyUse => keyUse.ToString().ToLower()));
             claims.Put(Claim.Uid, id);
             claims.Put(Claim.Iat, DateTime.UtcNow);
             if (key is not null)
@@ -279,24 +279,24 @@ namespace DiME
                 claims.Put(Claim.Pub, EncodedKey(_suiteName, pub));
         }
 
-        internal Key(List<KeyUse> use, string key, string pub, string suiteName)
+        internal Key(List<KeyCapability> capabilities, string key, string pub, string suiteName)
         {
             _suiteName = suiteName ?? Dime.Crypto.DefaultSuiteName;
             var claims = Claims();
-            claims.Put(Claim.Use, use.ConvertAll(keyUse => keyUse.ToString().ToLower()));
+            claims.Put(Claim.Cap, capabilities.ConvertAll(keyUse => keyUse.ToString().ToLower()));
             if (key is not null)
                 claims.Put(Claim.Key, key);
             if (pub is not null)
                 claims.Put(Claim.Pub, pub);
         }
 
-        internal Key(List<KeyUse> use, string key, Claim claim)
+        internal Key(List<KeyCapability> capabilities, string key, Claim claim)
         {
-            Claims().Put(Claim.Use, use.ConvertAll(keyUse => keyUse.ToString().ToLower()));
+            Claims().Put(Claim.Cap, capabilities.ConvertAll(keyUse => keyUse.ToString().ToLower()));
             Claims().Put(claim, key);
         }
 
-        internal static void ConvertKeyToLegacy(Item item, KeyUse use, Claim claim)
+        internal static void ConvertKeyToLegacy(Item item, KeyCapability capability, Claim claim)
         {
             var key = item.Claims().Get<string>(claim);
             if (key is null) { return; }
@@ -304,11 +304,11 @@ namespace DiME
             var b58 = key[(key.IndexOf(Dime.ComponentDelimiter) + 1)..];
             var rawKey = Base58.Decode(b58);
             var legacyKey = Utility.Combine(header, rawKey);
-            legacyKey[1] = use == KeyUse.Encrypt ? (byte) 0x10 : use == KeyUse.Exchange ? (byte) 0x40 : (byte) 0x80;
-            legacyKey[2] = use == KeyUse.Exchange ? (byte) 0x02 : (byte) 0x01;
+            legacyKey[1] = capability == KeyCapability.Encrypt ? (byte) 0x10 : capability == KeyCapability.Exchange ? (byte) 0x40 : (byte) 0x80;
+            legacyKey[2] = capability == KeyCapability.Exchange ? (byte) 0x02 : (byte) 0x01;
             if (claim == Claim.Pub)
                 legacyKey[3] = 0x01;
-            else if (use == KeyUse.Encrypt)
+            else if (capability == KeyCapability.Encrypt)
                 legacyKey[3] = 0x02;
             item.Claims().Put(claim, Base58.Encode(legacyKey, null));
         }
@@ -337,7 +337,7 @@ namespace DiME
         private const int EncodedKeyIndex = 1;
         private const int LegacyKeyHeaderSize = 6;
         private string _suiteName;
-        private ReadOnlyCollection<KeyUse> _use;
+        private ReadOnlyCollection<KeyCapability> _capabilities;
         private byte[] _secretBytes;
         private byte[] _publicBytes;
         private KeyType? _type;
@@ -407,16 +407,16 @@ namespace DiME
             IsLegacy = legacyKey;
         }
         
-        private static KeyUse KeyUseFromKeyType(KeyType type)
+        private static KeyCapability KeyCapabilityFromKeyType(KeyType type)
         {
             switch (type)
             {
                 case KeyType.Identity:
-                    return KeyUse.Sign;
+                    return KeyCapability.Sign;
                 case KeyType.Exchange:
-                    return KeyUse.Exchange;
+                    return KeyCapability.Exchange;
                 case KeyType.Encryption:
-                    return KeyUse.Encrypt;
+                    return KeyCapability.Encrypt;
                 case KeyType.Undefined:
                 case KeyType.Authentication:
                 default:

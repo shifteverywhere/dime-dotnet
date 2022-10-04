@@ -103,7 +103,7 @@ public class ClaimsMap
         return Array.Empty<byte>();
     }
 
-    internal Key? GetKey(Claim claim, List<KeyUse> use)
+    internal Key? GetKey(Claim claim, List<KeyCapability> use)
     {
         var value = Get<string>(claim);
         return string.IsNullOrEmpty(value) ? null : new Key(use, value, claim);

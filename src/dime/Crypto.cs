@@ -75,7 +75,7 @@ public class Crypto
     /// <exception cref="ArgumentException"></exception>
     public byte[] GenerateSignature(string data, Key key)
     {
-        if (!key.HasUse(KeyUse.Sign)) { throw new ArgumentException("Unable to sign, provided key does not specify Sign usage."); }
+        if (!key.HasCapability(KeyCapability.Sign)) { throw new ArgumentException("Unable to sign, provided key does not specify Sign usage."); }
         var impl = CryptoSuite(key.CryptoSuiteName);
         return impl.GenerateSignature(Encoding.UTF8.GetBytes(data), key.KeyBytes(Claim.Key));
     }
@@ -90,7 +90,7 @@ public class Crypto
     /// <exception cref="IntegrityException"></exception>
     public void VerifySignature(string data, byte[] signature, Key key)
     {
-        if (!key.HasUse(KeyUse.Sign)) { throw new ArgumentException("Unable to sign, provided key does not specify Sign usage."); }
+        if (!key.HasCapability(KeyCapability.Sign)) { throw new ArgumentException("Unable to sign, provided key does not specify Sign usage."); }
         var impl = CryptoSuite(key.CryptoSuiteName);
         var pub = key.KeyBytes(Claim.Pub);
         if (!impl.VerifySignature(Encoding.UTF8.GetBytes(data), signature, key.KeyBytes(Claim.Pub)))
@@ -107,9 +107,9 @@ public class Crypto
     /// <param name="use">The use that should be specified for the generated key.</param>
     /// <returns>The generated shared secret key.</returns>
     /// <exception cref="ArgumentException"></exception>
-    public byte[] GenerateSharedSecret(Key clientKey, Key serverKey, List<KeyUse> use)
+    public byte[] GenerateSharedSecret(Key clientKey, Key serverKey, List<KeyCapability> use)
     {
-        if (!clientKey.HasUse(KeyUse.Exchange) || !serverKey.HasUse(KeyUse.Exchange)) { throw new ArgumentException("Unable to generate, provided keys do not specify 'Exchange' use."); }
+        if (!clientKey.HasCapability(KeyCapability.Exchange) || !serverKey.HasCapability(KeyCapability.Exchange)) { throw new ArgumentException("Unable to generate, provided keys do not specify 'Exchange' use."); }
         if (!clientKey.CryptoSuiteName.Equals(serverKey.CryptoSuiteName)) { throw new ArgumentException("Unable to generate, both keys must be generated using the same cryptographic suite."); }
         var impl = CryptoSuite(clientKey.CryptoSuiteName);
         var rawClientKeys = new byte[][] { clientKey.KeyBytes(Claim.Key), clientKey.KeyBytes(Claim.Pub) };
@@ -126,7 +126,7 @@ public class Crypto
     /// <exception cref="ArgumentException"></exception>
     public byte[] Encrypt(byte[] plainText, Key key)
     {
-        if (!key.HasUse(KeyUse.Encrypt)) { throw new ArgumentException("Unable to encrypt, provided key does not specify 'Encrypt' use."); }
+        if (!key.HasCapability(KeyCapability.Encrypt)) { throw new ArgumentException("Unable to encrypt, provided key does not specify 'Encrypt' use."); }
         var impl = CryptoSuite(key.CryptoSuiteName);
         return impl.Encrypt(plainText, key.KeyBytes(Claim.Key));
     }
@@ -140,7 +140,7 @@ public class Crypto
     /// <exception cref="ArgumentException"></exception>
     public byte[] Decrypt(byte[] cipherText, Key key)
     {
-        if (!key.HasUse(KeyUse.Encrypt)) { throw new ArgumentException("Unable to decrypt, provided key does not specify 'Encrypt' use."); }
+        if (!key.HasCapability(KeyCapability.Encrypt)) { throw new ArgumentException("Unable to decrypt, provided key does not specify 'Encrypt' use."); }
         var impl = CryptoSuite(key.CryptoSuiteName);
         return impl.Decrypt(cipherText, key.KeyBytes(Claim.Key));
     }
@@ -149,23 +149,23 @@ public class Crypto
     /// Generates a cryptographic key of a provided type. This will use the cryptographic suite that is set as the
     /// default.
     /// </summary>
-    /// <param name="use">The use of the key to generate.</param>
+    /// <param name="capabilities">The capabilities of the key to generate.</param>
     /// <returns>The generated key.</returns>
-    public byte[][] GenerateKey(List<KeyUse> use)
+    public byte[][] GenerateKey(List<KeyCapability> capabilities)
     {
-        return GenerateKey(use, DefaultSuiteName);
+        return GenerateKey(capabilities, DefaultSuiteName);
     }
 
     /// <summary>
     /// Generates a cryptographic key of a provided type.
     /// </summary>
-    /// <param name="use">The use of the key to generate.</param>
+    /// <param name="capabilities">The capabilities of the key to generate.</param>
     /// <param name="suiteName">The cryptographic suite that should be used when generating the key.</param>
     /// <returns>The generated key.</returns>
-    public byte[][] GenerateKey(List<KeyUse> use, string suiteName)
+    public byte[][] GenerateKey(List<KeyCapability> capabilities, string suiteName)
     {
         var impl = CryptoSuite(suiteName);
-        return impl.GenerateKey(use);
+        return impl.GenerateKey(capabilities);
     }
 
     /// <summary>

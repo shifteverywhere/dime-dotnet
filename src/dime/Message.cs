@@ -120,7 +120,7 @@ namespace DiME
             if (payload == null || payload.Length == 0) { throw new ArgumentException("Unable to set payload, payload must not be null or empty."); }
             if (issuerKey == null) { throw new ArgumentNullException(nameof(issuerKey), "Unable to encrypt, issuer key must not be null."); }
             if (audienceKey == null) { throw new ArgumentNullException(nameof(audienceKey), "Unable to encrypt, audience key may not be null."); }
-            var sharedKey = issuerKey.GenerateSharedSecret(audienceKey, new List<KeyUse>() { KeyUse.Encrypt });
+            var sharedKey = issuerKey.GenerateSharedSecret(audienceKey, new List<KeyCapability>() { KeyCapability.Encrypt });
             SetPayload(Dime.Crypto.Encrypt(payload, sharedKey));
         }
 
@@ -136,7 +136,7 @@ namespace DiME
         {
             if (issuerKey == null) { throw new ArgumentNullException(nameof(issuerKey), "Unable to decrypt, issuer key may not be null."); }
             if (audienceKey == null) { throw new ArgumentNullException(nameof(audienceKey), "Unable to decrypt, audience key may not be null."); }
-            var sharedKey = issuerKey.GenerateSharedSecret(audienceKey, new List<KeyUse>() { KeyUse.Encrypt });
+            var sharedKey = issuerKey.GenerateSharedSecret(audienceKey, new List<KeyCapability>() { KeyCapability.Encrypt });
             return Dime.Crypto.Decrypt(GetPayload(), sharedKey);
         }
 

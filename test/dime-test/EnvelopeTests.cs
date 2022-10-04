@@ -141,7 +141,7 @@ namespace DiME_test
         [TestMethod]
         public void IirExportTest1()
         {
-            var iir = IdentityIssuingRequest.Generate(Key.Generate(new List<KeyUse>() {KeyUse.Sign}, null));
+            var iir = IdentityIssuingRequest.Generate(Key.Generate(new List<KeyCapability>() {KeyCapability.Sign}, null));
             var envelope = new Envelope();
             envelope.AddItem(iir);
             var exported = envelope.Export();

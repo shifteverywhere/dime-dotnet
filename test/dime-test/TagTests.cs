@@ -58,7 +58,7 @@ public class TagTests
     [TestMethod]
     public void TagTest5() 
     {
-        var items = new List<Item>() { Key.Generate(new List<KeyUse>() {KeyUse.Sign}, null), Key.Generate(new List<KeyUse>() {KeyUse.Exchange}, null) };
+        var items = new List<Item>() { Key.Generate(new List<KeyCapability>() {KeyCapability.Sign}, null), Key.Generate(new List<KeyCapability>() {KeyCapability.Exchange}, null) };
         var tag = new Tag(Commons.IssuerIdentity.SubjectId, Commons.Context, items);
         Assert.AreEqual(Commons.IssuerIdentity.SubjectId, tag.IssuerId);
         Assert.AreEqual(Commons.Context, tag.Context);
@@ -70,7 +70,7 @@ public class TagTests
     public void AddItemLinkTest1() 
     {
         var tag = new Tag(Commons.IssuerIdentity.SubjectId);
-        tag.AddItemLink(Key.Generate(new List<KeyUse>() {KeyUse.Sign}, null));
+        tag.AddItemLink(Key.Generate(new List<KeyCapability>() {KeyCapability.Sign}, null));
         Assert.IsNotNull(tag.GetItemLinks);
         Assert.AreEqual(1, tag.GetItemLinks()!.Count);
         Assert.AreEqual(Key.ItemIdentifier, tag.GetItemLinks()![0].ItemIdentifier);
@@ -104,7 +104,7 @@ public class TagTests
     {
         try {
             var tag = new Tag(Commons.IssuerIdentity.SubjectId);
-            tag.AddItemLink(Key.Generate(new List<KeyUse>() {KeyUse.Sign}, null));
+            tag.AddItemLink(Key.Generate(new List<KeyCapability>() {KeyCapability.Sign}, null));
             tag.Sign(Commons.IssuerKey);
             tag.AddItemLink(Commons.IssuerIdentity);
             Assert.IsTrue(false, "Expected exception not thrown.");
@@ -150,7 +150,7 @@ public class TagTests
         message.SetPayload(Encoding.UTF8.GetBytes(Commons.Payload));
         message.Sign(Commons.IssuerKey);
         tag.AddItemLink(message);
-        tag.AddItemLink(Key.Generate(new List<KeyUse>() {KeyUse.Sign}, null));
+        tag.AddItemLink(Key.Generate(new List<KeyCapability>() {KeyCapability.Sign}, null));
         tag.AddItemLink(Commons.IssuerIdentity);
         tag.Sign(Commons.IssuerKey);
         var encoded = tag.Export();
@@ -165,7 +165,7 @@ public class TagTests
     {
         try {
             var tag = new Tag(Commons.IssuerIdentity.SubjectId);
-            tag.AddItemLink(Key.Generate(new List<KeyUse>() {KeyUse.Sign}, null));
+            tag.AddItemLink(Key.Generate(new List<KeyCapability>() {KeyCapability.Sign}, null));
             tag.Export();
             Assert.IsTrue(false, "Expected exception not thrown.");
         } catch (InvalidOperationException) {

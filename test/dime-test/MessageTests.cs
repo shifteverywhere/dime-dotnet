@@ -131,7 +131,7 @@ namespace DiME_test
         [TestMethod]
         public void VerifyTest2()
         {
-            var key = Key.Generate(new List<KeyUse>() {KeyUse.Sign}, null);
+            var key = Key.Generate(new List<KeyCapability>() {KeyCapability.Sign}, null);
             var untrustedSender = IdentityIssuingRequest.Generate(key)
                 .SelfIssue(Guid.NewGuid(), 120L, key, Commons.SystemName);
             Dime.TrustedIdentity = Commons.TrustedIdentity;
@@ -273,8 +273,8 @@ namespace DiME_test
         [TestMethod]
         public void SetPayloadTest3()
         {
-            var localKey = Key.Generate(new List<KeyUse>() {KeyUse.Exchange}, null);
-            var remoteKey =Key.Generate(new List<KeyUse>() {KeyUse.Exchange}, null).PublicCopy();
+            var localKey = Key.Generate(new List<KeyCapability>() {KeyCapability.Exchange}, null);
+            var remoteKey =Key.Generate(new List<KeyCapability>() {KeyCapability.Exchange}, null).PublicCopy();
             var message = new Message(Commons.AudienceIdentity.SubjectId, Commons.IssuerIdentity.SubjectId, 100L);
             message.SetPayload(Encoding.UTF8.GetBytes(Commons.Payload), localKey, remoteKey);
             Assert.AreNotEqual(Commons.Payload, Encoding.UTF8.GetString(message.GetPayload()));
@@ -283,8 +283,8 @@ namespace DiME_test
         [TestMethod]
         public void SetPayloadTest4()
         {
-            var issuerKey = Key.Generate(new List<KeyUse>() {KeyUse.Exchange}, null);
-            var audienceKey = Key.Generate(new List<KeyUse>() {KeyUse.Exchange}, null);
+            var issuerKey = Key.Generate(new List<KeyCapability>() {KeyCapability.Exchange}, null);
+            var audienceKey = Key.Generate(new List<KeyCapability>() {KeyCapability.Exchange}, null);
             var message = new Message(Commons.AudienceIdentity.SubjectId, Commons.IssuerIdentity.SubjectId, 100L)
             {
                 KeyId = issuerKey.UniqueId,
@@ -299,8 +299,8 @@ namespace DiME_test
         [TestMethod]
         public void SetPayloadTest5()
         {
-            var issuerKey = Key.Generate(new List<KeyUse>() {KeyUse.Exchange}, null);
-            var audienceKey = Key.Generate(new List<KeyUse>() {KeyUse.Exchange}, null);
+            var issuerKey = Key.Generate(new List<KeyCapability>() {KeyCapability.Exchange}, null);
+            var audienceKey = Key.Generate(new List<KeyCapability>() {KeyCapability.Exchange}, null);
             var message1 = new Message(Commons.AudienceIdentity.SubjectId, Commons.IssuerIdentity.SubjectId, 100L);
             message1.SetPayload(Encoding.UTF8.GetBytes(Commons.Payload), issuerKey, audienceKey.PublicCopy());
             message1.Sign(Commons.IssuerKey);
@@ -311,7 +311,7 @@ namespace DiME_test
         [TestMethod]
         public void SetPayloadTest6()
         {
-            var key = Key.Generate(new List<KeyUse>() {KeyUse.Sign}, null);
+            var key = Key.Generate(new List<KeyCapability>() {KeyCapability.Sign}, null);
             var message = new Message(Commons.AudienceIdentity.SubjectId, Commons.IssuerIdentity.SubjectId, 100L);
             try {
                 message.SetPayload(Encoding.UTF8.GetBytes(Commons.Payload), key, key);
@@ -346,7 +346,7 @@ namespace DiME_test
             Dime.TrustedIdentity = Commons.TrustedIdentity;
             var message = new Message(Commons.AudienceIdentity.SubjectId, Commons.IssuerIdentity.SubjectId, 100L);
             message.SetPayload(Encoding.UTF8.GetBytes(Commons.Payload));
-            message.AddItemLink(Key.Generate(new List<KeyUse>() {KeyUse.Exchange}, null));
+            message.AddItemLink(Key.Generate(new List<KeyCapability>() {KeyCapability.Exchange}, null));
             message.Sign(Commons.IssuerKey);
             try {
                 message.Verify(Commons.IssuerKey, new List<Item>() { Commons.IssuerKey });
@@ -362,7 +362,7 @@ namespace DiME_test
             message.SetPayload(Encoding.UTF8.GetBytes(Commons.Payload));
             message.Sign(Commons.IssuerKey);
             try {
-                message.LinkItem(Key.Generate(new List<KeyUse>() {KeyUse.Exchange}, null));
+                message.LinkItem(Key.Generate(new List<KeyCapability>() {KeyCapability.Exchange}, null));
             } catch (InvalidOperationException) { return; } // All is well
             Assert.IsTrue(false, "Should not happen.");
         }
@@ -442,7 +442,7 @@ namespace DiME_test
             // Client generate a response (to be sent to the server) //
             var response = new Message(Guid.NewGuid());
             response.SetPayload(Encoding.UTF8.GetBytes(text), serverKey.PublicCopy(), clientKey);
-            response.Sign(Key.Generate(new List<KeyUse>() {KeyUse.Sign}, null));
+            response.Sign(Key.Generate(new List<KeyCapability>() {KeyCapability.Sign}, null));
             var exported = response.Export();
             // This would really happen on the server side //
             var received = Item.Import<Message>(exported);

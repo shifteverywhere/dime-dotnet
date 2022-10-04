@@ -21,7 +21,7 @@ namespace DiME_test
         [TestMethod]
         public void GenerateSignatureTest1()
         {
-            var key = Key.Generate(new List<KeyUse>() { KeyUse.Sign }, null);
+            var key = Key.Generate(new List<KeyCapability>() { KeyCapability.Sign }, null);
             var sig = Dime.Crypto.GenerateSignature(Commons.Payload, key);
             Dime.Crypto.VerifySignature(Commons.Payload, sig, key);
         }
@@ -38,12 +38,12 @@ namespace DiME_test
         [TestMethod]
         public void GenerateGenerateSharedSecretTest1() 
         {
-            var clientKey = Key.Generate(new List<KeyUse>() { KeyUse.Exchange }, null);
-            var serverKey = Key.Generate(new List<KeyUse>() { KeyUse.Exchange }, null);
-            var shared1 = clientKey.GenerateSharedSecret(serverKey.PublicCopy(), new List<KeyUse>() {KeyUse.Encrypt});
-            var shared2 = clientKey.PublicCopy().GenerateSharedSecret(serverKey, new List<KeyUse>() {KeyUse.Encrypt});
-            Assert.IsTrue(shared1.HasUse(KeyUse.Encrypt));
-            Assert.IsTrue(shared2.HasUse(KeyUse.Encrypt));
+            var clientKey = Key.Generate(new List<KeyCapability>() { KeyCapability.Exchange }, null);
+            var serverKey = Key.Generate(new List<KeyCapability>() { KeyCapability.Exchange }, null);
+            var shared1 = clientKey.GenerateSharedSecret(serverKey.PublicCopy(), new List<KeyCapability>() {KeyCapability.Encrypt});
+            var shared2 = clientKey.PublicCopy().GenerateSharedSecret(serverKey, new List<KeyCapability>() {KeyCapability.Encrypt});
+            Assert.IsTrue(shared1.HasCapability(KeyCapability.Encrypt));
+            Assert.IsTrue(shared2.HasCapability(KeyCapability.Encrypt));
             Assert.AreEqual(shared1.Secret, shared2.Secret);
         }
 
@@ -55,7 +55,7 @@ namespace DiME_test
             const string encodedShared = "STN.2bLW8dmYQr4jrLSKiTLggLU1cbVMkmK1uUChchxYzAMC9fshCG";
             var clientKey = Item.Import<Key>(encodedClient);
             var serverKey = Item.Import<Key>(encodedServer);
-            var shared = clientKey.GenerateSharedSecret(serverKey, new List<KeyUse>() {KeyUse.Encrypt});
+            var shared = clientKey.GenerateSharedSecret(serverKey, new List<KeyCapability>() {KeyCapability.Encrypt});
             Assert.AreEqual(encodedShared, shared.Secret);
         }
 
@@ -67,14 +67,14 @@ namespace DiME_test
             const string encodedShared = "STN.2bLW8dmYQr4jrLSKiTLggLU1cbVMkmK1uUChchxYzAMC9fshCG";
             var clientKey = Item.Import<Key>(encodedClient);
             var serverKey = Item.Import<Key>(encodedServer);
-            var shared = clientKey.GenerateSharedSecret(serverKey, new List<KeyUse>() {KeyUse.Encrypt});
+            var shared = clientKey.GenerateSharedSecret(serverKey, new List<KeyCapability>() {KeyCapability.Encrypt});
             Assert.AreEqual(encodedShared, shared.Secret);
         }
 
         [TestMethod]
         public void EncryptTest1() 
         {
-            var key = Key.Generate(new List<KeyUse>() {KeyUse.Encrypt}, null);
+            var key = Key.Generate(new List<KeyCapability>() {KeyCapability.Encrypt}, null);
             var cipherText = Dime.Crypto.Encrypt(Encoding.UTF8.GetBytes(Commons.Payload), key);
             Assert.IsNotNull(cipherText);
             var plainText = Dime.Crypto.Decrypt(cipherText, key);
@@ -120,8 +120,8 @@ namespace DiME_test
         {
             var clientKey = Item.Import<Key>("Di:KEY.eyJ1aWQiOiIzOWYxMzkzMC0yYTJhLTQzOWEtYjBkNC1lMzJkMzc4ZDgyYzciLCJwdWIiOiIyREJWdG5NWlVjb0dZdHd3dmtjYnZBSzZ0Um1zOUZwNGJ4dHBlcWdha041akRVYkxvOXdueWRCUG8iLCJpYXQiOiIyMDIyLTA2LTAzVDEwOjUzOjM0LjQ0NDA0MVoiLCJrZXkiOiIyREJWdDhWOEF4UWR4UFZVRkJKOWdScFA1WDQzNnhMbVBrWW9RNzE1cTFRd2ZFVml1NFM3RExza20ifQ");
             var serverKey = Item.Import<Key>("Di:KEY.eyJ1aWQiOiJjY2U1ZDU1Yi01NDI4LTRhMDUtOTZmYi1jZmU4ZTE4YmM3NWIiLCJwdWIiOiIyREJWdG5NYTZrcjNWbWNOcXNMSmRQMW90ZGtUMXlIMTZlMjV0QlJiY3pNaDFlc3J3a2hqYTdaWlEiLCJpYXQiOiIyMDIyLTA2LTAzVDEwOjUzOjM0Ljg0NjEyMVoiLCJrZXkiOiIyREJWdDhWOTV5N2lvb1A0bmRDajd6d3dqNW1MVExydVhaaGg0RTJuMUE0SHoxQkIycHB5WXY1blIifQ");
-            var shared1 = Dime.Crypto.GenerateSharedSecret(clientKey, serverKey.PublicCopy(), new List<KeyUse>() {KeyUse.Encrypt});
-            var shared2 = Dime.Crypto.GenerateSharedSecret(clientKey.PublicCopy(), serverKey, new List<KeyUse>() {KeyUse.Encrypt});
+            var shared1 = Dime.Crypto.GenerateSharedSecret(clientKey, serverKey.PublicCopy(), new List<KeyCapability>() {KeyCapability.Encrypt});
+            var shared2 = Dime.Crypto.GenerateSharedSecret(clientKey.PublicCopy(), serverKey, new List<KeyCapability>() {KeyCapability.Encrypt});
             var hash1 = Utility.ToHex(shared1);
             var hash2 = Utility.ToHex(shared2);
             Assert.AreEqual("8c0c2c98d5839bc59a61fa0bea987aea6f058c08c214ab65d1a87e2a7913cea9", hash1);

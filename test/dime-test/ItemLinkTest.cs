@@ -20,7 +20,7 @@ public class ItemLinkTest
 {
     [TestMethod]
     public void ItemLinkTest1() {
-        var key = Key.Generate(new List<KeyUse>() {KeyUse.Sign}, null);
+        var key = Key.Generate(new List<KeyCapability>() {KeyCapability.Sign}, null);
         var link = new ItemLink(key);
         Assert.IsNotNull(link);
         Assert.AreEqual(key.Identifier, link.ItemIdentifier);
@@ -32,7 +32,7 @@ public class ItemLinkTest
     
     [TestMethod]
     public void ItemLinkTest3() {
-        var key = Key.Generate(new List<KeyUse>() {KeyUse.Sign}, null);
+        var key = Key.Generate(new List<KeyCapability>() {KeyCapability.Sign}, null);
         var link = new ItemLink(Key.ItemIdentifier, key.Thumbprint(), key.UniqueId);
         Assert.IsNotNull(link);
         Assert.AreEqual(Key.ItemIdentifier, link.ItemIdentifier);
@@ -42,7 +42,7 @@ public class ItemLinkTest
 
     [TestMethod]
     public void ItemLinkTest4() {
-        var key = Key.Generate(new List<KeyUse>() {KeyUse.Sign}, null);
+        var key = Key.Generate(new List<KeyCapability>() {KeyCapability.Sign}, null);
         try {
             _ = new ItemLink("", key.Thumbprint(), key.UniqueId);
             Assert.IsTrue(false, "Exception not thrown.");
@@ -157,9 +157,9 @@ public class ItemLinkTest
 
     [TestMethod]
     public void FromEncodedListTest1() {
-        var lnk1 = new ItemLink(Key.Generate(new List<KeyUse>() { KeyUse.Sign }, null)).ToEncoded();
-        var lnk2 = new ItemLink(Key.Generate(new List<KeyUse>() { KeyUse.Exchange }, null)).ToEncoded();
-        var lnk3 = new ItemLink(Key.Generate(new List<KeyUse>() { KeyUse.Encrypt }, null)).ToEncoded();
+        var lnk1 = new ItemLink(Key.Generate(new List<KeyCapability>() { KeyCapability.Sign }, null)).ToEncoded();
+        var lnk2 = new ItemLink(Key.Generate(new List<KeyCapability>() { KeyCapability.Exchange }, null)).ToEncoded();
+        var lnk3 = new ItemLink(Key.Generate(new List<KeyCapability>() { KeyCapability.Encrypt }, null)).ToEncoded();
         var links = ItemLink.FromEncodedList($"{lnk1}:{lnk2}:{lnk3}");
         Assert.IsNotNull(links);
         Assert.AreEqual(3, links.Count);
