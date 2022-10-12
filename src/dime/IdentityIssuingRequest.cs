@@ -95,7 +95,7 @@ namespace DiME
         /// <exception cref="ArgumentNullException"></exception>
         public static IdentityIssuingRequest Generate(Key key, List<IdentityCapability> capabilities = null, Dictionary<string, object> principles = null) 
         {
-            if (key.Type != KeyType.Identity) { throw new ArgumentException("Key of invalid type.", nameof(key)); }
+            if (!key.HasCapability(KeyCapability.Sign)) { throw new ArgumentException("Key missing required 'sign' capability.", nameof(key)); }
             if (key.Secret == null) { throw new ArgumentNullException(nameof(key), "Private key must not be null"); }
             var iir = new IdentityIssuingRequest();
             var claims = iir.Claims();
@@ -110,6 +110,7 @@ namespace DiME
             claims.Put(Claim.Cap, capabilitiesToSet.ConvertAll(obj => obj.ToString().ToLower()));
             if (principles is not null && principles.Count > 0)
                 claims.Put(Claim.Pri, principles);
+            iir.IsLegacy = key.IsLegacy;
             iir.Sign(key);
             return iir;
         }
@@ -257,6 +258,7 @@ namespace DiME
                     identity.TrustChain = issuerIdentity;    
                 }
             }
+            identity.IsLegacy = IsLegacy;
             identity.Sign(issuerKey);
             return identity;
         }

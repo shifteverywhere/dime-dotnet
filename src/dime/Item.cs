@@ -58,7 +58,7 @@ namespace DiME
         /// <summary>
         /// Returns if the item is marked as legacy (compatible with Dime format before official version 1). 
         /// </summary>
-        public bool IsLegacy { get; protected set; } = false;
+        public virtual bool IsLegacy { get; internal set; } = false;
         
         /// <summary>
         /// Will import an item from a Dime encoded string.Dime envelopes cannot be imported using this method, for

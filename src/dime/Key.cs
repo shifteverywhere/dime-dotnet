@@ -31,7 +31,6 @@ namespace DiME
         /// Returns the tag of the Di:ME item.
         /// </summary>
         public override string Identifier => ItemIdentifier;
-
         /// <summary>
         /// Returns the version of the Di:ME specification for which this key was generated.
         /// </summary>
@@ -70,25 +69,19 @@ namespace DiME
                 return (KeyType) _type;
             }
         }
-
-         /// <summary>
-         /// The cryptographic suite used to generate they key.
-         /// </summary>
-         public string CryptoSuiteName
-         {
-             get
-             {
-                 if (_suiteName is null)
-                 {
-                     if (KeyBytes(Claim.Key) is null)
-                     {
-                         KeyBytes(Claim.Pub);
-                     }
-                 }
-                 return _suiteName;
-             }
-         }
-         
+        /// <summary>
+        /// The cryptographic suite used to generate they key.
+        /// </summary>
+        public string CryptoSuiteName
+        {
+            get
+            {
+                if (_suiteName is not null) return _suiteName;
+                if (KeyBytes(Claim.Key) is null)
+                    KeyBytes(Claim.Pub);
+                return _suiteName;
+            }
+        }
         /// <summary>
         /// The secret part of the key. This part should never be stored or transmitted in plain text.
         /// </summary>
@@ -97,7 +90,6 @@ namespace DiME
         /// The public part of the key. This part may be stored or transmitted in plain text.
         /// </summary>
         public string Public => Claims().Get<string>(Claim.Pub);
-
         /// <summary>
         /// Returns the raw byte array of the requested key. Valid claims to request are Claim.KEY and Claim.PUB.
         /// </summary>
@@ -120,7 +112,6 @@ namespace DiME
             }
             throw new ArgumentException($"Invalid claim for key provided: {claim}.");
         }
-
         /// <summary>
         /// A list of cryptographic uses that the key may perform.
         /// </summary>
@@ -147,6 +138,18 @@ namespace DiME
                 }
                 return _capabilities;
             }
+        }
+
+        public override bool IsLegacy
+        {
+            get
+            {
+                // Get the keys (if needed) to check if this is legacy
+                KeyBytes(Claim.Pub);
+                KeyBytes(Claim.Key);
+                return base.IsLegacy;
+            }
+            internal set => base.IsLegacy = value;
         }
 
         /// <summary>
@@ -191,14 +194,24 @@ namespace DiME
         }
 
         /// <summary>
-        /// Will generate a new Key for a specific cryptographic usage and attach a specified context.
+        /// Will generate a new Key for a specific cryptographic capability.
         /// </summary>
-        /// <param name="capabilities">The use of the key.</param>
+        /// <param name="capability">The capability of the key.</param>
+        /// <returns>A newly generated key.</returns>
+        public static Key Generate(KeyCapability capability)
+        {
+            return Generate(new List<KeyCapability>() { capability }, Dime.NoExpiration, null, null);
+        }
+        
+        /// <summary>
+        /// Will generate a new Key for a specific cryptographic capabilities and attach a specified context.
+        /// </summary>
+        /// <param name="capabilities">The capabilities of the key.</param>
         /// <param name="context">The context to attach to the key, may be null.</param>
         /// <returns>A newly generated key.</returns>
         public static Key Generate(List<KeyCapability> capabilities, string context = null)
         {
-            return Key.Generate(capabilities, Dime.NoExpiration, null, context);
+            return Generate(capabilities, Dime.NoExpiration, null, context);
         }
 
         /// <summary>
@@ -261,7 +274,15 @@ namespace DiME
             var sharedKey = Dime.Crypto.GenerateSharedSecret(this, key, capabilities);
             return new Key(Guid.NewGuid(), capabilities, sharedKey, null, _suiteName);
         }
-        
+
+        public override void ConvertToLegacy()
+        {
+            if (IsLegacy) return;
+            ConvertKeyToLegacy(this, Capabilities[0], Claim.Key);
+            ConvertKeyToLegacy(this, Capabilities[0], Claim.Pub);
+            base.ConvertToLegacy();
+        }
+
         #endregion
 
         #region -- INTERNAL --
