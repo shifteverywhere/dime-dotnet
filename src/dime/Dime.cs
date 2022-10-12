@@ -20,11 +20,11 @@ public abstract class Dime
     /// <summary>
     ///  Manager of cryptographic suites and operations. May be used to add additional cryptographic suits in run-time.
     /// </summary>
-    public static readonly Crypto Crypto = new Crypto();
+    public static readonly Crypto Crypto = new();
     /// <summary>
     /// The maximum length that the context claim may hold.
     /// </summary>
-    public const int MaxContextLength = 84;
+    public const int MaxContextLength = 84; 
     /// <summary>
     /// The current version of the implemented Di:ME specification.
     /// </summary>
@@ -57,15 +57,37 @@ public abstract class Dime
     {
         get
         {
-            lock(Lock) 
+            lock(TrustLock) 
                 return _trustedIdentity;
         }
         set
         {
-            lock(Lock)
+            lock(TrustLock)
                 _trustedIdentity = value;
         }
     }
+
+    /// <summary>
+    /// Sets/gets the global modifier, in seconds, for all captured timestamps. This may be used in clients with a
+    /// calculated time different from a server, or network base time. This may be either a positive, or negative
+    /// number, setting 0 will turn time modification off. Generally it is more recommended that all entities in a
+    /// network have synced their local time with a common time-server. Servers, with multiple clients, should not use
+    /// this.
+    /// </summary>
+    public static long TimeModifier
+    {
+        get
+        {
+            lock (TimeLock)
+                return _timeModifier;
+        }
+        set
+        {
+            lock (TimeLock)
+                _timeModifier = value;
+        }
+    }
+    
     
     #endregion
 
@@ -78,9 +100,11 @@ public abstract class Dime
 
     #region -- PRIVATE --
 
-    private static readonly object Lock = new();
+    private static readonly object TrustLock = new();
+    private static readonly object TimeLock = new();
     private static Identity _trustedIdentity;
-    
+    private static long _timeModifier;
+
     #endregion
-    
+
 }

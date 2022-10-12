@@ -1,7 +1,8 @@
 //
 //  Utility.cs
-//  Di:ME - Digital Identity Message Envelope
-//  A secure and compact messaging format for assertion and practical use of digital identities
+//  DiME - Date Integrity Message Envelope
+//  A powerful universal data format that is built for secure, and integrity protected communication between trusted
+//  entities in a network.
 //
 //  Released under the MIT licence, see LICENSE for more information.
 //  Copyright © 2022 Shift Everywhere AB. All rights reserved.
@@ -161,7 +162,19 @@ public static class Utility
         bytes[0] = prefix;
         return bytes;
     }
-        
+
+    /// <summary>
+    /// Create a DateTime instance that, if the global time modifier is set, will modify the time accordingly.
+    /// If no modifier is set, then the current local time, in UTC, will be captured.
+    /// </summary>
+    /// <returns></returns>
+    public static DateTime CreateDateTime()
+    {
+        var now = DateTime.UtcNow;
+        var modifier = Dime.TimeModifier;
+        return modifier != 0L ? now.AddSeconds(modifier) : now;
+    }
+    
     /// <summary>
     /// Format as a RFC 3339 date.
     /// </summary>

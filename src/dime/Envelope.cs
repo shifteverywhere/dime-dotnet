@@ -73,7 +73,7 @@ namespace DiME
             _items = new List<Item>();
             var claims = Claims();
             claims.Put(Claim.Iss, issuerId);
-            claims.Put(Claim.Iat, Utility.ToTimestamp(DateTime.UtcNow));
+            claims.Put(Claim.Iat, Utility.ToTimestamp(Utility.CreateDateTime()));
             if (context is not null)
                 claims.Put(Claim.Ctx, context);
         }

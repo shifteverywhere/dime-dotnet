@@ -272,7 +272,7 @@ namespace DiME
             var claims = Claims();
             claims.Put(Claim.Cap, capabilities.ConvertAll(keyUse => keyUse.ToString().ToLower()));
             claims.Put(Claim.Uid, id);
-            claims.Put(Claim.Iat, DateTime.UtcNow);
+            claims.Put(Claim.Iat, Utility.CreateDateTime());
             if (key is not null)
                 claims.Put(Claim.Key, EncodedKey(_suiteName, key));
             if (pub is not null)

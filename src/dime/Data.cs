@@ -1,6 +1,6 @@
 //
 //  Data.cs
-//  DiME - Data Identity Message Envelope
+//  DiME - Data Integrity Message Envelope
 //  A powerful universal data format that is built for secure, and integrity protected communication between trusted
 //  entities in a network.
 //
@@ -53,7 +53,7 @@ public class Data: Item
         var claims = Claims();
         claims.Put(Claim.Uid, Guid.NewGuid());
         claims.Put(Claim.Iss, issuerId);
-        var iat = DateTime.UtcNow;
+        var iat = Utility.CreateDateTime();
         claims.Put(Claim.Iat, iat);
         DateTime? exp = validFor != Dime.NoExpiration ? iat.AddSeconds(validFor) : null;
         claims.Put(Claim.Exp, exp);
@@ -105,7 +105,7 @@ public class Data: Item
         if (string.IsNullOrEmpty(Payload)) 
             throw new InvalidOperationException("Unable to verify message, no payload added.");
         // Verify IssuedAt and ExpiresAt
-        var now = DateTime.UtcNow;
+        var now = Utility.CreateDateTime();
         if (IssuedAt > now) 
             throw new DateExpirationException("Issuing date in the future.");
         if (ExpiresAt != null) {

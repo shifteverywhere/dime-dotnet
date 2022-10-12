@@ -284,7 +284,7 @@ namespace DiME
         {
             if (_claims is null && Components is not null)
                 return Components.Count >= MinimumNbrComponents;
-            return _claims is not null && _claims.size() > 0;
+            return _claims is not null && _claims.Size() > 0;
         }
 
         /// <summary>

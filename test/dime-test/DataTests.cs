@@ -1,6 +1,6 @@
 //
 //  MessageTests.cs
-//  DiME - Data Identity Message Envelope
+//  DiME - Data Integrity Message Envelope
 //  A powerful universal data format that is built for secure, and integrity protected communication between trusted
 //  entities in a network.
 //

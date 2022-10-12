@@ -100,7 +100,7 @@ namespace DiME
             var iir = new IdentityIssuingRequest();
             var claims = iir.Claims();
             claims.Put(Claim.Uid, Guid.NewGuid());
-            claims.Put(Claim.Iat, DateTime.UtcNow);
+            claims.Put(Claim.Iat, Utility.CreateDateTime());
             claims.Put(Claim.Pub, key.Public);
             var capabilitiesToSet = capabilities;
             if (capabilitiesToSet == null || capabilitiesToSet.Count == 0) 
@@ -134,7 +134,7 @@ namespace DiME
         /// <exception cref="DateExpirationException">If the IIR was issued in the future (according to the issued at date).</exception>
         public override void Verify(Key key)
         {
-            if (DateTime.UtcNow < IssuedAt) { throw new DateExpirationException("An identity issuing request cannot have an issued at date in the future."); }
+            if (Utility.CreateDateTime() < IssuedAt) { throw new DateExpirationException("An identity issuing request cannot have an issued at date in the future."); }
             base.Verify(key);
         }
 
@@ -234,7 +234,7 @@ namespace DiME
             CompleteCapabilities(allowedCapabilities, requiredCapabilities, isSelfSign);
             if (!isSelfSign && !issuerIdentity.HasCapability(IdentityCapability.Issue))
                 throw new IdentityCapabilityException("Issuing identity missing 'issue' capability.");
-            var now = DateTime.UtcNow;
+            var now = Utility.CreateDateTime();
             var expires = now.AddSeconds(validFor);
             var issuerId = issuerIdentity?.SubjectId ?? subjectId;
             var identity = new Identity(systemName, 

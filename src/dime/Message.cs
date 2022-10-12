@@ -91,7 +91,7 @@ namespace DiME
         public Message(Guid? audienceId, Guid issuerId, long validFor = Dime.NoExpiration, string? context = null)
         {
             if (context is {Length: > Dime.MaxContextLength}) { throw new ArgumentException("Context must not be longer than " + Dime.MaxContextLength + "."); }
-            var iat = DateTime.UtcNow;
+            var iat = Utility.CreateDateTime();
             DateTime? exp = validFor != -1 ? iat.AddSeconds(validFor) : null;
             var claims = Claims();
             claims.Put(Claim.Uid, Guid.NewGuid());

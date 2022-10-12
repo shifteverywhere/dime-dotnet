@@ -45,7 +45,7 @@ public class ClaimsMap
         return JsonSerializer.Serialize(_claims);
     }
 
-    internal int size()
+    internal int Size()
     {
         return _claims!.Count;
     }
