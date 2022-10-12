@@ -331,7 +331,7 @@ public class Key: Item
             legacyKey[3] = 0x01;
         else if (capability == KeyCapability.Encrypt)
             legacyKey[3] = 0x02;
-        item.Claims().Put(claim, Base58.Encode(legacyKey, null));
+        item.Claims().Put(claim, Base58.Encode(legacyKey));
     }
         
     #endregion
@@ -384,7 +384,7 @@ public class Key: Item
         
     private static string EncodedKey(string suiteName, byte[] rawKey)
     {
-        return $"{suiteName}{Dime.ComponentDelimiter}{Base58.Encode(rawKey, null)}";
+        return $"{suiteName}{Dime.ComponentDelimiter}{Base58.Encode(rawKey)}";
     }
         
     private void DecodeKey(string encoded, Claim claim)

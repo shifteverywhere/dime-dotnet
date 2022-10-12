@@ -121,7 +121,7 @@ public class ClaimsMap
             case null:
                 return;
             case byte[] bytes:
-                _claims![ClaimToString(claim)] = Base58.Encode(bytes, null);
+                _claims![ClaimToString(claim)] = Base58.Encode(bytes);
                 break;
             default:
                 _claims![ClaimToString(claim)] = value;

@@ -30,22 +30,15 @@ public static class Base58
 	///<param name="data">The main byte array to encode.</param>
 	///<param name="prefix">A byte array that will be added to the front of data before encoding.</param>
 	///<returns>Base 58 encoded string</returns>
-	public static string Encode(byte[] data, byte[] prefix) {
+	public static string Encode(byte[] data) {
 		if (data is not {Length: > 0}) return null;
-		var length = prefix != null ? prefix.Length + data.Length : data.Length;
+		var length = data.Length;
 		var bytes = new byte[length + NbrChecksumBytes];
-		if (prefix != null) {
-			Buffer.BlockCopy(prefix, 0, bytes, 0, prefix.Length);
-			Buffer.BlockCopy(data, 0, bytes, prefix.Length, data.Length);
-		} else {
-			Buffer.BlockCopy(data, 0, bytes, 0, data.Length);
-		}
-
+		Buffer.BlockCopy(data, 0, bytes, 0, data.Length);
 		var checksum = DoubleHash(bytes, length);
 		Buffer.BlockCopy(checksum, 0, bytes, length, NbrChecksumBytes);
 		// Count leading zeros, to know where to start
 		var start = bytes.TakeWhile(aByte => aByte == 0).Count();
-
 		var builder = new StringBuilder();
 		for(var index = start; index < bytes.Length;) {
 			builder.Insert(0, IndexTable[CalculateIndex(bytes, index, 256, 58)]);
