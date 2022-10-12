@@ -8,7 +8,6 @@
 //  Copyright © 2022 Shift Everywhere AB. All rights reserved.
 //
 using System;
-using System.Linq;
 using System.Text;
 using System.Security.Cryptography;
 using System.Xml;
