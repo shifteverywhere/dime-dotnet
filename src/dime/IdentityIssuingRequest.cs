@@ -135,7 +135,8 @@ namespace DiME
         /// <exception cref="DateExpirationException">If the IIR was issued in the future (according to the issued at date).</exception>
         public override void Verify(Key key)
         {
-            if (Utility.CreateDateTime() < IssuedAt) { throw new DateExpirationException("An identity issuing request cannot have an issued at date in the future."); }
+            if (Utility.GracefulDateTimeCompare(IssuedAt, Utility.CreateDateTime()) > 0)
+                throw new DateExpirationException("An identity issuing request cannot have an issued at date in the future.");
             base.Verify(key);
         }
 

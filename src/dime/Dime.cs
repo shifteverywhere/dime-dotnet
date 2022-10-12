@@ -7,6 +7,9 @@
 //  Released under the MIT licence, see LICENSE for more information.
 //  Copyright © 2022 Shift Everywhere AB. All rights reserved.
 //
+
+using System;
+
 namespace DiME;
 
 /**
@@ -66,9 +69,26 @@ public abstract class Dime
                 _trustedIdentity = value;
         }
     }
-
     /// <summary>
-    /// Sets/gets the global modifier, in seconds, for all captured timestamps. This may be used in clients with a
+    /// Gets/sets the grace period, in seconds, that is used to allow for a grace period when comparing and validating dates
+    /// (issued at and expires at). A value of 2 will allow a grace margin of +/-2 seconds, given a total window of 4
+    /// seconds.
+    /// </summary>
+    public static long GracePeriod
+    {
+        get
+        {
+            lock (TimeLock)
+                return _gracePeriod;
+        }
+        set
+        {
+            lock (TimeLock)
+                _gracePeriod = Math.Abs(value);
+        }
+    }
+    /// <summary>
+    /// Gets/sets the global modifier, in seconds, for all captured timestamps. This may be used in clients with a
     /// calculated time different from a server, or network base time. This may be either a positive, or negative
     /// number, setting 0 will turn time modification off. Generally it is more recommended that all entities in a
     /// network have synced their local time with a common time-server. Servers, with multiple clients, should not use
@@ -103,6 +123,7 @@ public abstract class Dime
     private static readonly object TrustLock = new();
     private static readonly object TimeLock = new();
     private static Identity _trustedIdentity;
+    private static long _gracePeriod;
     private static long _timeModifier;
 
     #endregion

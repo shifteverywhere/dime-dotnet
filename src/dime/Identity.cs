@@ -171,9 +171,12 @@ public class Identity: Item
         if (trustedIdentity == null) { throw new ArgumentNullException(nameof(trustedIdentity),"Unable to verify trust, provided trusted identity must not be null."); }
         if (VerifyChain(trustedIdentity) == null) return false;
         var now = Utility.CreateDateTime();
-        if (IssuedAt > now) { throw new DateExpirationException("Identity is not yet valid, issued at date in the future."); }
-        if (IssuedAt > ExpiresAt) { throw new DateExpirationException("Invalid expiration date, expires at before issued at."); }
-        if (ExpiresAt < now) { throw new DateExpirationException("Identity has expired."); }
+        if (Utility.GracefulDateTimeCompare(IssuedAt, now) > 0)
+            throw new DateExpirationException("Identity is not yet valid, issued at date in the future.");
+        if (Utility.GracefulDateTimeCompare(IssuedAt, ExpiresAt) > 0)
+            throw new DateExpirationException("Invalid expiration date, expires at before issued at.");
+        if (Utility.GracefulDateTimeCompare(ExpiresAt, now) < 0)
+            throw new DateExpirationException("Identity has expired.");
         return true;
     }
         

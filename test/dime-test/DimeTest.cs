@@ -20,8 +20,8 @@ public class DimeTest
     [TestInitialize]
     public void BeforeAll()
     {
+        Dime.GracePeriod = 0L;
         Dime.TimeModifier = 0L;
-        Assert.AreEqual(0L, Dime.TimeModifier);
     }
     
     [TestMethod]
@@ -50,7 +50,7 @@ public class DimeTest
     }
 
     [TestMethod]
-    public void CreateTimestampTest1() {
+    public void CreateDateTimeTest1() {
         Dime.TimeModifier = 0L;
         var reference = DateTime.UtcNow;
         var timestamp = Utility.CreateDateTime();
@@ -59,7 +59,7 @@ public class DimeTest
     }
 
     [TestMethod]
-    public void CreateTimestampTest2() {
+    public void CreateDateTimeTest2() {
         var reference = DateTime.UtcNow;
         Dime.TimeModifier = 10L;
         var timestamp = Utility.CreateDateTime();
@@ -68,7 +68,7 @@ public class DimeTest
     }
 
     [TestMethod]
-    public void CreateTimestampTest3() {
+    public void CreateDateTimeTest3() {
         var reference = DateTime.UtcNow;
         Dime.TimeModifier = -10L;
         var timestamp = Utility.CreateDateTime();
@@ -77,7 +77,7 @@ public class DimeTest
     }
 
     [TestMethod]
-    public void CreateTimestampTest4() {
+    public void CreateDateTimeTest4() {
         var reference = DateTime.UtcNow.AddSeconds(-2L);
         Dime.TimeModifier = -2L;
         var timestamp = Utility.CreateDateTime();
@@ -85,7 +85,57 @@ public class DimeTest
         Assert.AreEqual(0L, duration.Seconds);
     }
 
-        // LEGACY TESTS //
+    [TestMethod]
+    public void GracefulDateTimeCompareTest1() 
+    {
+        Dime.GracePeriod = 2L;
+        var now = DateTime.UtcNow;
+        var remoteTimestamp1 = now.AddSeconds(-2L);
+        var result = Utility.GracefulDateTimeCompare(now, remoteTimestamp1);
+        Assert.AreEqual(0, result);
+        var remoteTimestamp2 = now.AddSeconds(2L);
+        result = Utility.GracefulDateTimeCompare(now, remoteTimestamp2);
+        Assert.AreEqual(0, result);
+    }
+
+    [TestMethod]
+    public void GracefulDateTimeCompareTest2() 
+    {
+        Dime.GracePeriod = 1L;
+        var now = DateTime.UtcNow;
+        var remoteTimestamp1 = now.AddSeconds(-2L);
+        var result = Utility.GracefulDateTimeCompare(Utility.CreateDateTime(), remoteTimestamp1);
+        Assert.AreEqual(1, result);
+        var remoteTimestamp2 = now.AddSeconds(2L);
+        result = Utility.GracefulDateTimeCompare(now, remoteTimestamp2);
+        Assert.AreEqual(-1, result);
+    }
+
+    [TestMethod]
+    public void GracefulDateTimeCompareTest3() 
+    {
+        Dime.GracePeriod = 2L;
+        var iat = DateTime.Parse("2022-01-01T23:43:34.8755323Z").ToUniversalTime();
+        var exp = DateTime.Parse("2022-01-01T23:43:32.8755323Z").ToUniversalTime();
+        var res = DateTime.Parse("2022-01-01T23:43:33.968000Z").ToUniversalTime();
+        var now = DateTime.Parse("2022-01-01T23:43:33.052000Z").ToUniversalTime();
+        Assert.IsTrue(Utility.GracefulDateTimeCompare(iat, now) <= 0); // checks so it passes
+        Assert.IsTrue(Utility.GracefulDateTimeCompare(res, now) <= 0); // checks so it passes
+        Assert.IsTrue(Utility.GracefulDateTimeCompare(exp, now) >= 0); // checks so it passes
+        // Issued at and expires at are created by same entity and should not be compared with grace period
+        Dime.GracePeriod = 0L;
+        Assert.IsTrue(Utility.GracefulDateTimeCompare(iat, exp) > 0); // check so it fails
+    }
+
+    [TestMethod]
+    public void GracefulDateTimeCompareTest4() 
+    {
+        Dime.GracePeriod = 1L;
+        Assert.AreEqual(0, Utility.GracefulDateTimeCompare(null, DateTime.UtcNow));
+        Assert.AreEqual(0, Utility.GracefulDateTimeCompare(DateTime.UtcNow, null));
+    }
+    
+    // LEGACY TESTS //
 
     private static readonly string _legacyTrustedIdentity = "Di:ID.eyJ1aWQiOiI0MDViZDZhOC0wM2JmLTRjNDctOWNiYS0xNmNhODM5OGI1YzgiLCJzdWIiOiIxZmNkNWY4OC00YTc1LTQ3OTktYmQ0OC0yNWI2ZWEwNjQwNTMiLCJjYXAiOlsiZ2VuZXJpYyIsImlzc3VlIiwic2VsZiJdLCJpc3MiOiIxZmNkNWY4OC00YTc1LTQ3OTktYmQ0OC0yNWI2ZWEwNjQwNTMiLCJzeXMiOiJkaW1lLWphdmEtcmVmIiwiZXhwIjoiMjAzMS0xMS0xOFQxMjoxMTowMi43NjEwMDdaIiwicHViIjoiMlREWGRvTnZaUldoVUZYemVQam5nanlpbVlMUXNFWVl3ekV6ZDJlNjJqeHdGNHJkdTQzdml4bURKIiwiaWF0IjoiMjAyMS0xMS0yMFQxMjoxMTowMi43NjEwMDdaIn0.KE3hbTLB7+BzzEeGSFyauy2PMgXBIYpGqRFZ2n+xQQsAOxC45xYgeFvILtqLeVYKA8T5lcQvZdyuiHBPVMpxBw";
 

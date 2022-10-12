@@ -106,12 +106,12 @@ public class Data: Item
             throw new InvalidOperationException("Unable to verify message, no payload added.");
         // Verify IssuedAt and ExpiresAt
         var now = Utility.CreateDateTime();
-        if (IssuedAt > now) 
-            throw new DateExpirationException("Issuing date in the future.");
-        if (ExpiresAt != null) {
-            if (IssuedAt > ExpiresAt) { throw new DateExpirationException("Expiration before issuing date."); }
-            if (ExpiresAt < now) { throw new DateExpirationException("Passed expiration date."); }
-        }
+        if (Utility.GracefulDateTimeCompare(IssuedAt, now) > 0)
+            throw new DateExpirationException("Item is not yet valid, issued at date in the future.");
+        if (Utility.GracefulDateTimeCompare(IssuedAt, ExpiresAt) > 0)
+            throw new DateExpirationException("Invalid expiration date, expires at before issued at.");
+        if (Utility.GracefulDateTimeCompare(ExpiresAt, now) < 0)
+            throw new DateExpirationException("Item has expired.");
         base.Verify(key);
         if (linkedItems == null || linkedItems.Count == 0) return;
         VerifyLinkedItems(linkedItems);

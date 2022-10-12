@@ -75,9 +75,7 @@ namespace DiME
             {
                 throw new FormatException("Multiple items found, import as 'Envelope' instead.");
             }
-
-            if (envelope.Items != null) return (T) envelope.Items.First();
-            throw new NullReferenceException("Unable to import item, unexpected error occurred.");
+            return (T) envelope.Items.First();
         }
 
         /// <summary>

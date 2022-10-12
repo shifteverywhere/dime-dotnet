@@ -11,6 +11,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Threading;
 using DiME;
 
 namespace DiME_test
@@ -168,8 +169,47 @@ namespace DiME_test
             message.SetPayload(Encoding.UTF8.GetBytes(Commons.Payload));
             message.Sign(Commons.IssuerKey);
             message.Verify(Commons.IssuerIdentity.PublicKey);
-        }
+        } 
+        
+        [TestMethod] 
+        public void VerifyTest5() 
+        {
+            Dime.TrustedIdentity = Commons.TrustedIdentity;
+            var message = new Message(Commons.AudienceIdentity.SubjectId, Commons.IssuerIdentity.SubjectId,1L);
+            message.SetPayload(Encoding.UTF8.GetBytes(Commons.Payload));
+            message.Sign(Commons.IssuerKey);
+            Thread.Sleep(1000);
+            try { message.Verify(Commons.IssuerIdentity.PublicKey); Assert.IsTrue(false, "Exception not thrown."); } catch (DateExpirationException) { /* all is well */ }
+            Dime.GracePeriod = 1L;
+            message.Verify(Commons.IssuerIdentity.PublicKey);
+            Dime.GracePeriod = 0L;
+    }
 
+
+    [TestMethod]
+    public void VerifyTest6() 
+    {
+        Dime.TrustedIdentity = Commons.TrustedIdentity;
+        var message = new Message(Commons.AudienceIdentity.SubjectId, Commons.IssuerIdentity.SubjectId,1L);
+        message.SetPayload(Encoding.UTF8.GetBytes(Commons.Payload));
+        message.Sign(Commons.IssuerKey);
+        Thread.Sleep(2000);
+        Dime.TimeModifier = -2L;
+        message.Verify(Commons.IssuerIdentity.PublicKey);
+    }
+
+    [TestMethod]
+    public void VerifyTest7() 
+    {
+        Dime.TimeModifier = -2;
+        Dime.TrustedIdentity = Commons.TrustedIdentity;
+        var message = new Message(Commons.AudienceIdentity.SubjectId, Commons.IssuerIdentity.SubjectId, 1L);
+        message.SetPayload(Encoding.UTF8.GetBytes(Commons.Payload));
+        message.Sign(Commons.IssuerKey);
+        Thread.Sleep(2000);
+        try { message.Verify(Commons.IssuerIdentity.PublicKey); Assert.IsTrue(false, "Exception not thrown."); } catch (DateExpirationException) { /* all is well */ }
+    }
+    
         [TestMethod]
         public void ImportTest1()
         {

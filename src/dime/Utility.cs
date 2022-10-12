@@ -193,6 +193,28 @@ public static class Utility
     public static DateTime FromTimestamp(string timestamp)  
     {
         return DateTime.Parse(timestamp).ToUniversalTime();
-    } 
+    }
+
+    /// <summary>
+    /// Will, if Dime.GracePeriod returns a value different from 0, compare two DateTime instances using a grace period.
+    /// A lower and upper boundary will be calculated from the base time given, the size of this period will be based on
+    /// the  grace period. The result given back will be equal to DateTime.CompareTo(DateTime).
+    /// If no grace is set (0), then the two Instant objects will be compared directly.
+    /// </summary>
+    /// <param name="baseTime">The base time to compare a second DateTime instance with.</param>
+    /// <param name="otherTime">The Instant instance to compare against the given base time.</param>
+    /// <returns>Negative if less, positive is greater, or 0 if the same or within the grace period.</returns>
+    public static int GracefulDateTimeCompare(DateTime? baseTime, DateTime? otherTime)
+    {
+        if (baseTime is null || otherTime is null) return 0;
+        long gracePeriod = Dime.GracePeriod;
+        if (gracePeriod == 0L)
+            return baseTime.Value.CompareTo(otherTime.Value);
+        var lower = baseTime.Value.AddSeconds(-gracePeriod);
+        var lowerResult = lower.CompareTo(otherTime);
+        var upper = baseTime.Value.AddSeconds(gracePeriod);
+        var upperResult = upper.CompareTo(otherTime);
+        return lowerResult == upperResult ? lowerResult : 0;
+    }
 
 }
