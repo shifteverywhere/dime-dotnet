@@ -69,11 +69,11 @@ public class DimeTest
 
     [TestMethod]
     public void CreateDateTimeTest3() {
-        var reference = DateTime.UtcNow;
+        var reference = Utility.CreateDateTime();
         Dime.TimeModifier = -10L;
         var timestamp = Utility.CreateDateTime();
-        var duration = timestamp - reference;
-        Assert.AreEqual(-10L, duration.Seconds);
+        var duration = reference - timestamp;
+        Assert.IsTrue(duration.Seconds >= 9L && duration.Seconds <= 10L);
     }
 
     [TestMethod]

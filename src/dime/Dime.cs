@@ -107,8 +107,14 @@ public abstract class Dime
                 _timeModifier = value;
         }
     }
-    
-    
+
+    /// <summary>
+    /// Overrides the internal time with a provided time. This time is used to verify any timestamps and overriding this
+    /// should be used carefully and never in a production environment. Set to null, to use current system time
+    /// (default).
+    /// </summary>
+    public static DateTime? OverrideTime { get; set; }
+
     #endregion
 
     #region -- INTERNAL --

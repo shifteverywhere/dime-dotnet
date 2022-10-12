@@ -169,7 +169,7 @@ public static class Utility
     /// <returns></returns>
     public static DateTime CreateDateTime()
     {
-        var now = DateTime.UtcNow;
+        var now =  Dime.OverrideTime ?? DateTime.UtcNow;
         var modifier = Dime.TimeModifier;
         return modifier != 0L ? now.AddSeconds(modifier) : now;
     }
