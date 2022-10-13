@@ -8,6 +8,7 @@
 //  Copyright © 2022 Shift Everywhere AB. All rights reserved.
 //
 using System;
+using System.Collections.Generic;
 using System.Text;
 using DiME;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -133,6 +134,29 @@ public class DimeTest
         Dime.GracePeriod = 1L;
         Assert.AreEqual(0, Utility.GracefulDateTimeCompare(null, DateTime.UtcNow));
         Assert.AreEqual(0, Utility.GracefulDateTimeCompare(DateTime.UtcNow, null));
+    }
+
+    [TestMethod]
+    public void JsonCanonicailzerTest1()
+    {
+        var key = Key.Generate(new List<KeyCapability>() {KeyCapability.Sign}, Dime.ValidFor1Minute, Commons.IssuerIdentity.SubjectId, Commons.Context);
+        var encoded = key.Export();
+        var claims = new List<string>() { Claim.Cap.ToString().ToLower(), 
+            Claim.Ctx.ToString().ToLower(), 
+            Claim.Exp.ToString().ToLower(), 
+            Claim.Iat.ToString().ToLower(), 
+            Claim.Iss.ToString().ToLower(), 
+            Claim.Key.ToString().ToLower(), 
+            Claim.Pub.ToString().ToLower(), 
+            Claim.Uid.ToString().ToLower() };
+        var jsonString = Encoding.UTF8.GetString(Utility.FromBase64(encoded.Split(".")[1]));
+        var previousIndex = 0;
+        foreach (var claim in claims)
+        {
+            var foundIndex = jsonString.IndexOf(claim, StringComparison.Ordinal);
+            Assert.IsTrue(previousIndex < foundIndex);
+            previousIndex = foundIndex;
+        }
     }
     
     // LEGACY TESTS //

@@ -13,6 +13,7 @@ using System;
 using System.Collections.Generic;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using jsoncanonicalizer;
 
 namespace DiME;
 
@@ -40,9 +41,12 @@ public class ClaimsMap
             throw new FormatException("Unable to parse claims of Dime item.");
     }
 
-    internal string ToJson()
+    internal string? ToJson()
     {
-        return JsonSerializer.Serialize(_claims);
+        if (_claims == null) return null;
+        var jsonString = JsonSerializer.Serialize(_claims);
+        var jsonCanonicalizer = new JsonCanonicalizer(jsonString);
+        return jsonCanonicalizer.GetEncodedString();
     }
 
     internal int Size()
