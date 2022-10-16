@@ -32,7 +32,7 @@ public class Envelope: Item
     /// <summary>
     /// The standard envelope header.
     /// </summary>
-    public const string Header = "Di";
+    public const string ItemHeader = "Di";
     /// <summary>
     /// The current version of the implemented Di:ME specification.
     /// </summary>
@@ -41,7 +41,7 @@ public class Envelope: Item
     /// <summary>
     /// Returns the tag of the Di:ME item.
     /// </summary>
-    public override string Identifier => Header;
+    public override string Header => ItemHeader;
     /// <summary>
     /// Returns any attached Di:ME items. This will be an array of Item instances and may be cast by looking at the
     /// tag of the item (getTag).
@@ -87,7 +87,7 @@ public class Envelope: Item
     /// <exception cref="FormatException"></exception>
     public static Envelope Import(string encoded)
     {
-        if (!encoded.StartsWith(Header)) { throw new FormatException("Not a Dime envelope object, invalid header."); }
+        if (!encoded.StartsWith(ItemHeader)) { throw new FormatException("Not a Dime envelope object, invalid header."); }
         var sections = encoded.Split(Dime.SectionDelimiter);
         // 0: ENVELOPE
         var array = sections[0].Split(Dime.ComponentDelimiter);
@@ -221,7 +221,7 @@ public class Envelope: Item
         if (Encoded is null)
         {
             var builder = new StringBuilder();
-            builder.Append(Envelope.Header);
+            builder.Append(ItemHeader);
             if (!IsAnonymous)
             {
                 builder.Append(Dime.ComponentDelimiter);

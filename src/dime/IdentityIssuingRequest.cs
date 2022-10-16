@@ -29,13 +29,13 @@ public class IdentityIssuingRequest: Item
     [Obsolete("Obsolete constant, use Dime.ValidFor1Year instead.")]
     public const long _VALID_FOR_1_YEAR = Dime.ValidFor1Year; 
     /// <summary>
-    /// A tag identifying the Di:ME item type, part of the header.
+    ///  The item header for DiME Identity Issuing Request items.
     /// </summary>
-    public const string ItemIdentifier = "IIR";
+    public const string ItemHeader = "IIR";
     /// <summary>
-    /// Returns the tag of the Di:ME item.
+    /// Returns the header of the DiME item.
     /// </summary>
-    public override string Identifier => ItemIdentifier;
+    public override string Header => ItemHeader;
     /// <summary>
     /// Returns the public key attached to the IIR. This is the public key attached by the entity and will get
     /// included in any issued identity. The equivalent secret (private) key was used to sign the IIR, thus the

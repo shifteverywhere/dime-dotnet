@@ -24,11 +24,11 @@ public abstract class Item
     #region -- PUBLIC --
 
     /// <summary>
-    /// Returns the type identifier of the DiME item. This can be used to identify the type of DiME object held in
+    /// Returns the header of the DiME item. This can be used to identify the type of DiME object held in
     /// this generic class. It is also used in the exported DiME format to indicate the beginning of a DiME item
     /// inside an envelope. Typically, this is represented by a short series of letters.
     /// </summary>
-    public abstract string Identifier { get; }
+    public abstract string Header { get; }
     /// <summary>
     /// Returns a unique identifier for the instance. This will be generated at instance creation.
     /// </summary>
@@ -320,7 +320,7 @@ public abstract class Item
         var array = encoded.Split(new[] { Dime.ComponentDelimiter });
         if (array.Length < GetMinNbrOfComponents())
             throw new FormatException($"Unexpected number of components for Dime item, expected at least {GetMinNbrOfComponents()}, got {array.Length}.");
-        if (!array[ComponentsIdentifierIndex].Equals(Identifier)) throw new FormatException($"Unexpected Dime item identifier, expected: {Identifier}, got {array[ComponentsClaimsIndex]}.");
+        if (!array[ComponentsIdentifierIndex].Equals(Header)) throw new FormatException($"Unexpected Dime item identifier, expected: {Header}, got {array[ComponentsClaimsIndex]}.");
         Components = new List<string>(array);
         CustomDecoding(Components);
         if (IsSigned)
@@ -367,7 +367,7 @@ public abstract class Item
     protected virtual void CustomEncoding(StringBuilder builder)
     {
         if (_claims is null) throw new FormatException("Unable to encode, item is missing claims.");
-        builder.Append(Identifier);
+        builder.Append(Header);
         builder.Append(Dime.ComponentDelimiter);
         if (ItemLinks is not null && ItemLinks.Count > 0)
             Claims().Put(Claim.Lnk, ItemLink.ToEncoded(ItemLinks));
@@ -397,12 +397,12 @@ public abstract class Item
     {
         return tag switch
         {
-            Identity.ItemIdentifier => typeof(Identity),
-            IdentityIssuingRequest.ItemIdentifier => typeof(IdentityIssuingRequest),
-            Message.ItemIdentifier => typeof(Message),
-            Key.ItemIdentifier => typeof(Key),
-            Tag.ItemIdentifier => typeof(Tag),
-            Data.ItemIdentifier => typeof(Data),
+            Identity.ItemHeader => typeof(Identity),
+            IdentityIssuingRequest.ItemHeader => typeof(IdentityIssuingRequest),
+            Message.ItemHeader => typeof(Message),
+            Key.ItemHeader => typeof(Key),
+            Tag.ItemHeader => typeof(Tag),
+            Data.ItemHeader => typeof(Data),
             _ => null
         };
     }

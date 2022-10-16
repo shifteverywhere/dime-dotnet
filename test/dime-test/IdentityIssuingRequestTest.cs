@@ -19,10 +19,11 @@ public class IdentityIssuingRequestTests
 {
 
     [TestMethod]
-    public void GetTagTest1()
+    public void GetHeaderTest1() 
     {
-        var iir = IdentityIssuingRequest.Generate(Key.Generate(new List<KeyCapability>() {KeyCapability.Sign}, null));
-        Assert.AreEqual("IIR", iir.Identifier);
+        var iir = new IdentityIssuingRequest();
+        Assert.AreEqual("IIR", iir.Header);
+        Assert.AreEqual("IIR", IdentityIssuingRequest.ItemHeader);
     }
 
     [TestMethod]
@@ -136,7 +137,7 @@ public class IdentityIssuingRequestTests
         var exported = iir.Export();
         Assert.IsNotNull(exported);
         Assert.IsTrue(exported.Length > 0);
-        Assert.IsTrue(exported.StartsWith($"{Envelope.Header}:{IdentityIssuingRequest.ItemIdentifier}"));
+        Assert.IsTrue(exported.StartsWith($"{Envelope.ItemHeader}:{IdentityIssuingRequest.ItemHeader}"));
         Assert.IsTrue(exported.Split(new[] {'.'}).Length == 3);
     }
 

@@ -20,9 +20,11 @@ public class KeyTests
 {
         
     [TestMethod]
-    public void GetTagTest1() {
-        var key = Key.Generate(new List<KeyCapability>() {KeyCapability.Sign}, null);
-        Assert.AreEqual("KEY", key.Identifier);
+    public void GetHeaderTest1()
+    {
+        var key = new Key();
+        Assert.AreEqual("KEY", key.Header);
+        Assert.AreEqual("KEY", Key.ItemHeader);
     }
         
     [TestMethod]
@@ -53,7 +55,7 @@ public class KeyTests
         var key = Key.Generate(new List<KeyCapability>() {KeyCapability.Exchange}, null);
         var encoded = key.Export();
         Assert.IsNotNull(encoded);
-        Assert.IsTrue(encoded.StartsWith($"{Envelope.Header}:{Key.ItemIdentifier}"));
+        Assert.IsTrue(encoded.StartsWith($"{Envelope.ItemHeader}:{Key.ItemHeader}"));
         Assert.IsTrue(encoded.Split(".").Length == 2);
     }
 

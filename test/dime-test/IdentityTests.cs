@@ -21,6 +21,14 @@ public class IdentityTests
 {
 
     [TestMethod]
+    public void GetHeaderTest1()
+    {
+        var identity = new Identity();
+        Assert.AreEqual("ID", identity.Header);
+        Assert.AreEqual("ID", Identity.ItemHeader);
+    }
+    
+    [TestMethod]
     public void IssueTest1()
     {
         Dime.TrustedIdentity = null;
@@ -255,7 +263,7 @@ public class IdentityTests
         var exported = identity.Export();
         Assert.IsNotNull(exported);
         Assert.IsTrue(exported.Length > 0);
-        Assert.IsTrue(exported.StartsWith($"{Envelope.Header}:{Identity.ItemIdentifier}"));
+        Assert.IsTrue(exported.StartsWith($"{Envelope.ItemHeader}:{Identity.ItemHeader}"));
         Assert.AreEqual(4, exported.Split(new[] { '.' }).Length);
     }
 

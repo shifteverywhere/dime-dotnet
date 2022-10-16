@@ -43,7 +43,7 @@ public sealed class ItemLink
     /// <param name="item">The Dime item to create the item link from.</param>
     public ItemLink(Item item)
     {
-        ItemIdentifier = item.Identifier;
+        ItemIdentifier = item.Header;
         Thumbprint = item.Thumbprint();
         UniqueId = item.UniqueId;
     }
@@ -104,7 +104,7 @@ public sealed class ItemLink
     public bool Verify(Item item)
     {
         return UniqueId.Equals(item.UniqueId) 
-               && ItemIdentifier.Equals(item.Identifier)
+               && ItemIdentifier.Equals(item.Header)
                && Thumbprint.Equals(item.Thumbprint());
     }
 
@@ -123,7 +123,7 @@ public sealed class ItemLink
             foreach (var link in links.Where(link => link.UniqueId.Equals(item.UniqueId)))
             {
                 matchFound = true;
-                if (!link.ItemIdentifier.Equals(item.Identifier) || !link.Thumbprint.Equals(item.Thumbprint()))
+                if (!link.ItemIdentifier.Equals(item.Header) || !link.Thumbprint.Equals(item.Thumbprint()))
                     throw new IntegrityException("Unable to verify, item link not matching verified item.");
             }
             if (!matchFound)

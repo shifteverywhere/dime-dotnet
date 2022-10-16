@@ -23,13 +23,13 @@ public class Message: Data
     #region -- PUBLIC DATA MEMBERS --
         
     /// <summary>
-    /// A tag identifying the Di:ME item type, part of the header.
+    ///  The item header for DiME Message items.
     /// </summary>
-    public new const string ItemIdentifier = "MSG";
+    public new const string ItemHeader = "MSG";
     /// <summary>
-    /// Returns the tag of the DiME item.
+    /// Returns the header of the DiME item.
     /// </summary>
-    public override string Identifier => ItemIdentifier;
+    public override string Header => ItemHeader;
     /// <summary>
     /// Returns the audience (receiver) identifier. This is optional, although required if encrypting the message
     /// payload.

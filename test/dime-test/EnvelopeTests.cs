@@ -19,6 +19,14 @@ namespace DiME_test;
 [TestClass]
 public class EnvelopeTests
 {
+    
+    [TestMethod]
+    public void GetHeaderTest1() 
+    {
+        var envelope = new Envelope();
+        Assert.AreEqual("Di", envelope.Header);
+        Assert.AreEqual("Di", Envelope.ItemHeader);
+    }
 
     [TestMethod]
     public void SignTest1()
@@ -148,7 +156,7 @@ public class EnvelopeTests
         var exported = envelope.Export();
         Assert.IsNotNull(exported);
         Assert.IsTrue(exported.Length > 0);
-        Assert.IsTrue(exported.StartsWith(Envelope.Header));
+        Assert.IsTrue(exported.StartsWith(Envelope.ItemHeader));
         Assert.IsTrue(exported.Split(new[] { ':' }).Length == 2);
     }
 
@@ -172,7 +180,7 @@ public class EnvelopeTests
         var exported = envelope.Export();
         Assert.IsNotNull(exported);
         Assert.IsTrue(exported.Length > 0);
-        Assert.IsTrue(exported.StartsWith(Envelope.Header));
+        Assert.IsTrue(exported.StartsWith(Envelope.ItemHeader));
         Assert.IsTrue(exported.Split(new[] { ':' }).Length == 3);
     }
 
@@ -184,7 +192,7 @@ public class EnvelopeTests
         var exported = envelope.Export();
         Assert.IsNotNull(exported);
         Assert.IsTrue(exported.Length > 0);
-        Assert.IsTrue(exported.StartsWith(Envelope.Header));
+        Assert.IsTrue(exported.StartsWith(Envelope.ItemHeader));
         Assert.IsTrue(exported.Split(new[] { ':' }).Length == 2);
     }
 
@@ -226,7 +234,7 @@ public class EnvelopeTests
         var exported = envelope.Export();
         Assert.IsNotNull(exported);
         Assert.IsTrue(exported.Length > 0);
-        Assert.IsTrue(exported.StartsWith(Envelope.Header));
+        Assert.IsTrue(exported.StartsWith(Envelope.ItemHeader));
         Assert.IsTrue(exported.Split(new[] { ':' }).Length == 3);
     }
 
@@ -256,7 +264,7 @@ public class EnvelopeTests
         var exported = envelope.Export();
         Assert.IsNotNull(exported);
         Assert.IsTrue(exported.Length > 0);
-        Assert.IsTrue(exported.StartsWith(Envelope.Header));
+        Assert.IsTrue(exported.StartsWith(Envelope.ItemHeader));
         Assert.IsTrue(exported.Split(new[] { ':' }).Length == 3);
     }
 

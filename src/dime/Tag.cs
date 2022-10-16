@@ -22,13 +22,13 @@ public class Tag: Item
     #region -- PUBLIC --
 
     /// <summary>
-    /// The item type identifier forDime Tag items.
+    ///  The item header for DiME Tag items.
     /// </summary>
-    public const string ItemIdentifier = "TAG";
+    public const string ItemHeader = "TAG";
     /// <summary>
-    /// Returns the type identifier of the DiME item.
+    /// Returns the header of the DiME item.
     /// </summary>
-    public override string Identifier => ItemIdentifier;
+    public override string Header => ItemHeader;
 
     /// <summary>
     /// Empty constructor, not to be used. Required for generics.

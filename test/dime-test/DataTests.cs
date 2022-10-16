@@ -17,12 +17,13 @@ namespace DiME_test;
 [TestClass]
 public class DataTests
 {
+    
     [TestMethod]
-    public void GetItemIdentifierTest1() 
+    public void GetHeaderTest1() 
     {
         var data = new Data(Guid.NewGuid());
-        Assert.AreEqual("DAT", data.Identifier);
-        Assert.AreEqual("DAT", Data.ItemIdentifier);
+        Assert.AreEqual("DAT", data.Header);
+        Assert.AreEqual("DAT", Data.ItemHeader);
     }
 
     [TestMethod]
@@ -65,7 +66,7 @@ public class DataTests
             var encoded = data.Export();
             Assert.IsNotNull(encoded);
             Assert.IsTrue(encoded.Length > 0);
-            Assert.IsTrue(encoded.StartsWith(Commons.FullHeaderFor(Data.ItemIdentifier)));
+            Assert.IsTrue(encoded.StartsWith(Commons.FullHeaderFor(Data.ItemHeader)));
             Assert.AreEqual(3, encoded.Split('.').Length);
             data.Sign(Commons.IssuerKey);
             encoded = data.Export();

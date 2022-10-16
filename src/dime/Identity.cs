@@ -28,13 +28,13 @@ public class Identity: Item
     [Obsolete("Obsolete method, use Dime.TrustedIdentity instead.")]        
     public static Identity TrustedIdentity => Dime.TrustedIdentity;
     /// <summary>
-    /// A tag identifying the Di:ME item type, part of the header.
+    ///  The item header for DiME Identity items.
     /// </summary>
-    public const string ItemIdentifier = "ID";
+    public const string ItemHeader = "ID";
     /// <summary>
-    /// Returns the tag of the Di:ME item.
+    /// Returns the header of the DiME item.
     /// </summary>
-    public override string Identifier => ItemIdentifier;
+    public override string Header => ItemHeader;
     /// <summary>
     /// Returns the name of the system or network that the entity belongs to. If issued by another entity and part
     /// of a trust chain, then all entities will share the same system name.

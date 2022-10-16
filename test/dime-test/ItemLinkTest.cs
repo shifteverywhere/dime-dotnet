@@ -23,7 +23,7 @@ public class ItemLinkTest
         var key = Key.Generate(new List<KeyCapability>() {KeyCapability.Sign}, null);
         var link = new ItemLink(key);
         Assert.IsNotNull(link);
-        Assert.AreEqual(key.Identifier, link.ItemIdentifier);
+        Assert.AreEqual(key.Header, link.ItemIdentifier);
         Assert.AreEqual(key.Thumbprint(), link.Thumbprint);
         Assert.AreEqual(key.UniqueId, link.UniqueId);
     }
@@ -33,9 +33,9 @@ public class ItemLinkTest
     [TestMethod]
     public void ItemLinkTest3() {
         var key = Key.Generate(new List<KeyCapability>() {KeyCapability.Sign}, null);
-        var link = new ItemLink(Key.ItemIdentifier, key.Thumbprint(), key.UniqueId);
+        var link = new ItemLink(Key.ItemHeader, key.Thumbprint(), key.UniqueId);
         Assert.IsNotNull(link);
-        Assert.AreEqual(Key.ItemIdentifier, link.ItemIdentifier);
+        Assert.AreEqual(Key.ItemHeader, link.ItemIdentifier);
         Assert.AreEqual(key.Thumbprint(), link.Thumbprint);
         Assert.AreEqual(key.UniqueId, link.UniqueId);
     }
@@ -48,7 +48,7 @@ public class ItemLinkTest
             Assert.IsTrue(false, "Exception not thrown.");
         } catch (ArgumentException) { /* All is well, carry on. */ }
         try {
-            _ = new ItemLink(Key.ItemIdentifier, "", key.UniqueId);
+            _ = new ItemLink(Key.ItemHeader, "", key.UniqueId);
             Assert.IsTrue(false, "Exception not thrown.");
         } catch (ArgumentException) { /* All is well, carry on. */ }
     }
@@ -59,7 +59,7 @@ public class ItemLinkTest
         var link = new ItemLink(key);
         var encoded = link.ToEncoded();
         Assert.IsNotNull(encoded);
-        var compare = $"{key.Identifier}.{key.UniqueId.ToString()}.{key.Thumbprint()}";
+        var compare = $"{key.Header}.{key.UniqueId.ToString()}.{key.Thumbprint()}";
         Assert.AreEqual(compare, encoded);
         Assert.AreNotEqual(Commons.AudienceKey.Thumbprint(), link.Thumbprint);
     }
@@ -98,10 +98,10 @@ public class ItemLinkTest
     [TestMethod]
     public void ToEncodedTest2() {
         var key = Commons.AudienceKey.PublicCopy();
-        var link = new ItemLink(key.Identifier, key.Thumbprint(), key.UniqueId);
+        var link = new ItemLink(key.Header, key.Thumbprint(), key.UniqueId);
         var encoded = link.ToEncoded();
         Assert.IsNotNull(encoded);
-        var compare = $"{key.Identifier}.{key.UniqueId.ToString()}.{key.Thumbprint()}";
+        var compare = $"{key.Header}.{key.UniqueId.ToString()}.{key.Thumbprint()}";
         Assert.AreEqual(compare, encoded);
         Assert.AreNotEqual(Commons.AudienceKey.Thumbprint(), link.Thumbprint);
     }
@@ -111,7 +111,7 @@ public class ItemLinkTest
         var links = new List<ItemLink>() { new ItemLink(Commons.AudienceIdentity), new ItemLink(Commons.AudienceKey.PublicCopy()) };
         var encoded = ItemLink.ToEncoded(links);
         Assert.IsNotNull(encoded);
-        Assert.IsTrue(encoded.StartsWith(Identity.ItemIdentifier));
+        Assert.IsTrue(encoded.StartsWith(Identity.ItemHeader));
         var components = encoded.Split(':');
         Assert.AreEqual(2, components.Length);
     }
@@ -121,7 +121,7 @@ public class ItemLinkTest
         var links = new List<ItemLink> { new ItemLink(Commons.AudienceIdentity) };
         var encoded = ItemLink.ToEncoded(links);
         Assert.IsNotNull(encoded);
-        Assert.IsTrue(encoded.StartsWith(Identity.ItemIdentifier));
+        Assert.IsTrue(encoded.StartsWith(Identity.ItemHeader));
         var components = encoded.Split(':');
         Assert.AreEqual(1, components.Length);
     }

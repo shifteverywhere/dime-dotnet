@@ -26,7 +26,7 @@ public class Commons
     public const string SignKeyContext = "id-key";
         
     public static string FullHeaderFor(string itemIdentifier) {
-        return $"{Envelope.Header}:{itemIdentifier}";
+        return $"{Envelope.ItemHeader}:{itemIdentifier}";
     }
         
     public static Key TrustedKey => _trustedKey ??= Item.Import<Key>(EncodedTrustedKey);

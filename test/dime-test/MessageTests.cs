@@ -19,12 +19,20 @@ namespace DiME_test;
 [TestClass]
 public class MessageTests
 {
+    
+    [TestMethod]
+    public void GetHeaderTest1() 
+    {
+        var msg = new Message();
+        Assert.AreEqual("MSG", msg.Header);
+        Assert.AreEqual("MSG", Message.ItemHeader);
+    }
 
     [TestMethod]
     public void GetTagTest1()
     {
         var message = new Message(Guid.NewGuid());
-        Assert.AreEqual("MSG", message.Identifier);
+        Assert.AreEqual("MSG", message.Header);
     }
 
     [TestMethod]
@@ -79,7 +87,7 @@ public class MessageTests
         var encoded = message.Export();
         Assert.IsNotNull(encoded);
         Assert.IsTrue(encoded.Length > 0);
-        Assert.IsTrue(encoded.StartsWith($"{Envelope.Header}:{Message.ItemIdentifier}"));
+        Assert.IsTrue(encoded.StartsWith($"{Envelope.ItemHeader}:{Message.ItemHeader}"));
         Assert.IsTrue(encoded.Split(new[] {'.'}).Length == 4);
     }
 

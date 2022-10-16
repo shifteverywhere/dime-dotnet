@@ -24,13 +24,13 @@ public class Key: Item
     #region -- PUBLIC --
         
     /// <summary>
-    /// A tag identifying the Di:ME item type, part of the header.
+    ///  The item header for DiME Key items.
     /// </summary>
-    public const string ItemIdentifier = "KEY";
+    public const string ItemHeader = "KEY";
     /// <summary>
-    /// Returns the tag of the Di:ME item.
+    /// Returns the header of the DiME item.
     /// </summary>
-    public override string Identifier => ItemIdentifier;
+    public override string Header => ItemHeader;
     /// <summary>
     /// Returns the version of the Di:ME specification for which this key was generated.
     /// </summary>

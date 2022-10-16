@@ -23,18 +23,18 @@ public class Data: Item
     #region -- PUBLIC --
     
     /// <summary>
-    /// A tag identifying the DiME item type, part of the header.
+    /// The item header for DiME Data items.
     /// </summary>
-    public const string ItemIdentifier = "DAT";
+    public const string ItemHeader = "DAT";
     /// <summary>
-    /// Returns the tag of the DiME item.
+    /// Returns the header of the DiME item.
     /// </summary>
-    public override string Identifier => ItemIdentifier;
+    public override string Header => ItemHeader;
     /// <summary>
     /// Returns the mime type associated with the data payload. This is optional.
     /// </summary>
     public string? MimeType => Claims().Get<string>(Claim.Mim);
-
+    
     /// <summary>
     /// Empty constructor, not to be used. Required for generics.
     /// </summary>
