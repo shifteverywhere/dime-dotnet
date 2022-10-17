@@ -2,13 +2,15 @@
 
   <PropertyGroup>
     <TargetFramework>net6.0</TargetFramework>
-    <Description>Di:ME (Data Integrity Message Envelope) is a powerful universal data format that is built for secure, and integrity protected communication between entities in a trusted network. It is built with modern thinking and ease-of-use throughout. It may replace the need for X.509 certificates, as it has its own built in public key-based entity identification through a trusted chain. This makes it equally suitable as an alternative to certificate-based PKIs.</Description>
+    <Title>DiME (Data Integrity Message Envelope)</Title>
+    <Description>DiME (Data Integrity Message Envelope) is a powerful universal data format that is built for secure, and integrity protected communication between entities in a trusted network. It is built with modern thinking and ease-of-use throughout. It may replace the need for X.509 certificates, as it has its own built in public key-based entity identification through a trusted chain. This makes it equally suitable as an alternative to certificate-based PKIs.</Description>
+    <Summary>DiME (Data Integrity Message Envelope) is a powerful universal data format that is built for secure, and integrity protected communication between entities in a trusted network.</Summary>
     <Copyright>Copyright © 2022 Shift Everywhere AB. All rights reserved.</Copyright>
-    <Product>Di:ME - Data Integrity Message Envelope</Product>
+    <Product>DiME - Data Integrity Message Envelope</Product>
     <Company>Shift Everywhere</Company>
     <Authors>Niclas Kjellin</Authors>
     <PackageId>DiME</PackageId>
-    <PackageVersion>1.0.5</PackageVersion>
+    <PackageVersion>1.1.0</PackageVersion>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageProjectUrl>https://docs.dimeformat.io</PackageProjectUrl>
     <RepositoryUrl>https://github.com/shifteverywhere/dime-dotnet-ref</RepositoryUrl>
@@ -17,12 +19,23 @@
     <PackageIcon>icon.png</PackageIcon>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <LangVersion>10</LangVersion>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <TargetsForTfmSpecificBuildOutput>$(TargetsForTfmSpecificBuildOutput);CopyProjectReferencesToPackage</TargetsForTfmSpecificBuildOutput>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="ASodium" Version="0.5.3" />
-    <ProjectReference Include="..\jsoncanonicalizer\jsoncanonicalizer.csproj" />
+    <ProjectReference Include="..\jsoncanonicalizer\jsoncanonicalizer.csproj">
+      <ReferenceOutputAssembly>true</ReferenceOutputAssembly>
+      <IncludeAssets>jsoncanonicalizer.dll</IncludeAssets>
+    </ProjectReference>
     <None Include="images\icon.png" Pack="true" PackagePath="\" />
   </ItemGroup>
+
+  <Target DependsOnTargets="ResolveReferences" Name="CopyProjectReferencesToPackage">
+    <ItemGroup>
+      <BuildOutputInPackage Include="@(ReferenceCopyLocalPaths->WithMetadataValue('ReferenceSourceTarget', 'ProjectReference'))"/>
+    </ItemGroup>
+  </Target>
 
 </Project>

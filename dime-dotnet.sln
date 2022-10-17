@@ -11,6 +11,10 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "test", "test", "{21C9CFBD-3
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "dime-test", "test\dime-test\dime-test.csproj", "{81D44EC4-A0C9-4330-AB25-CE542B269353}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "jsoncanonicalizer", "src\jsoncanonicalizer\jsoncanonicalizer.csproj", "{A8CB612F-DB96-4BFC-9706-17C05CD53497}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "es6numberserializer", "src\es6numberserializer\es6numberserializer.csproj", "{390C7739-403C-41C1-B0C3-B219FCFE2793}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -48,6 +52,30 @@ Global
 		{81D44EC4-A0C9-4330-AB25-CE542B269353}.Release|x64.Build.0 = Release|Any CPU
 		{81D44EC4-A0C9-4330-AB25-CE542B269353}.Release|x86.ActiveCfg = Release|Any CPU
 		{81D44EC4-A0C9-4330-AB25-CE542B269353}.Release|x86.Build.0 = Release|Any CPU
+		{A8CB612F-DB96-4BFC-9706-17C05CD53497}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A8CB612F-DB96-4BFC-9706-17C05CD53497}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A8CB612F-DB96-4BFC-9706-17C05CD53497}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{A8CB612F-DB96-4BFC-9706-17C05CD53497}.Debug|x64.Build.0 = Debug|Any CPU
+		{A8CB612F-DB96-4BFC-9706-17C05CD53497}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{A8CB612F-DB96-4BFC-9706-17C05CD53497}.Debug|x86.Build.0 = Debug|Any CPU
+		{A8CB612F-DB96-4BFC-9706-17C05CD53497}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A8CB612F-DB96-4BFC-9706-17C05CD53497}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A8CB612F-DB96-4BFC-9706-17C05CD53497}.Release|x64.ActiveCfg = Release|Any CPU
+		{A8CB612F-DB96-4BFC-9706-17C05CD53497}.Release|x64.Build.0 = Release|Any CPU
+		{A8CB612F-DB96-4BFC-9706-17C05CD53497}.Release|x86.ActiveCfg = Release|Any CPU
+		{A8CB612F-DB96-4BFC-9706-17C05CD53497}.Release|x86.Build.0 = Release|Any CPU
+		{390C7739-403C-41C1-B0C3-B219FCFE2793}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{390C7739-403C-41C1-B0C3-B219FCFE2793}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{390C7739-403C-41C1-B0C3-B219FCFE2793}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{390C7739-403C-41C1-B0C3-B219FCFE2793}.Debug|x64.Build.0 = Debug|Any CPU
+		{390C7739-403C-41C1-B0C3-B219FCFE2793}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{390C7739-403C-41C1-B0C3-B219FCFE2793}.Debug|x86.Build.0 = Debug|Any CPU
+		{390C7739-403C-41C1-B0C3-B219FCFE2793}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{390C7739-403C-41C1-B0C3-B219FCFE2793}.Release|Any CPU.Build.0 = Release|Any CPU
+		{390C7739-403C-41C1-B0C3-B219FCFE2793}.Release|x64.ActiveCfg = Release|Any CPU
+		{390C7739-403C-41C1-B0C3-B219FCFE2793}.Release|x64.Build.0 = Release|Any CPU
+		{390C7739-403C-41C1-B0C3-B219FCFE2793}.Release|x86.ActiveCfg = Release|Any CPU
+		{390C7739-403C-41C1-B0C3-B219FCFE2793}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{5B6347A1-9A39-4B85-AA24-C4625E80CB6C} = {1E07AD15-9018-4124-A61D-91E0C7E522A2}

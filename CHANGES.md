@@ -1,5 +1,21 @@
 # CHANGE LOG
 
+## Version 1.1.0 - 2022-10-17
+- Changes to .NET 6.0
+- Introduces Dime class for global settings
+- Adds support for legacy DiME format (before 1.1.0)
+- Adds possibility for multiple signatures for items
+- Adds feature to strip an item of any signatures, so it can be modified and then resigned
+- Refactors item linking and allows linking to multiple items
+- Adds plugin model for other cryptographic suites
+- Introduces JSON canonicalization to guarantee some order of JSON data, avoiding breaking of signatures
+- Implements Tag item
+- Implements Data item
+- Introduces KeyCapability/IdentityCapability for Keys and Identities (this means breaking changes from 1.0.5)
+- Breaking changes in Envelope (sign/verify) removes return item
+- Grace period added to Dime as a global setting (this means breaking changes from 1.0.5 in verify methods)
+- Adds the possibility to override the current time, intended for troubleshooting
+
 ## Version 1.0.5 - 2022-06-11
 - Fixes an issue where Message did not consider original data from alien messages (received externally), which caused re-export and verify to fail.
 - Add a few more tests for key exchange (encrypted payload for messages).

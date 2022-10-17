@@ -119,14 +119,12 @@ public class Envelope: Item
     /// to be done before signing the envelope.
     /// </summary>
     /// <param name="item">The Di:ME item to add.</param>
-    /// <returns>Returns the Envelope instance for convenience.</returns>
     /// <exception cref="InvalidOperationException"></exception>
-    public Envelope AddItem(Item item)
+    public void AddItem(Item item)
     {
         if (IsSigned) { throw new InvalidOperationException("Unable to add item, envelope is already signed."); }
         if (item is Envelope) { throw new ArgumentException("Not allowed to add an envelope to another envelope.", nameof(item)); }
         _items.Add(item);
-        return this;
     }
 
     /// <summary>
@@ -134,13 +132,11 @@ public class Envelope: Item
     /// this needs to be done before signing the envelope.
     /// </summary>
     /// <param name="items">The Di:ME items to add.</param>
-    /// <returns>Returns the Envelope instance for convenience.</returns>
     /// <exception cref="InvalidOperationException"></exception>
-    public Envelope SetItems(IEnumerable<Item> items)
+    public void SetItems(IEnumerable<Item> items)
     {
         if (IsSigned) { throw new InvalidOperationException("Unable to set items, envelope is already signed."); }
         _items = items.ToList();
-        return this;
     }
 
     /// <summary>
