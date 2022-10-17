@@ -19,7 +19,7 @@ public class Commons
 {
     #region -- PUBLIC --
 
-    public const string SystemName = "io.dimeformat.ref.csharp";
+    public const string SystemName = "io.dimeformat.ref";
     public const string Payload = "Racecar is racecar backwards.";
     public const string Mimetype = "text/plain";
     public const string Context = "test-context";

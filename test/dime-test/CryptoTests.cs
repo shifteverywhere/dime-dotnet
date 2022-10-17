@@ -1,5 +1,5 @@
 //
-//  Crypto.cs
+//  CryptoTests.cs
 //  Dime - Data Integrity Message Envelope
 //  A powerful universal data format that is built for secure, and integrity protected communication between trusted
 //  entities in a network.
@@ -7,7 +7,6 @@
 //  Released under the MIT licence, see LICENSE for more information.
 //  Copyright © 2022 Shift Everywhere AB. All rights reserved.
 //
-
 using System.Collections.Generic;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.Text;
