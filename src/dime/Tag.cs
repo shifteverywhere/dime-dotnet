@@ -55,29 +55,6 @@ public class Tag: Item
             SetItemLinks(items);
     }
     
-    /// <summary>
-    /// Verifies the signature of the tag item using a provided key and verifies a linked item from the proved item
-    /// list. To verify correctly the linkedItem must be the original item that the data item was linked to.
-    /// </summary>
-    /// <param name="key">The key to used to verify the signature.</param>
-    /// <param name="linkedItems">Items that are linked to the item being verified.</param>
-    /// <exception cref="InvalidOperationException"></exception>
-    /// <exception cref="FormatException"></exception>
-    /// <exception cref="IntegrityException"></exception>
-    public void Verify(Key key, List<Item>? linkedItems = null) { 
-        // Verify IssuedAt and ExpiresAt
-        var now = Utility.CreateDateTime();
-        if (Utility.GracefulDateTimeCompare(IssuedAt, now) > 0)
-            throw new DateExpirationException("Item is not yet valid, issued at date in the future.");
-        if (Utility.GracefulDateTimeCompare(IssuedAt, ExpiresAt) > 0)
-            throw new DateExpirationException("Invalid expiration date, expires at before issued at.");
-        if (Utility.GracefulDateTimeCompare(ExpiresAt, now) < 0)
-            throw new DateExpirationException("Item has expired.");
-        base.Verify(key);
-        if (linkedItems is not null)
-            VerifyLinkedItems(linkedItems);
-    }
-    
     #endregion
 
     #region -- INTERNAL --

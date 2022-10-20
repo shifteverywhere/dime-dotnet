@@ -219,10 +219,7 @@ public class EnvelopeTests
         Assert.IsNull(envelope.IssuerId);
         Assert.AreEqual(1, envelope.Items.Count);
         Assert.AreEqual(typeof(Identity), envelope.Items.ElementAt(0).GetType());
-        try {
-            envelope.Verify(Commons.IssuerKey);
-        } catch (InvalidOperationException) { return; } // All is well
-        Assert.IsTrue(false, "Should not happen.");
+        Assert.IsFalse(Dime.IsIntegrityStateValid(envelope.Verify(Commons.IssuerKey)));
     }
 
     [TestMethod]

@@ -87,15 +87,14 @@ public class Crypto
     /// <param name="data">The string that should be verified with the signature.</param>
     /// <param name="signature">The signature that should be verified.</param>
     /// <param name="key">The key that should be used for the verification.</param>
+    /// <returns>True if verified successfully, false otherwise.</returns>
     /// <exception cref="ArgumentException"></exception>
-    /// <exception cref="IntegrityException"></exception>
-    public void VerifySignature(string data, byte[] signature, Key key)
+    public bool VerifySignature(string data, byte[] signature, Key key)
     {
         if (!key.HasCapability(KeyCapability.Sign)) { throw new ArgumentException("Unable to sign, provided key does not specify Sign usage."); }
         var impl = CryptoSuite(key.CryptoSuiteName);
         var pub = key.KeyBytes(Claim.Pub);
-        if (!impl.VerifySignature(Encoding.UTF8.GetBytes(data), signature, key.KeyBytes(Claim.Pub)))
-            throw new IntegrityException("Unable to verify signature.");
+        return impl.VerifySignature(Encoding.UTF8.GetBytes(data), signature, key.KeyBytes(Claim.Pub));
     }
 
     /// <summary>

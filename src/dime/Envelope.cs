@@ -50,7 +50,7 @@ public class Envelope: Item
     /// <summary>
     /// Indicates if the envelope is anonymous (true) or if it is signed (false).
     /// </summary>
-    public bool IsAnonymous => !HasClaims();
+    public bool IsAnonymous => !HasClaims;
 
     /// <summary>
     /// Default constructor for an anonymous envelope.
@@ -96,16 +96,24 @@ public class Envelope: Item
             Components = new List<string>(array)
         };
         // 1 to LAST or LAST - 1 
-        var endIndex = (envelope.IsAnonymous) ? sections.Length : sections.Length - 1; // end index dependent on anonymous envelope or not
-        var items = new List<Item>(endIndex - 1);
-        for (var index = 1; index < endIndex; index++)
-            items.Add(Item.FromEncoded(sections[index]) ?? throw new FormatException("Unable to import Dime item, unexpected format."));
+        //var endIndex = (envelope.IsAnonymous) ? sections.Length : sections.Length - 1; // end index dependent on anonymous envelope or not
+        var items = new List<Item>(sections.Length);
+        for (var index = 1; index < sections.Length; index++)
+        {
+            var item = Item.FromEncoded(sections[index]);
+            if (item == null)
+                if (index == sections.Length - 1) // This is most likely a signature
+                    envelope.IsSigned = true;
+                else
+                    throw new FormatException("Unable to import envelope, encountered invalid items.");
+            else
+                items.Add(item);
+        }
         envelope._items = items;
-        if (envelope.IsAnonymous)
+        if (!envelope.IsSigned)
             envelope.Encoded = encoded;
         else
         {
-            envelope.IsSigned = true;
             envelope.Components.Add(sections[^1]);
             envelope.Encoded = encoded[..encoded.LastIndexOf(Dime.SectionDelimiter)];
             if (envelope.Signatures[0].IsLegacy)
@@ -169,21 +177,13 @@ public class Envelope: Item
     /// <exception cref="InvalidOperationException"></exception>
     public override void Sign(Key key)
     {
-        if (IsAnonymous) { throw new InvalidOperationException("Unable to sign, envelope is anonymous."); }
-        if (IsSigned) { throw new InvalidOperationException("Unable to sign, envelope is already signed."); }
+        if (IsLegacy)
+        {
+            if (IsAnonymous) { throw new InvalidOperationException("Unable to sign, envelope is anonymous."); }
+            if (IsSigned) { throw new InvalidOperationException("Unable to sign, envelope is already signed."); }
+        }
         if (_items == null || _items.Count == 0) { throw new InvalidOperationException("Unable to sign, at least one item must be attached before signing an envelope."); }
         base.Sign(key);
-    }
-        
-    /// <summary>
-    /// Verifies the signature of the envelope using a provided key.
-    /// </summary>
-    /// <param name="key">The key to used to verify the signature, must not be null.</param>
-    /// <exception cref="InvalidOperationException"></exception>
-    public override void Verify(Key key)
-    {
-        if (IsAnonymous) { throw new InvalidOperationException("Unable to verify, envelope is anonymous."); }
-        base.Verify(key);
     }
 
     /// <summary>
@@ -193,8 +193,8 @@ public class Envelope: Item
     /// <exception cref="InvalidOperationException"></exception>
     public override string Export()
     {
-        if (!IsAnonymous && !IsSigned) { throw new InvalidOperationException("Unable to export, envelope is not signed."); }
-        return Encode(!IsAnonymous);
+        if (IsLegacy && !IsAnonymous && !IsSigned) { throw new InvalidOperationException("Unable to export, envelope is not signed."); }
+        return Encode(IsSigned);
     }
 
     /// <summary>

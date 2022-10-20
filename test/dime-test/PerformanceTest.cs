@@ -30,7 +30,7 @@ public class PerformanceTests
         var sw = new Stopwatch();
         totalSw.Start();
             
-        Dime.TrustedIdentity = Commons.TrustedIdentity;
+        Commons.InitializeKeyRing();
         var caps = new List<IdentityCapability> { IdentityCapability.Generic, IdentityCapability.Identify };
         var keyList = new List<Key>();
         var iirList = new List<IdentityIssuingRequest>();
@@ -72,7 +72,7 @@ public class PerformanceTests
         sw.Start();
         for(var i = 0; i < PerformanceRounds; i++) {
             var identity = identityList[i];
-            identity.IsTrusted();
+            identity.Verify();
         }
         sw.Stop();
         Console.WriteLine($" DONE \n\t - Total: {sw.Elapsed}s\n");
@@ -82,7 +82,7 @@ public class PerformanceTests
         sw.Start();
         for(var i = 0; i < PerformanceRounds; i++) {
             var identity = identityList[i];
-            identity.IsTrusted(Commons.IntermediateIdentity);
+            identity.Verify(Commons.IntermediateIdentity);
         }
         sw.Stop();
         Console.WriteLine($" DONE \n\t - Total: {sw.Elapsed}s\n");

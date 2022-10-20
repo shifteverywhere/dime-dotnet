@@ -11,6 +11,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 using DiME;
+using DiME.KeyRing;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace DiME_test;
@@ -18,6 +19,7 @@ namespace DiME_test;
 [TestClass]
 public class DimeTest
 {
+    
     [TestInitialize]
     public void BeforeAll()
     {
@@ -161,7 +163,7 @@ public class DimeTest
     
     // LEGACY TESTS //
 
-    private static readonly string _legacyTrustedIdentity = "Di:ID.eyJ1aWQiOiI0MDViZDZhOC0wM2JmLTRjNDctOWNiYS0xNmNhODM5OGI1YzgiLCJzdWIiOiIxZmNkNWY4OC00YTc1LTQ3OTktYmQ0OC0yNWI2ZWEwNjQwNTMiLCJjYXAiOlsiZ2VuZXJpYyIsImlzc3VlIiwic2VsZiJdLCJpc3MiOiIxZmNkNWY4OC00YTc1LTQ3OTktYmQ0OC0yNWI2ZWEwNjQwNTMiLCJzeXMiOiJkaW1lLWphdmEtcmVmIiwiZXhwIjoiMjAzMS0xMS0xOFQxMjoxMTowMi43NjEwMDdaIiwicHViIjoiMlREWGRvTnZaUldoVUZYemVQam5nanlpbVlMUXNFWVl3ekV6ZDJlNjJqeHdGNHJkdTQzdml4bURKIiwiaWF0IjoiMjAyMS0xMS0yMFQxMjoxMTowMi43NjEwMDdaIn0.KE3hbTLB7+BzzEeGSFyauy2PMgXBIYpGqRFZ2n+xQQsAOxC45xYgeFvILtqLeVYKA8T5lcQvZdyuiHBPVMpxBw";
+    private const string LegacyTrustedIdentity = "Di:ID.eyJ1aWQiOiI0MDViZDZhOC0wM2JmLTRjNDctOWNiYS0xNmNhODM5OGI1YzgiLCJzdWIiOiIxZmNkNWY4OC00YTc1LTQ3OTktYmQ0OC0yNWI2ZWEwNjQwNTMiLCJjYXAiOlsiZ2VuZXJpYyIsImlzc3VlIiwic2VsZiJdLCJpc3MiOiIxZmNkNWY4OC00YTc1LTQ3OTktYmQ0OC0yNWI2ZWEwNjQwNTMiLCJzeXMiOiJkaW1lLWphdmEtcmVmIiwiZXhwIjoiMjAzMS0xMS0xOFQxMjoxMTowMi43NjEwMDdaIiwicHViIjoiMlREWGRvTnZaUldoVUZYemVQam5nanlpbVlMUXNFWVl3ekV6ZDJlNjJqeHdGNHJkdTQzdml4bURKIiwiaWF0IjoiMjAyMS0xMS0yMFQxMjoxMTowMi43NjEwMDdaIn0.KE3hbTLB7+BzzEeGSFyauy2PMgXBIYpGqRFZ2n+xQQsAOxC45xYgeFvILtqLeVYKA8T5lcQvZdyuiHBPVMpxBw";
 
     [TestMethod]
     public void LegacyIdentityIssuingRequestImportTest1() 
@@ -172,14 +174,16 @@ public class DimeTest
         Assert.AreEqual(Guid.Parse("3e5bde4a-6277-4da5-8664-1d3f043a9028"), iir.UniqueId);
         Assert.AreEqual(DateTime.Parse("2021-11-18T12:03:53.381661Z").ToUniversalTime(), iir.IssuedAt);
         Assert.IsTrue(iir.WantsCapability(IdentityCapability.Generic));
+        Assert.IsNotNull(iir.PublicKey);
         Assert.AreEqual("2TDXdoNvSUNyLDSUiMhpLCdEbDaz5zumD35tX1DAuA8CE41xoDGgSd3UE", iir.PublicKey.Public);
-        iir.Verify();
+        Assert.AreEqual(IntegrityState.Complete, iir.Verify(iir.PublicKey));
     }
 
     [TestMethod]
     public void LegacyIdentityImportTest1() 
     {
-        Dime.TrustedIdentity = Item.Import<Identity>(_legacyTrustedIdentity);
+        Commons.ClearKeyRing();
+        Dime.KeyRing.Put(Item.Import<Identity>(LegacyTrustedIdentity));
         const string legacyExported = "Di:ID.eyJ1aWQiOiIyYTdkNDJhMy02YjQ1LTRhNGEtYmIzZC1lYzk0ZWMzNzlmMWYiLCJzdWIiOiJiZTRhZjVmMy1lODM4LTQ3MzItYTBmYy1mZmEyYzMyOGVhMTAiLCJjYXAiOlsiZ2VuZXJpYyIsImlkZW50aWZ5Il0sImlzcyI6ImJkMjhkYjhmLTEzNjItNGFmZC1hZWQ3LTRjYTM5ZjY1OTc1ZSIsInN5cyI6ImRpbWUtamF2YS1yZWYiLCJleHAiOiIyMDIyLTExLTIwVDEyOjExOjAyLjc2NTI1OVoiLCJwdWIiOiIyVERYZG9OdzF3WlF0ZVU1MzI1czZSbVJYVnBUa1lXdlR1RXpSMWpOZFZ2WWpFUjZiNmJZYUR6dEYiLCJpYXQiOiIyMDIxLTExLTIwVDEyOjExOjAyLjc2NTI1OVoifQ.SUQuZXlKMWFXUWlPaUl5TTJRNVpXUmtaaTFtWXpoa0xUUmpNemN0WW1NNU1pMDNNVFF6TkRVMFlUSTBaRFVpTENKemRXSWlPaUppWkRJNFpHSTRaaTB4TXpZeUxUUmhabVF0WVdWa055MDBZMkV6T1dZMk5UazNOV1VpTENKallYQWlPbHNpWjJWdVpYSnBZeUlzSW1sa1pXNTBhV1o1SWl3aWFYTnpkV1VpWFN3aWFYTnpJam9pTVdaalpEVm1PRGd0TkdFM05TMDBOems1TFdKa05EZ3RNalZpTm1WaE1EWTBNRFV6SWl3aWMzbHpJam9pWkdsdFpTMXFZWFpoTFhKbFppSXNJbVY0Y0NJNklqSXdNall0TVRFdE1UbFVNVEk2TVRFNk1ESXVOell6TmpVeVdpSXNJbkIxWWlJNklqSlVSRmhrYjA1MlJEaGpRemwxZUZOaU5FcEdTSEpyTVdaUVNGZDNjWEZUUTFWS1IyVTRWbWRXUm5OaFZ6VkxjVVl5ZDJ0WVlsVlFUaUlzSW1saGRDSTZJakl3TWpFdE1URXRNakJVTVRJNk1URTZNREl1TnpZek5qVXlXaUo5LjU2djVMeVg4anRLQ3N0eTdnbTZOczJjWStiTUlYNHBxNDRnODBTRXB1NjF2QklzUlZ6UTFOZFY5Q1BXaHRTdHZEM3d3N01hOFg3QlZvMWxrMjZjMkRn.7H3RwTTeDcI3pGMIWMPbAjpDnCN2O91JG4lKu3JJbxlLNwTbgTB/03xrwi28wl0iMReJ4zUPc3cCqbymAlxwAw";
         var identity =  Item.Import<Identity>(legacyExported);
         Assert.IsNotNull(identity);
@@ -189,11 +193,12 @@ public class DimeTest
         Assert.AreEqual(DateTime.Parse("2021-11-20T12:11:02.765259Z").ToUniversalTime(), identity.IssuedAt);
         Assert.AreEqual(DateTime.Parse("2022-11-20T12:11:02.765259Z").ToUniversalTime(), identity.ExpiresAt);
         Assert.AreEqual(Guid.Parse("bd28db8f-1362-4afd-aed7-4ca39f65975e"), identity.IssuerId);
+        Assert.IsNotNull(identity.PublicKey);
         Assert.AreEqual("2TDXdoNw1wZQteU5325s6RmRXVpTkYWvTuEzR1jNdVvYjER6b6bYaDztF", identity.PublicKey.Public);
         Assert.IsTrue(identity.HasCapability(IdentityCapability.Generic));
         Assert.IsTrue(identity.HasCapability(IdentityCapability.Identify));
         Assert.IsNotNull(identity.TrustChain);
-        Assert.IsTrue(identity.IsTrusted());
+        Assert.AreEqual(IntegrityState.Complete, identity.Verify());
     }
 
     [TestMethod]
@@ -276,7 +281,7 @@ public class DimeTest
         key.ConvertToLegacy();
         var iir = IdentityIssuingRequest.Generate(key);
         Assert.IsTrue(iir.IsLegacy);
-        var k = iir.PublicKey.Public;
+        Assert.IsNotNull(iir.PublicKey);
         Assert.IsTrue(iir.PublicKey.Public.StartsWith("2TD"));
     }
 
@@ -286,6 +291,7 @@ public class DimeTest
         var identity =  Item.Import<Identity>(exported);
         Assert.IsNotNull(identity);
         Assert.IsTrue(identity.IsLegacy);
+        Assert.IsNotNull(identity.PublicKey);
         var pub = identity.PublicKey.Public;
         Assert.IsNotNull(pub);
         Assert.IsFalse(pub.StartsWith(Dime.Crypto.DefaultSuiteName));
@@ -298,6 +304,7 @@ public class DimeTest
         var iir = IdentityIssuingRequest.Generate(key);
         var identity = iir.SelfIssue(Guid.NewGuid(), Dime.ValidFor1Minute, key, Commons.SystemName);
         Assert.IsTrue(identity.IsLegacy);
+        Assert.IsNotNull(identity.PublicKey);
         Assert.IsTrue(identity.PublicKey.Public.StartsWith("2TD"));
     }
     

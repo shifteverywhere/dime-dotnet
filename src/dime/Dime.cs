@@ -9,6 +9,7 @@
 //
 
 using System;
+using DiME.KeyRing;
 
 namespace DiME;
 
@@ -24,6 +25,10 @@ public abstract class Dime
     ///  Manager of cryptographic suites and operations. May be used to add additional cryptographic suits in run-time.
     /// </summary>
     public static readonly Crypto Crypto = new();
+    /// <summary>
+    /// A set of keys and identities that are set to be trusted.
+    /// </summary>
+    public static readonly DiME.KeyRing.KeyRing KeyRing = new();
     /// <summary>
     /// The maximum length that the context claim may hold.
     /// </summary>
@@ -52,23 +57,6 @@ public abstract class Dime
     /// A convenience constant holding the number of seconds for a year (based on 365 days).
     /// </summary>
     public const long ValidFor1Year = ValidFor1Day * 365L;
-
-    /// <summary>
-    /// The trusted identity. This is normally the root identity of a trust chain.
-    /// </summary>
-    public static Identity TrustedIdentity
-    {
-        get
-        {
-            lock(TrustLock) 
-                return _trustedIdentity;
-        }
-        set
-        {
-            lock(TrustLock)
-                _trustedIdentity = value;
-        }
-    }
     /// <summary>
     /// Gets/sets the grace period, in seconds, that is used to allow for a grace period when comparing and validating dates
     /// (issued at and expires at). A value of 2 will allow a grace margin of +/-2 seconds, given a total window of 4
@@ -115,6 +103,17 @@ public abstract class Dime
     /// </summary>
     public static DateTime? OverrideTime { get; set; }
 
+    /// <summary>
+    /// Returns if the IntegrityState may be considered successfully validated and may be considered trusted.
+    /// </summary>
+    /// <param name="state">True if valid, false otherwise.</param>
+    /// <returns></returns>
+    public static bool IsIntegrityStateValid(IntegrityState state)
+    {
+        return state is IntegrityState.Complete 
+            or IntegrityState.ValidSignature or IntegrityState.ValidDates or IntegrityState.ValidItemLinks;
+    }
+    
     #endregion
 
     #region -- INTERNAL --

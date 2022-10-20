@@ -38,21 +38,31 @@ public class Commons
     public static Key AudienceKey => _audienceKey ??= Item.Import<Key>(EncodedAudienceKey);
     public static Identity AudienceIdentity => _audienceIdentity ??= Item.Import<Identity>(EncodedAudienceIdentity);
 
+    public static void InitializeKeyRing()
+    {
+        Dime.KeyRing.Put(TrustedIdentity);
+    }
+    
+    public static void ClearKeyRing()
+    {
+        Dime.KeyRing.Clear();
+    }
+    
     #endregion
-
+    
     /// TESTS ///
 
     [TestMethod]
     public void GenerateCommons() 
     {
-        Dime.TrustedIdentity = null;
+        Commons.ClearKeyRing();
         var trustedKey = Key.Generate(new List<KeyCapability>() {KeyCapability.Sign}, null);
         var trustedIdentity = GenerateIdentity(trustedKey, trustedKey, null, Dime.ValidFor1Year * 10, new List<IdentityCapability>() { IdentityCapability.Generic, IdentityCapability.Issue });
         Console.WriteLine("#region -- TRUSTED IDENTITY --");
         Console.WriteLine("private const string EncodedTrustedKey = \"" + trustedKey.Export() + "\";");
         Console.WriteLine("private const string EncodedTrustedIdentity = \"" + trustedIdentity.Export() + "\";\n");
 
-        Dime.TrustedIdentity = trustedIdentity;
+        Dime.KeyRing.Put(trustedIdentity);
         var intermediateKey = Key.Generate(new List<KeyCapability>() {KeyCapability.Sign}, null);
         var intermediateIdentity = GenerateIdentity(intermediateKey, trustedKey, trustedIdentity, Dime.ValidFor1Year * 5, new List<IdentityCapability>() { IdentityCapability.Generic, IdentityCapability.Identify, IdentityCapability.Issue });
         Console.WriteLine("#region -- INTERMEDIATE IDENTITY ---");

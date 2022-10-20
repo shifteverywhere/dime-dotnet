@@ -145,19 +145,6 @@ public class Message: Data
         return base.Thumbprint();
     }
         
-    /// <summary>
-    /// Will cryptographically link a message to another Di:ME item. This may be used to prove a relationship
-    /// between one message and other item.
-    /// </summary>
-    /// <param name="item">The item to link to the message.</param>
-    /// <exception cref="InvalidOperationException"></exception>
-    /// <exception cref="ArgumentNullException"></exception>
-    [Obsolete("Method obsolete, use Item.AddItemLink(Item) instead.")]
-    public void LinkItem(Item item)
-    {
-        AddItemLink(item);
-    }
-
     #endregion
 
     # region -- PROTECTED --

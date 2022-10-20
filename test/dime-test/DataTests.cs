@@ -61,7 +61,7 @@ public class DataTests
     [TestMethod]
     public void ExportTest1() 
     {
-            Dime.TrustedIdentity = Commons.TrustedIdentity;
+            Commons.InitializeKeyRing();
             var data = new Data(Commons.IssuerIdentity.SubjectId, 120L, Commons.Context);
             data.SetPayload(Encoding.UTF8.GetBytes(Commons.Payload), Commons.Mimetype);
             var encoded = data.Export();
@@ -107,7 +107,7 @@ public class DataTests
     [TestMethod]
     public void ImportTest2() 
     {
-        Dime.TrustedIdentity = Commons.TrustedIdentity;
+        Commons.InitializeKeyRing();
         var data1 = new Data(Commons.IssuerIdentity.SubjectId, 120, Commons.Context);
         data1.SetPayload(Encoding.UTF8.GetBytes(Commons.Payload), Commons.Mimetype);
         var exported = data1.Export();
@@ -123,7 +123,7 @@ public class DataTests
     [TestMethod]
     public void ImportTest3() 
     {
-        Dime.TrustedIdentity = Commons.TrustedIdentity;
+        Commons.InitializeKeyRing();
         const string encoded = "Di:KEY.eyJ1aWQiOiIzZjAwY2QxMy00NDc0LTRjMDQtOWI2Yi03MzgzZDQ5MGYxN2YiLCJwdWIiOiJTMjFUWlNMMXV2RjVtVFdLaW9tUUtOaG1rY1lQdzVYWjFWQmZiU1BxbXlxRzVHYU5DVUdCN1BqMTlXU2h1SnVMa2hSRUVKNGtMVGhlaHFSa2FkSkxTVEFrTDlEdHlobUx4R2ZuIiwiaWF0IjoiMjAyMS0xMS0xOFQwODo0ODoyNS4xMzc5MThaIiwia2V5IjoiUzIxVGtnb3p4aHprNXR0RmdIaGdleTZ0MTQxOVdDTVVVTTk4WmhuaVZBamZUNGluaVVrbmZVck5xZlBxZEx1YTJTdnhGZjhTWGtIUzFQVEJDcmRrWVhONnFURW03TXdhMkxSZCJ9";
         try {
             _ = Item.Import<Data>(encoded);
@@ -136,7 +136,7 @@ public class DataTests
     [TestMethod]
     public void VerifyTest1() 
     {
-        Dime.TrustedIdentity = Commons.TrustedIdentity;
+        Commons.InitializeKeyRing();
         var data = new Data(Commons.IssuerIdentity.SubjectId);
         data.SetPayload(Encoding.UTF8.GetBytes(Commons.Payload));
         data.Sign(Commons.IssuerKey);
@@ -147,7 +147,7 @@ public class DataTests
     public void VerifyTest2() 
     {
         try {
-            Dime.TrustedIdentity = Commons.TrustedIdentity;
+            Commons.InitializeKeyRing();
             var data = new Data(Commons.IssuerIdentity.SubjectId);
             data.SetPayload(Encoding.UTF8.GetBytes(Commons.Payload));
             data.Sign(Commons.IssuerKey);

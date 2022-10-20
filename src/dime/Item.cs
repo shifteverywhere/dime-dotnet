@@ -9,10 +9,9 @@
 //
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Text;
-using DiME.Exceptions;
+using DiME.KeyRing;
 
 #nullable enable
 namespace DiME;
@@ -147,25 +146,63 @@ public abstract class Item
         return Utility.ToHex(Dime.Crypto.GenerateHash(Encoding.UTF8.GetBytes(encoded)));
     }
 
-    /// <summary>
-    /// Verifies the signature of the item using a provided key.
-    /// </summary>
-    /// <param name="key">The key to used to verify the signature, must not be null.</param>
-    /// <exception cref="InvalidOperationException"></exception>
-    public virtual void Verify(Key key)
+    public IntegrityState Verify(Identity verifyIdentity, List<Item>? linkedItems = null)
+    {
+        return Verify(verifyIdentity.PublicKey, null);
+    }
+    
+    public virtual IntegrityState Verify(Key? verifyKey = null, List<Item>? linkedItems = null)
+    {
+        var state = VerifySignature(verifyKey);
+        if (!Dime.IsIntegrityStateValid(state)) 
+            return state;
+        if (linkedItems != null)
+        {
+            state = VerifyLinkedItems(linkedItems);
+            if (!Dime.IsIntegrityStateValid(state)) 
+                return state;
+        }
+        state = VerifyDates();
+        return !Dime.IsIntegrityStateValid(state) ? state : IntegrityState.Complete;
+    }
+
+    public IntegrityState VerifyDates()
+    {
+        if (!HasClaims) return IntegrityState.ValidDates;
+        var now = Utility.CreateDateTime();
+        if (Utility.GracefulDateTimeCompare(IssuedAt, now) > 0)
+            return IntegrityState.FailedUsedBeforeIssued;
+        if (ExpiresAt is null) return IntegrityState.ValidDates;
+        if (Utility.GracefulDateTimeCompare(IssuedAt, ExpiresAt) > 0)
+            return IntegrityState.FailedDateMismatch;
+        return Utility.GracefulDateTimeCompare(ExpiresAt, now) < 0 
+            ? IntegrityState.FailedUsedAfterExpired : IntegrityState.ValidDates;
+    }
+    
+    public IntegrityState VerifySignature(Key? verifyKey = null)
     {
         if (!IsSigned)
-            throw new InvalidOperationException("Unable to verify, item is not signed.");
-        if (IsLegacy)
-            Dime.Crypto.VerifySignature(Encode(false), Signatures[0].Bytes, key);
-        else
+            return IntegrityState.FailedNoSignature;
+        if (verifyKey is null)
+            return Dime.KeyRing.Verify(this);
+        var signature = IsLegacy ? Signatures[0] : Signature.Find(Dime.Crypto.GenerateKeyIdentifier(verifyKey), Signatures);
+        if (signature is null)
+            return IntegrityState.FailedKeyMismatch;
+        try
         {
-            var signature = Signature.Find(Dime.Crypto.GenerateKeyIdentifier(key), Signatures);
-            if (signature is not null)
-                Dime.Crypto.VerifySignature(Encode(false), signature.Bytes, key);
-            else
-                throw new IntegrityException("Unable to verify signature, item not signed with provided key.");
+            return !Dime.Crypto.VerifySignature(Encode(false), signature.Bytes, verifyKey) 
+                ? IntegrityState.FailedNotTrusted : IntegrityState.ValidSignature;
         }
+        catch (Exception)
+        {
+            return IntegrityState.FailedInternalFault;
+        }
+    }
+
+    public IntegrityState VerifyLinkedItems(List<Item> linkedItems)
+    {
+        ItemLinks ??= Claims().GetItemLinks(Claim.Lnk);
+        return ItemLinks is not null ? ItemLink.Verify(linkedItems, ItemLinks) : IntegrityState.FailedLinkedItemMissing;
     }
 
     /// <summary>
@@ -207,7 +244,7 @@ public abstract class Item
     /// <summary>
     /// Removes all item links.
     /// </summary>
-    public void removeLinkItems()
+    public void RemoveLinkItems()
     {
         if (Claims().Get<string>(Claim.Lnk) is null) return;
         ThrowIfSigned();
@@ -230,7 +267,9 @@ public abstract class Item
 
     internal static Item? FromEncoded(string encoded)
     {
-        var t = TypeFromTag(encoded[..encoded.IndexOf(Dime.ComponentDelimiter)]);
+        var index = encoded.IndexOf(Dime.ComponentDelimiter);
+        if (index == -1) return null;
+        var t = TypeFromTag(encoded[..index]);
         if (t == null) return null;
         var item = (Item) Activator.CreateInstance(t)!;
         item.Decode(encoded);
@@ -242,13 +281,20 @@ public abstract class Item
         return Encode(true);
     }
         
-    internal ClaimsMap Claims()
+    internal ClaimsMap? Claims()
     {
         if (_claims is not null) return _claims;
         if (Components is not null && Components.Count > ComponentsClaimsIndex)
         {
             var jsonClaims = Utility.FromBase64(Components[ComponentsClaimsIndex]);
-            _claims = new ClaimsMap(Encoding.UTF8.GetString(jsonClaims));
+            try
+            {
+                _claims = new ClaimsMap(Encoding.UTF8.GetString(jsonClaims));
+            }
+            catch (Exception)
+            {
+                return null;
+            }
         }
         else
             _claims = new ClaimsMap();
@@ -274,17 +320,8 @@ public abstract class Item
     protected List<string>? Components;
     /// <summary>A list of linked items.</summary>
     protected List<ItemLink>? ItemLinks;
-
-    /// <summary>
-    /// Indicates if an item has any claims attached to it.
-    /// </summary>
-    /// <returns>True if claims exists, false otherwise.</returns>
-    protected bool HasClaims()
-    {
-        if (_claims is null && Components is not null)
-            return Components.Count >= MinimumNbrComponents;
-        return _claims is not null && _claims.Size() > 0;
-    }
+    /// <summary>Indicates if an item has any claims attached to it.</summary>
+    protected bool HasClaims => Claims()?.Size() > 0;
 
     /// <summary>
     /// Holds all signatures attached to the item.
@@ -297,19 +334,6 @@ public abstract class Item
             _signatures = IsSigned ? Signature.FromEncoded(Components?[^1]) : new List<Signature>();
             return _signatures;
         }
-    }
-
-    /// <summary>
-    /// Verifies linked items with a provided list of items. 
-    /// </summary>
-    /// <param name="linkedItems">List of items to verify with.</param>
-    protected void VerifyLinkedItems(List<Item> linkedItems)
-    {
-        ItemLinks ??= Claims().GetItemLinks(Claim.Lnk);
-        if (ItemLinks is not null)
-            ItemLink.Verify(linkedItems, ItemLinks);
-        else
-            throw new InternalBufferOverflowException("Unable to verify, no linked items found.");
     }
         
     /// <summary>

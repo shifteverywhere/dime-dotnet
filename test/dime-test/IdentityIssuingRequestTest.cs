@@ -51,7 +51,7 @@ public class IdentityIssuingRequestTests
     [TestMethod]
     public void IssueTest1()
     {
-        Dime.TrustedIdentity = Commons.TrustedIdentity;
+        Commons.InitializeKeyRing();
         var key1 = Key.Generate(new List<KeyCapability>() {KeyCapability.Sign}, null);
         var caps = new List<IdentityCapability> {IdentityCapability.Generic};
         var iir1 = IdentityIssuingRequest.Generate(key1, caps);
@@ -60,19 +60,17 @@ public class IdentityIssuingRequestTests
         var original = System.Text.Encoding.UTF8.GetString(json, 0, json.Length);
         var key2 = Key.Generate(new List<KeyCapability>() {KeyCapability.Sign}, null);
         var modified = original.Replace(key1.Public, key2.Public);
-        var iir2 = Item.Import<IdentityIssuingRequest>(components[0] + "." + Utility.ToBase64(modified) + "." +
-                                                       components[2]);
+        var iir2 = Item.Import<IdentityIssuingRequest>(components[0] + "." + Utility.ToBase64(modified) + "." + components[2]);
         try
         {
             iir2.Issue(Guid.NewGuid(), 100L, Commons.IntermediateKey, Commons.IntermediateIdentity, true, caps,
                 caps);
+            Assert.IsTrue(false, "Exception not thrown.");
         }
-        catch (IntegrityException)
+        catch (IntegrityStateException)
         {
-            return;
-        } // All is well 
-
-        Assert.IsTrue(false, "Should not happen.");
+            /* all is well */
+        }
     }
 
     [TestMethod]
@@ -87,7 +85,7 @@ public class IdentityIssuingRequestTests
     [TestMethod]
     public void IssueTest3()
     {
-        Dime.TrustedIdentity = Commons.TrustedIdentity;
+        Commons.InitializeKeyRing();
         var caps = new List<IdentityCapability> {IdentityCapability.Generic};
         var identity = IdentityIssuingRequest.Generate(Key.Generate(new List<KeyCapability>() {KeyCapability.Sign}, null)).Issue(Guid.NewGuid(), 100L,
             Commons.IntermediateKey, Commons.IntermediateIdentity, true, caps);
@@ -97,7 +95,7 @@ public class IdentityIssuingRequestTests
     [TestMethod]
     public void IssueTest4()
     {
-        Dime.TrustedIdentity = Commons.TrustedIdentity;
+        Commons.InitializeKeyRing();
         var caps = new List<IdentityCapability> {IdentityCapability.Generic};
         var identity = IdentityIssuingRequest.Generate(Key.Generate(new List<KeyCapability>() {KeyCapability.Sign}, null)).Issue(Guid.NewGuid(), 100L,
             Commons.IntermediateKey, Commons.IntermediateIdentity, false, caps);
@@ -159,7 +157,7 @@ public class IdentityIssuingRequestTests
     [TestMethod]
     public void CapabilityTest1()
     {
-        Dime.TrustedIdentity = Commons.TrustedIdentity;
+        Commons.InitializeKeyRing();
         var requestedCapabilities = new List<IdentityCapability> {IdentityCapability.Generic, IdentityCapability.Identify};
         var iir = IdentityIssuingRequest.Generate(Key.Generate(new List<KeyCapability>() {KeyCapability.Sign}, null), requestedCapabilities);
         try
@@ -179,7 +177,7 @@ public class IdentityIssuingRequestTests
     [TestMethod]
     public void CapabilityTest2()
     {
-        Dime.TrustedIdentity = Commons.TrustedIdentity;
+        Commons.InitializeKeyRing();
         var requestedCapabilities = new List<IdentityCapability>
             {IdentityCapability.Generic, IdentityCapability.Identify, IdentityCapability.Issue};
         var allowedCapabilities = new List<IdentityCapability> {IdentityCapability.Generic, IdentityCapability.Identify};
@@ -200,7 +198,7 @@ public class IdentityIssuingRequestTests
     [TestMethod]
     public void CapabilityTest3()
     {
-        Dime.TrustedIdentity = Commons.TrustedIdentity;
+        Commons.InitializeKeyRing();
         var requestedCapabilities = new List<IdentityCapability> {IdentityCapability.Generic};
         var allowedCapabilities = new List<IdentityCapability> {IdentityCapability.Generic, IdentityCapability.Identify};
         var requiredCapabilities = new List<IdentityCapability> {IdentityCapability.Identify};
@@ -221,7 +219,7 @@ public class IdentityIssuingRequestTests
     [TestMethod]
     public void CapabilityTest4()
     {
-        Dime.TrustedIdentity = Commons.TrustedIdentity;
+        Commons.InitializeKeyRing();
         var requestedCapabilities = new List<IdentityCapability> {IdentityCapability.Generic, IdentityCapability.Identify};
         var allowedCapabilities = new List<IdentityCapability> {IdentityCapability.Generic, IdentityCapability.Identify};
         var requiredCapabilities = new List<IdentityCapability> {IdentityCapability.Identify};
@@ -235,7 +233,7 @@ public class IdentityIssuingRequestTests
     [TestMethod]
     public void CapabilityTest5()
     {
-        Dime.TrustedIdentity = Commons.TrustedIdentity;
+        Commons.InitializeKeyRing();
         var allowedCapabilities = new List<IdentityCapability> {IdentityCapability.Generic, IdentityCapability.Identify};
         var requestedCapabilities = new List<IdentityCapability> {IdentityCapability.Issue};
         try
@@ -254,7 +252,7 @@ public class IdentityIssuingRequestTests
     [TestMethod]
     public void CapabilityTest6()
     {
-        Dime.TrustedIdentity = Commons.TrustedIdentity;
+        Commons.InitializeKeyRing();
         var caps = new List<IdentityCapability> {IdentityCapability.Issue};
         try
         {

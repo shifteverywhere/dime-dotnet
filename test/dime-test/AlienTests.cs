@@ -13,7 +13,7 @@ using System.Collections.Generic;
 using System.Text;
 using DiME;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using DiME.Exceptions;
+using DiME.KeyRing;
 
 namespace DiME_test;
 
@@ -65,7 +65,7 @@ public class AlienTests
         Assert.IsNotNull(key);
         Assert.AreEqual("STN.2u96qu8UQbsbDGdAKkCzeRRShhPQ78tBtBANzENgHjRj4H6uVU", key.Public);
         Assert.AreEqual(Guid.Parse("18389044-92c0-4a87-8e14-a01e8be75873"), iir.UniqueId);
-        iir.Verify(key);
+        Assert.AreEqual(IntegrityState.Complete, iir.Verify(key));
     }
 
     [TestMethod]
@@ -75,11 +75,11 @@ public class AlienTests
         var iir = Item.Import<IdentityIssuingRequest>(alienIir);
         Assert.IsNotNull(iir);
         var caps = new List<IdentityCapability> { IdentityCapability.Generic };
-        Dime.TrustedIdentity = Commons.TrustedIdentity;
+        Commons.InitializeKeyRing();
         var identity = iir.Issue(Guid.NewGuid(), Dime.ValidFor1Day, Commons.IntermediateKey, Commons.IntermediateIdentity, true, caps,
             caps);
         Assert.IsNotNull(identity);
-        identity.IsTrusted();
+        Assert.AreEqual(IntegrityState.Complete, identity.Verify());
     }
 
     [TestMethod]
@@ -134,8 +134,8 @@ public class AlienTests
         Assert.AreEqual(Guid.Parse("141926f9-d061-48ac-82eb-f6080c1eefdd"), tag.UniqueId);
         var data = Item.Import<Data>(localData);
         Assert.IsNotNull(data);
-        tag.Verify(key, new List<Item>() {data});
-        try { tag.Verify(key, new List<Item>() {key}); Assert.IsTrue(false, "Exception not thrown."); } catch (IntegrityException) { /* all is well */ }
+        Assert.AreEqual(IntegrityState.Complete, tag.Verify(key, new List<Item>() {data}));
+        Assert.AreEqual(IntegrityState.FailedLinkedItemMismatch, tag.Verify(key, new List<Item>() {key}));
     }
 
     [TestMethod]

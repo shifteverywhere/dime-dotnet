@@ -76,11 +76,8 @@ public class ItemLinkTest
     [TestMethod]
     public void VerifyListTest1() {
         var link = new ItemLink(Commons.AudienceKey);
-        ItemLink.Verify(new List<Item> { Commons.AudienceKey }, new List<ItemLink> { link });
-        try {
-            ItemLink.Verify(new List<Item> { Commons.AudienceKey.PublicCopy() }, new List<ItemLink> { link });
-            Assert.IsTrue(false, "Exception not thrown.");
-        } catch (IntegrityException) { /* all is well */ }
+        Assert.IsTrue(Dime.IsIntegrityStateValid(ItemLink.Verify(new List<Item> { Commons.AudienceKey }, new List<ItemLink> { link })));
+        Assert.IsFalse(Dime.IsIntegrityStateValid(ItemLink.Verify(new List<Item> { Commons.AudienceKey.PublicCopy() }, new List<ItemLink> { link })));
     }
 
     [TestMethod]

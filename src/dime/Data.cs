@@ -13,6 +13,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 using DiME.Exceptions;
+using DiME.KeyRing;
 
 namespace DiME;
 
@@ -102,20 +103,10 @@ public class Data: Item
     /// <exception cref="InvalidOperationException"></exception>
     /// <exception cref="FormatException"></exception>
     /// <exception cref="IntegrityException"></exception>
-    public void Verify(Key key, List<Item>? linkedItems = null) { 
+    public override IntegrityState Verify(Key? key = null, List<Item>? linkedItems = null) { 
         if (string.IsNullOrEmpty(Payload)) 
             throw new InvalidOperationException("Unable to verify message, no payload added.");
-        // Verify IssuedAt and ExpiresAt
-        var now = Utility.CreateDateTime();
-        if (Utility.GracefulDateTimeCompare(IssuedAt, now) > 0)
-            throw new DateExpirationException("Item is not yet valid, issued at date in the future.");
-        if (Utility.GracefulDateTimeCompare(IssuedAt, ExpiresAt) > 0)
-            throw new DateExpirationException("Invalid expiration date, expires at before issued at.");
-        if (Utility.GracefulDateTimeCompare(ExpiresAt, now) < 0)
-            throw new DateExpirationException("Item has expired.");
-        base.Verify(key);
-        if (linkedItems == null || linkedItems.Count == 0) return;
-        VerifyLinkedItems(linkedItems);
+        return base.Verify(key, linkedItems);
     }
     
     public override string Thumbprint()

@@ -7,6 +7,8 @@
 //  Released under the MIT licence, see LICENSE for more information.
 //  Copyright © 2022 Shift Everywhere AB. All rights reserved.
 //
+
+#nullable enable
 using System;
 using System.Linq;
 using System.Collections.Generic;
@@ -25,11 +27,6 @@ public class IdentityIssuingRequest: Item
     #region -- PUBLIC --
 
     /// <summary>
-    /// A constant holding the number of seconds for a year (based on 365 days).
-    /// </summary>
-    [Obsolete("Obsolete constant, use Dime.ValidFor1Year instead.")]
-    public const long _VALID_FOR_1_YEAR = Dime.ValidFor1Year; 
-    /// <summary>
     ///  The item header for DiME Identity Issuing Request items.
     /// </summary>
     public const string ItemHeader = "IIR";
@@ -42,16 +39,16 @@ public class IdentityIssuingRequest: Item
     /// included in any issued identity. The equivalent secret (private) key was used to sign the IIR, thus the
     /// public key can be used to verify the signature. This must be a key of type IDENTITY.
     /// </summary>
-    public Key PublicKey => Claims().GetKey(Claim.Pub, new List<KeyCapability>() { KeyCapability.Sign });
+    public Key? PublicKey => Claims()?.GetKey(Claim.Pub, new List<KeyCapability>() { KeyCapability.Sign });
     /// <summary>
     /// Returns a list of any capabilities requested by this IIR. Capabilities are usually used to
     /// determine what an entity may do with its issued identity.
     /// </summary>
-    public ReadOnlyCollection<IdentityCapability> Capabilities 
+    public ReadOnlyCollection<IdentityCapability>? Capabilities 
     { 
         get {
             if (_capabilities is not null) return _capabilities;
-            var caps = Claims().Get<List<string>>(Claim.Cap);
+            var caps = Claims()?.Get<List<string>>(Claim.Cap);
             if (caps != null)
                 _capabilities = caps.ConvertAll(str =>
                 {
@@ -61,23 +58,23 @@ public class IdentityIssuingRequest: Item
             return _capabilities;
         } 
     }
-    private ReadOnlyCollection<IdentityCapability> _capabilities;
+    private ReadOnlyCollection<IdentityCapability>? _capabilities;
     /// <summary>
     /// Returns all principles provided in the IIR. These are key-value fields that further provide information
     /// about the entity. Using principles are optional.
     /// </summary>
-    public Dictionary<string, object> Principles
+    public Dictionary<string, object>? Principles
     {
         get
         {
             if (_principles is null)
             {
-                _principles = Claims().Get<Dictionary<string, object>>(Claim.Pri);
+                _principles = Claims()?.Get<Dictionary<string, object>>(Claim.Pri);
             }
             return _principles;
         }
     }
-    private Dictionary<string, object> _principles;
+    private Dictionary<string, object>? _principles;
         
     /// <summary>
     /// Empty constructor, not to be used. Required for Generics.
@@ -94,51 +91,26 @@ public class IdentityIssuingRequest: Item
     /// <returns>An IIR that can be used to issue a new identity (or sent to a trusted entity for issuing).</returns>
     /// <exception cref="ArgumentException"></exception>
     /// <exception cref="ArgumentNullException"></exception>
-    public static IdentityIssuingRequest Generate(Key key, List<IdentityCapability> capabilities = null, Dictionary<string, object> principles = null) 
+    public static IdentityIssuingRequest Generate(Key key, List<IdentityCapability>? capabilities = null, Dictionary<string, object>? principles = null) 
     {
         if (!key.HasCapability(KeyCapability.Sign)) { throw new ArgumentException("Key missing required 'sign' capability.", nameof(key)); }
         if (key.Secret == null) { throw new ArgumentNullException(nameof(key), "Private key must not be null"); }
         var iir = new IdentityIssuingRequest();
         var claims = iir.Claims();
-        claims.Put(Claim.Uid, Guid.NewGuid());
-        claims.Put(Claim.Iat, Utility.CreateDateTime());
-        claims.Put(Claim.Pub, key.Public);
+        claims?.Put(Claim.Uid, Guid.NewGuid());
+        claims?.Put(Claim.Iat, Utility.CreateDateTime());
+        claims?.Put(Claim.Pub, key.Public);
         var capabilitiesToSet = capabilities;
         if (capabilitiesToSet == null || capabilitiesToSet.Count == 0) 
             capabilitiesToSet = new List<IdentityCapability>() { IdentityCapability.Generic }; 
         else 
             capabilitiesToSet = capabilities;
-        claims.Put(Claim.Cap, capabilitiesToSet.ConvertAll(obj => obj.ToString().ToLower()));
+        claims?.Put(Claim.Cap, capabilitiesToSet?.ConvertAll(obj => obj.ToString().ToLower()));
         if (principles is not null && principles.Count > 0)
-            claims.Put(Claim.Pri, principles);
+            claims?.Put(Claim.Pri, principles);
         iir.IsLegacy = key.IsLegacy;
         iir.Sign(key);
         return iir;
-    }
-
-    /// <summary>
-    /// Verifies that the IIR has been signed by the secret (private) key that is associated with the public key
-    /// included in the IIR. If this passes then it can be assumed that the sender is in possession of the private
-    /// key used to create the IIR and will also after issuing of an identity form the proof-of-ownership.
-    /// </summary>
-    public void Verify()
-    {
-        Verify(PublicKey);
-    }
-
-    /// <summary>
-    /// Verifies that the IIR has been signed by a secret (private) key that is associated with the provided public
-    /// key. If this passes then it can be assumed that the sender is in possession of the private key associated
-    /// with the public key used to verify. This method may be used when verifying that an IIR has been signed by
-    /// the same secret key that belongs to an already issued identity, this could be useful when re-issuing an identity.
-    /// </summary>
-    /// <param name="key">The key that should be used to verify the IIR, must be of type IDENTITY.</param>
-    /// <exception cref="DateExpirationException">If the IIR was issued in the future (according to the issued at date).</exception>
-    public override void Verify(Key key)
-    {
-        if (Utility.GracefulDateTimeCompare(IssuedAt, Utility.CreateDateTime()) > 0)
-            throw new DateExpirationException("An identity issuing request cannot have an issued at date in the future.");
-        base.Verify(key);
     }
 
     /// <summary>
@@ -148,7 +120,7 @@ public class IdentityIssuingRequest: Item
     /// <returns>true or false.</returns>
     public bool WantsCapability(IdentityCapability identityCapability)
     {
-        return Capabilities.Any(cap => cap == identityCapability);
+        return Capabilities?.Any(cap => cap == identityCapability) ?? false;
     }
         
     /// <summary>
@@ -173,10 +145,10 @@ public class IdentityIssuingRequest: Item
     /// <param name="methods">A list of methods that will apply to the issued identity.</param>
     /// <returns>An Identity instance that may be sent back to the entity that proved the IIR.</returns>
     /// <exception cref="ArgumentNullException"></exception>
-    public Identity Issue(Guid subjectId, long validFor, Key issuerKey, Identity issuerIdentity, bool includeChain, List<IdentityCapability> allowedCapabilities, List<IdentityCapability> requiredCapabilities = null, string systemName = null, List<string> ambit = null, List<string> methods = null) 
+    public Identity Issue(Guid subjectId, long validFor, Key issuerKey, Identity issuerIdentity, bool includeChain, List<IdentityCapability> allowedCapabilities, List<IdentityCapability>? requiredCapabilities = null, string? systemName = null, List<string>? ambit = null, List<string>? methods = null) 
     {    
         if (issuerIdentity == null) { throw new ArgumentNullException(nameof(issuerIdentity), "Issuer identity must not be null."); }
-        var sys = systemName is {Length: > 0} ? systemName : issuerIdentity.SystemName;
+        var sys = !string.IsNullOrEmpty(systemName) ? systemName : issuerIdentity.SystemName;
         return IssueNewIdentity(sys, subjectId, validFor, issuerKey, issuerIdentity, includeChain, allowedCapabilities, requiredCapabilities, ambit, methods);
     }
 
@@ -193,7 +165,7 @@ public class IdentityIssuingRequest: Item
     /// <param name="methods">A list of methods that will apply to the issued identity.</param>
     /// <returns></returns>
     /// <exception cref="ArgumentNullException"></exception>
-    public Identity SelfIssue(Guid subjectId, long validFor, Key issuerKey, string systemName, List<string> ambit = null, List<string> methods = null)
+    public Identity SelfIssue(Guid subjectId, long validFor, Key issuerKey, string systemName, List<string>? ambit = null, List<string>? methods = null)
     {
         if (string.IsNullOrEmpty(systemName)) { throw new ArgumentNullException(nameof(systemName), "System name must not be null or empty."); }
         return IssueNewIdentity(systemName, subjectId, validFor, issuerKey, null, false, null, null, ambit, methods);
@@ -230,34 +202,43 @@ public class IdentityIssuingRequest: Item
         
     private new const int MinimumNbrComponents = 3;
         
-    private Identity IssueNewIdentity(string systemName, Guid subjectId, long validFor, Key issuerKey, Identity issuerIdentity, bool includeChain, List<IdentityCapability> allowedCapabilities, IReadOnlyCollection<IdentityCapability> requiredCapabilities = null, List<string> ambits = null, List<string> methods = null)
+    private Identity IssueNewIdentity(string? systemName, Guid subjectId, long validFor, Key issuerKey, Identity? issuerIdentity, bool includeChain, List<IdentityCapability>? allowedCapabilities, IReadOnlyCollection<IdentityCapability>? requiredCapabilities = null, List<string>? ambit = null, List<string>? methods = null)
     {
-        Verify(PublicKey);
-        var isSelfSign = issuerIdentity == null || PublicKey.Public.Equals(issuerKey.Public);
+        var state = Verify(PublicKey);
+        if (!Dime.IsIntegrityStateValid(state))
+            throw new IntegrityStateException(state, "Unable to verify Identity issuing request.");
+        var isSelfSign = issuerIdentity == null || PublicKey!.Public.Equals(issuerKey.Public);
         CompleteCapabilities(allowedCapabilities, requiredCapabilities, isSelfSign);
-        if (!isSelfSign && !issuerIdentity.HasCapability(IdentityCapability.Issue))
+        if (!isSelfSign && issuerIdentity != null && !issuerIdentity.HasCapability(IdentityCapability.Issue))
             throw new CapabilityException("Issuing identity missing 'issue' capability.");
         var now = Utility.CreateDateTime();
         var expires = now.AddSeconds(validFor);
         var issuerId = issuerIdentity?.SubjectId ?? subjectId;
         var identity = new Identity(systemName, 
             subjectId, 
-            PublicKey.Public, 
+            PublicKey?.Public, 
             now, 
             expires, 
             issuerId, 
-            Claims().Get<List<string>>(Claim.Cap), 
-            Claims().Get<Dictionary<string, object>>(Claim.Pri), 
-            ambits, 
+            Claims()?.Get<List<string>>(Claim.Cap), 
+            Claims()?.Get<Dictionary<string, object>>(Claim.Pri), 
+            ambit, 
             methods);
-        if (Dime.TrustedIdentity != null && issuerIdentity != null && issuerIdentity.SubjectId != Dime.TrustedIdentity.SubjectId)
+        if (issuerIdentity is not null)
         {
-            issuerIdentity.IsTrusted();
-            // The chain will only be set if this is not the trusted identity (and as long as one is set)
-            // and if it is a trusted issuer identity (from set trusted identity) and includeChain is set to true
-            if (includeChain)
+            if (!Dime.KeyRing.Contains(issuerIdentity) && includeChain)
             {
-                identity.TrustChain = issuerIdentity;    
+                // The chain will only be set if the issuer identity is not a trusted identity in the key ring
+                state = issuerIdentity.Verify();
+                if (!Dime.IsIntegrityStateValid(state))
+                    throw new IntegrityStateException(state, "Unable to verify issuer identity.");
+                identity.TrustChain = issuerIdentity;
+            }
+            else
+            {
+                state = issuerIdentity.VerifyDates();
+                if (!Dime.IsIntegrityStateValid(state))
+                    throw new IntegrityStateException(state, "Unable to verify valid dates of issuer identity.");
             }
         }
         identity.IsLegacy = IsLegacy;
@@ -265,9 +246,9 @@ public class IdentityIssuingRequest: Item
         return identity;
     }
 
-    private void CompleteCapabilities(List<IdentityCapability> allowedCapabilities, IReadOnlyCollection<IdentityCapability> requiredCapabilities, bool isSelfSign)
+    private void CompleteCapabilities(List<IdentityCapability>? allowedCapabilities, IReadOnlyCollection<IdentityCapability>? requiredCapabilities, bool isSelfSign)
     {
-        var caps = Capabilities != null ? new List<IdentityCapability>(Capabilities) : new List<IdentityCapability> {IdentityCapability.Generic};
+        var caps = Capabilities is not null ? new List<IdentityCapability>(Capabilities) : new List<IdentityCapability> {IdentityCapability.Generic};
         if (caps.Count == 0) { caps.Add(IdentityCapability.Generic); }
         if (isSelfSign)
         {
@@ -276,11 +257,11 @@ public class IdentityIssuingRequest: Item
         }
         else 
         {
-            if (allowedCapabilities == null || allowedCapabilities.Count == 0) { throw new ArgumentException("Allowed capabilities must be defined to issue identity.", nameof(allowedCapabilities)); }
+            if (allowedCapabilities is null || allowedCapabilities.Count == 0) { throw new ArgumentException("Allowed capabilities must be defined to issue identity.", nameof(allowedCapabilities)); }
             if (caps.Except(allowedCapabilities).Any()) { throw new CapabilityException("IIR contains one or more disallowed capabilities."); }
-            if (requiredCapabilities != null && requiredCapabilities.Except(caps).Any()) { throw new CapabilityException("IIR is missing one or more required capabilities."); }
+            if (requiredCapabilities is not null && requiredCapabilities.Except(caps).Any()) { throw new CapabilityException("IIR is missing one or more required capabilities."); }
         }
-        Claims().Put(Claim.Cap, caps.ConvertAll(obj => obj.ToString().ToLower()));
+        Claims()?.Put(Claim.Cap, caps.ConvertAll(obj => obj.ToString().ToLower()));
         _capabilities = null;
     }
 

@@ -12,6 +12,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using DiME.Exceptions;
+using DiME.KeyRing;
 
 namespace DiME;
 
@@ -115,7 +116,7 @@ public sealed class ItemLink
     /// <param name="items">The items to verify against.</param>
     /// <param name="links">The list of ItemLink instances.</param>
     /// <exception cref="IntegrityException"></exception>
-    public static void Verify(List<Item> items, List<ItemLink> links)
+    public static IntegrityState Verify(List<Item> items, List<ItemLink> links)
     {
         if (items.Count == 0 || links.Count == 0) throw new IntegrityException("Unable to verify, item links or items missing for verification.");
         foreach (var item in items)
@@ -125,11 +126,12 @@ public sealed class ItemLink
             {
                 matchFound = true;
                 if (!link.ItemIdentifier.Equals(item.Header) || !link.Thumbprint.Equals(item.Thumbprint()))
-                    throw new IntegrityException("Unable to verify, item link not matching verified item.");
+                    return IntegrityState.FailedLinkedItemFault;
             }
             if (!matchFound)
-                throw new IntegrityException("Unable to verify, matching item link not found for item.");
+                return IntegrityState.FailedLinkedItemMismatch;
         }
+        return IntegrityState.ValidItemLinks;
     }
 
     /// <summary>

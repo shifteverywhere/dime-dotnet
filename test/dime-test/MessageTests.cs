@@ -39,7 +39,7 @@ public class MessageTests
     [TestMethod]
     public void MessageTest1()
     {
-        Dime.TrustedIdentity = Commons.TrustedIdentity;
+        Commons.InitializeKeyRing();
         var now = DateTime.UtcNow;
         var message = new Message(Commons.AudienceIdentity.SubjectId, Commons.IssuerIdentity.SubjectId, 10L);
         message.SetPayload(Encoding.UTF8.GetBytes(Commons.Payload));
@@ -53,7 +53,7 @@ public class MessageTests
     [TestMethod]
     public void MessageTest2()
     {
-        Dime.TrustedIdentity = Commons.TrustedIdentity;
+        Commons.InitializeKeyRing();
         var payload = Encoding.UTF8.GetBytes(Commons.Payload);
         const long validFor = 10L;
         var message1 = new Message(Commons.AudienceIdentity.SubjectId, Commons.IssuerIdentity.SubjectId, validFor);
@@ -66,7 +66,7 @@ public class MessageTests
     [TestMethod]
     public void MessageTest3()
     {
-        Dime.TrustedIdentity = Commons.TrustedIdentity;
+        Commons.InitializeKeyRing();
         const string text = Commons.Payload;
         var payload = Encoding.UTF8.GetBytes(text);
         var message1 = new Message(Commons.IssuerIdentity.SubjectId);
@@ -81,7 +81,7 @@ public class MessageTests
     [TestMethod]
     public void ExportTest1()
     {
-        Dime.TrustedIdentity = Commons.TrustedIdentity;
+        Commons.InitializeKeyRing();
         var message = new Message(Commons.AudienceIdentity.SubjectId, Commons.IssuerIdentity.SubjectId, 10L);
         message.SetPayload(Encoding.UTF8.GetBytes(Commons.Payload));
         message.Sign(Commons.IssuerKey);
@@ -95,7 +95,7 @@ public class MessageTests
     [TestMethod]
     public void ExportTest2()
     {
-        Dime.TrustedIdentity = Commons.TrustedIdentity;
+        Commons.InitializeKeyRing();
         var message = new Message(Commons.AudienceIdentity.SubjectId, Commons.IssuerIdentity.SubjectId, 10L);
         try
         {
@@ -112,7 +112,7 @@ public class MessageTests
     [TestMethod]
     public void ExportTest3()
     {
-        Dime.TrustedIdentity = Commons.TrustedIdentity;
+        Commons.InitializeKeyRing();
         var message = new Message(Commons.AudienceIdentity.SubjectId, Commons.IssuerIdentity.SubjectId, 10L);
         message.SetPayload(Encoding.UTF8.GetBytes(Commons.Payload));
         message.Sign(Commons.IssuerKey);
@@ -122,20 +122,11 @@ public class MessageTests
     [TestMethod]
     public void VerifyTest1()
     {
-        Dime.TrustedIdentity = Commons.TrustedIdentity;
+        Commons.InitializeKeyRing();
         var message = new Message(Commons.AudienceIdentity.SubjectId, Commons.IssuerIdentity.SubjectId, -10L);
         message.SetPayload(Encoding.UTF8.GetBytes(Commons.Payload));
         message.Sign(Commons.IssuerKey);
-        try
-        {
-            message.Verify(Commons.IssuerKey);
-        }
-        catch (DateExpirationException)
-        {
-            return;
-        } // All is well
-
-        Assert.IsTrue(false, "Should not happen.");
+        Assert.IsFalse(Dime.IsIntegrityStateValid(message.Verify(Commons.IssuerKey)));
     }
 
     [TestMethod]
@@ -144,26 +135,17 @@ public class MessageTests
         var key = Key.Generate(new List<KeyCapability>() {KeyCapability.Sign}, null);
         var untrustedSender = IdentityIssuingRequest.Generate(key)
             .SelfIssue(Guid.NewGuid(), 120L, key, Commons.SystemName);
-        Dime.TrustedIdentity = Commons.TrustedIdentity;
+        Commons.InitializeKeyRing();
         var message = new Message(Commons.AudienceIdentity.SubjectId, untrustedSender.SubjectId, 120L);
         message.SetPayload(Encoding.UTF8.GetBytes(Commons.Payload));
         message.Sign(key);
-        try
-        {
-            message.Verify(Commons.IssuerKey);
-        }
-        catch (IntegrityException)
-        {
-            return;
-        } // All is well
-
-        Assert.IsTrue(false, "Should not happen.");
+        Assert.IsFalse(Dime.IsIntegrityStateValid(message.Verify(Commons.IssuerKey)));
     }
 
     [TestMethod]
     public void VerifyTest3()
     {
-        Dime.TrustedIdentity = Commons.TrustedIdentity;
+        Commons.InitializeKeyRing();
         var message = new Message(Commons.AudienceIdentity.SubjectId, Commons.IssuerIdentity.SubjectId, 120L);
         message.SetPayload(Encoding.UTF8.GetBytes(Commons.Payload));
         message.Sign(Commons.IssuerKey);
@@ -173,7 +155,7 @@ public class MessageTests
     [TestMethod]
     public void VerifyTest4()
     {
-        Dime.TrustedIdentity = Commons.TrustedIdentity;
+        Commons.InitializeKeyRing();
         var message = new Message(Commons.AudienceIdentity.SubjectId, Commons.IssuerIdentity.SubjectId);
         message.SetPayload(Encoding.UTF8.GetBytes(Commons.Payload));
         message.Sign(Commons.IssuerKey);
@@ -183,22 +165,21 @@ public class MessageTests
     [TestMethod] 
     public void VerifyTest5() 
     {
-        Dime.TrustedIdentity = Commons.TrustedIdentity;
+        Commons.InitializeKeyRing();
         var message = new Message(Commons.AudienceIdentity.SubjectId, Commons.IssuerIdentity.SubjectId,1L);
         message.SetPayload(Encoding.UTF8.GetBytes(Commons.Payload));
         message.Sign(Commons.IssuerKey);
         Thread.Sleep(1000);
-        try { message.Verify(Commons.IssuerIdentity.PublicKey); Assert.IsTrue(false, "Exception not thrown."); } catch (DateExpirationException) { /* all is well */ }
+        Assert.IsFalse(Dime.IsIntegrityStateValid(message.Verify(Commons.IssuerIdentity.PublicKey)));
         Dime.GracePeriod = 1L;
         message.Verify(Commons.IssuerIdentity.PublicKey);
         Dime.GracePeriod = 0L;
     }
-
-
+    
     [TestMethod]
     public void VerifyTest6() 
     {
-        Dime.TrustedIdentity = Commons.TrustedIdentity;
+        Commons.InitializeKeyRing();
         var message = new Message(Commons.AudienceIdentity.SubjectId, Commons.IssuerIdentity.SubjectId,1L);
         message.SetPayload(Encoding.UTF8.GetBytes(Commons.Payload));
         message.Sign(Commons.IssuerKey);
@@ -211,18 +192,18 @@ public class MessageTests
     public void VerifyTest7() 
     {
         Dime.TimeModifier = -2;
-        Dime.TrustedIdentity = Commons.TrustedIdentity;
+        Commons.InitializeKeyRing();
         var message = new Message(Commons.AudienceIdentity.SubjectId, Commons.IssuerIdentity.SubjectId, 1L);
         message.SetPayload(Encoding.UTF8.GetBytes(Commons.Payload));
         message.Sign(Commons.IssuerKey);
         Thread.Sleep(2000);
-        try { message.Verify(Commons.IssuerIdentity.PublicKey); Assert.IsTrue(false, "Exception not thrown."); } catch (DateExpirationException) { /* all is well */ }
+        Assert.IsFalse(Dime.IsIntegrityStateValid(message.Verify(Commons.IssuerIdentity.PublicKey)));
     }
     
     [TestMethod]
     public void ImportTest1()
     {
-        Dime.TrustedIdentity = Commons.TrustedIdentity;
+        Commons.InitializeKeyRing();
         const string exported =
             "Di:MSG.eyJhdWQiOiI4ZmRkYzI0Mi02NzBlLTRjNzMtODRiZS04Mjc2MWEzOTI3ZWYiLCJleHAiOiIyMDIyLTEwLTE3VDE5OjA0OjMyLjExODI3MloiLCJpYXQiOiIyMDIyLTEwLTE3VDE5OjA0OjIyLjExODI3MloiLCJpc3MiOiIzYjAxZDcyMi1lNjZiLTQ2ODMtYTViNi05M2RjNmU2MGUwMTciLCJ1aWQiOiIxNzlhMzU4OC0wNGZjLTQ4MWUtODdlOS0xY2NmNjNlMGM5NDAifQ.UmFjZWNhciBpcyByYWNlY2FyIGJhY2t3YXJkcy4.MzFhMDYyN2JlZjk1NjNiZC4wM2E1ZmYxYjZjMzE3NWJkNTcwODgxZjZjYzczZGUwZTQ3MzhlNTEwNGI5YTQyYmM4YzhkYTJjMzFhNjQ5N2FlZGZhMGE2YjQzOGRlYjU5Yzg3YjIzODNiYjU5NDcyMzMxZWVjM2YyMzg2ZWY3ZTI2YmRmNGRkZDJmNmM2NTUwMQ";
         var message = Item.Import<Message>(exported);
@@ -238,7 +219,7 @@ public class MessageTests
     [TestMethod]
     public void ImportTest2()
     {
-        Dime.TrustedIdentity = Commons.TrustedIdentity;
+        Commons.InitializeKeyRing();
         const string encoded =
             "M1.STEuZXlKemRXSWlPaUpoWWpWaU9HTXdaQzFtWkRJNExUUmpNekF0T0RReVppMHpORGRpTkRoak9EWmtZbU1pTENKcGMzTWlPaUkzTVdVeVltVTFZeTAzTVdWa0xUUXlZalF0WW1ZNU1pMDRabUppWm1VMk1qQTNOMk1pTENKcFlYUWlPakUyTWpFNU56SXdNalFzSW1WNGNDSTZNVFkxTXpVd09EQXlOQ3dpYVd0NUlqb2lUVU52ZDBKUldVUkxNbFozUVhsRlFXbFRkR1IxU25wd2RVdHFjMHRLTlZ4MU1EQXlRbTVQT1VSMFIwTk9TMXBpY0ZCR1RUVlBORlJFUnpNMVMwVklaeUlzSW1OaGNDSTZXeUpoZFhSb2IzSnBlbVVpWFgwLndDV20xT3ExMHFVK3hPYVZVTTJwR1dHUmQxakgxc2FWYXRGMUc2Zy93UFUySHY5dGFSWGhINGtWVWc0NnFjcU0yTTRKd0JVZm8xbWM2dU10Z1JOSkJR.eyJ1aWQiOiI1ZWRkMmFkZS1mZjRiLTQ1YzktODMyMy1iOTE4YWJmYWZkMjEiLCJzdWIiOiJiMzIyNTU3NC1jYTNkLTRlYWItODNlMC03NjU1MDE2ZWEyMmQiLCJpc3MiOiJhYjViOGMwZC1mZDI4LTRjMzAtODQyZi0zNDdiNDhjODZkYmMiLCJpYXQiOjE2MjE5NzU2MzAsImV4cCI6MTYyMTk3NTY0MH0.UmFjZWNhciBpcyByYWNlY2FyIGJhY2t3YXJkcy4";
         try
@@ -267,7 +248,7 @@ public class MessageTests
     [TestMethod]
     public void SignTest1()
     {  
-        Dime.TrustedIdentity = Commons.TrustedIdentity;
+        Commons.InitializeKeyRing();
         var message = new Message(Commons.AudienceIdentity.SubjectId, Commons.IssuerIdentity.SubjectId, 10L);
         try {
             message.Sign(Commons.IssuerKey);
@@ -278,7 +259,7 @@ public class MessageTests
     [TestMethod]
     public void SignTest2()
     {  
-        Dime.TrustedIdentity = Commons.TrustedIdentity;
+        Commons.InitializeKeyRing();
         var message = new Message(Commons.AudienceIdentity.SubjectId, Commons.IssuerIdentity.SubjectId, 10L);
         message.SetPayload(Encoding.UTF8.GetBytes(Commons.Payload));
         message.Sign(Commons.IssuerKey);
@@ -292,7 +273,7 @@ public class MessageTests
     [TestMethod]
     public void IsSignedTest1()
     {
-        Dime.TrustedIdentity = Commons.TrustedIdentity;
+        Commons.InitializeKeyRing();
         var message = new Message(Commons.AudienceIdentity.SubjectId, Commons.IssuerIdentity.SubjectId, 10L);
         message.SetPayload(Encoding.UTF8.GetBytes(Commons.Payload));
         Assert.IsFalse(message.IsSigned);
@@ -371,7 +352,7 @@ public class MessageTests
     [TestMethod]
     public void LinkItemTest1()
     {
-        Dime.TrustedIdentity = Commons.TrustedIdentity;
+        Commons.InitializeKeyRing();
         var issuer = Commons.IssuerIdentity;
         var receiver = Commons.AudienceIdentity;
         var issuerMessage = new Message(receiver.SubjectId, issuer.SubjectId, 100L);
@@ -392,26 +373,23 @@ public class MessageTests
     [TestMethod]
     public void LinkItemTest2()
     {
-        Dime.TrustedIdentity = Commons.TrustedIdentity;
+        Commons.InitializeKeyRing();
         var message = new Message(Commons.AudienceIdentity.SubjectId, Commons.IssuerIdentity.SubjectId, 100L);
         message.SetPayload(Encoding.UTF8.GetBytes(Commons.Payload));
         message.AddItemLink(Key.Generate(new List<KeyCapability>() {KeyCapability.Exchange}, null));
         message.Sign(Commons.IssuerKey);
-        try {
-            message.Verify(Commons.IssuerKey, new List<Item>() { Commons.IssuerKey });
-        } catch (IntegrityException) { return; } // All is well
-        Assert.IsTrue(false, "Should not happen.");
+        Assert.IsFalse(Dime.IsIntegrityStateValid(message.Verify(Commons.IssuerKey, new List<Item>() { Commons.IssuerKey })));
     }
         
     [TestMethod]
     public void LinkItemTest3()
     {
-        Dime.TrustedIdentity = Commons.TrustedIdentity;
+        Commons.InitializeKeyRing();
         var message = new Message(Commons.AudienceIdentity.SubjectId, Commons.IssuerIdentity.SubjectId, 100L);
         message.SetPayload(Encoding.UTF8.GetBytes(Commons.Payload));
         message.Sign(Commons.IssuerKey);
         try {
-            message.LinkItem(Key.Generate(new List<KeyCapability>() {KeyCapability.Exchange}, null));
+            message.AddItemLink(Key.Generate(new List<KeyCapability>() {KeyCapability.Exchange}, null));
         } catch (InvalidOperationException) { return; } // All is well
         Assert.IsTrue(false, "Should not happen.");
     }
@@ -419,7 +397,7 @@ public class MessageTests
     [TestMethod]
     public void ThumbprintTest1()
     {
-        Dime.TrustedIdentity = Commons.TrustedIdentity;
+        Commons.InitializeKeyRing();
         var message1 = new Message(Commons.AudienceIdentity.SubjectId, Commons.IssuerIdentity.SubjectId, 100L);
         message1.SetPayload(Encoding.UTF8.GetBytes(Commons.Payload));
         message1.Sign(Commons.IssuerKey);
@@ -433,7 +411,7 @@ public class MessageTests
     [TestMethod]
     public void ThumbprintTest2()
     {
-        Dime.TrustedIdentity = Commons.TrustedIdentity;
+        Commons.InitializeKeyRing();
         var issuer = Commons.IssuerIdentity;
         var receiver = Commons.AudienceIdentity;
         var issuerMessage1 = new Message(receiver.SubjectId, issuer.SubjectId, 100);
@@ -477,45 +455,5 @@ public class MessageTests
         } catch (ArgumentException) { return; } // All is well
         Assert.IsTrue(false, "Should not happen.");
     }
-        
-    [TestMethod]
-    public void AlienMessageEncryptionTest1() 
-    {
-        const string text = Commons.Payload;
-        var clientKey = Item.Import<Key>("Di:KEY.eyJ1aWQiOiIzOWYxMzkzMC0yYTJhLTQzOWEtYjBkNC1lMzJkMzc4ZDgyYzciLCJwdWIiOiIyREJWdG5NWlVjb0dZdHd3dmtjYnZBSzZ0Um1zOUZwNGJ4dHBlcWdha041akRVYkxvOXdueWRCUG8iLCJpYXQiOiIyMDIyLTA2LTAzVDEwOjUzOjM0LjQ0NDA0MVoiLCJrZXkiOiIyREJWdDhWOEF4UWR4UFZVRkJKOWdScFA1WDQzNnhMbVBrWW9RNzE1cTFRd2ZFVml1NFM3RExza20ifQ");
-        var serverKey = Item.Import<Key>("Di:KEY.eyJ1aWQiOiJjY2U1ZDU1Yi01NDI4LTRhMDUtOTZmYi1jZmU4ZTE4YmM3NWIiLCJwdWIiOiIyREJWdG5NYTZrcjNWbWNOcXNMSmRQMW90ZGtUMXlIMTZlMjV0QlJiY3pNaDFlc3J3a2hqYTdaWlEiLCJpYXQiOiIyMDIyLTA2LTAzVDEwOjUzOjM0Ljg0NjEyMVoiLCJrZXkiOiIyREJWdDhWOTV5N2lvb1A0bmRDajd6d3dqNW1MVExydVhaaGg0RTJuMUE0SHoxQkIycHB5WXY1blIifQ");
-        // This is received by the client //
-        var message = Item.Import<Message>("Di:MSG.eyJpc3MiOiIzOTA3MWIyNC04MGRmLTQyYzEtYWQwZS1jNmQ2ZmNmMjg5YmIiLCJ1aWQiOiJjNjExOWYxMC0wZDE3LTQ3NTItYTkwZS1lODlhOGI2OGIyY2MiLCJpYXQiOiIyMDIyLTA2LTAzVDEzOjU0OjM2Ljg4MDM3MVoifQ.8sdEJ3CuHLaA/DmYcCce+8iflhQwESkDwIF8xu69R4h6Pvt+k6HfDJjK+sYm4goKoA04hb8Zaq9wMGiuxXoqqBHAGqd/.WorEis9t8WdQiOW+yK2F8gLfBfrnlFk/W7FMmjBhPWpp7SAddq2UPvE0nRo1TvWdqonhb2gm2TPMp0O0X4ULAQ");
-        var payload = message.GetPayload(serverKey.PublicCopy(), clientKey);
-        Assert.AreEqual(text, Encoding.UTF8.GetString(payload));
-        // Client generate a response (to be sent to the server) //
-        var response = new Message(Guid.NewGuid());
-        response.SetPayload(Encoding.UTF8.GetBytes(text), serverKey.PublicCopy(), clientKey);
-        response.Sign(Key.Generate(new List<KeyCapability>() {KeyCapability.Sign}, null));
-        var exported = response.Export();
-        // This would really happen on the server side //
-        var received = Item.Import<Message>(exported);
-        var payload2 = message.GetPayload(serverKey, clientKey.PublicCopy());
-        Assert.AreEqual(text, Encoding.UTF8.GetString(payload2));
-    }
-    /*
-    [TestMethod]
-    public void AlienMessageEncryptionTest2() {
-        var clientKey = Item.Import<Key>("Di:KEY.eyJ1aWQiOiI1MTllNWE5Mi01Yjc1LTQxMTctODZjMS1jMTFjZjI0MDY1YmUiLCJpYXQiOiIyMDIyLTA3LTAxVDA5OjEwOjEwLjc3MTQ2OFoiLCJrZXkiOiIyREJWdDhWOWdaekE1VktpV2JHWmZGYnFLTVFnbkJtb2dQRHU5R0JueUMzWXVpVVROZFZCc2hoZnAiLCJwdWIiOiIyREJWdG5NYTFZM1B6a25FN3ZXTnJybkgyM0JVVlJROXVwRGM1Umd0MnloVFNEMUZoOFNiMXBhR3cifQ");
-        var serverKey = Item.Import<Key>("Di:KEY.eyJpYXQiOiIyMDIyLTA3LTAxVDA4OjM2OjIwLjI2ODQ1M1oiLCJwdWIiOiIyREJWdG5NYWFYcWs1ZEFjWk5EY0hRNUpIc3ZpVkQzYk52N0p5Q1BvNmFHMWNna2RUWGJ0UEFLOUQiLCJ1aWQiOiI5ZTkzMzE0Yy02ZjAwLTQxYzAtYjQxMC1kMjhiNWIzYjllNWUiLCJ1c2UiOlsiZXhjaGFuZ2UiXX0");
-        var message = Item.Import<Message>("Di:MSG.eyJpYXQiOiIyMDIyLTA3LTAxVDA5OjE0OjUyLjEyMDg3NFoiLCJpc3MiOiIyZmMyMTA4NC1iNWVkLTQ5MjAtODlmMy03MTZiNGZmMmJmM2IiLCJ1aWQiOiI4M2Y5ZmI5YS1mOTYzLTQwOGUtOWFmNi0zZGZjNzk1OWM1NmYifQ.RBMBBjkDEVjCIIZ14BTEZKzcRYtYkm+CpiS/jTVZNJAUUE2zdhMSTyti/7lSSL4E0y4q8b4d8MOkrfzyFb0Qe9moCotg.1t5uoavxedfJXrtgx5qJ9n7nJ30Tp0cb3kXoAJHD+TFcRHwMY8G3x+bgLgS8Bd1gnzlQgf4BAvIZelGQrzdlDw");
-        var payload = message.GetPayload(clientKey, serverKey);
-        Assert.AreEqual("Commons.Payload, Encoding.UTF8.GetString(payload));
-        // TODO: add message.verity here
-    }
-
-    [TestMethod]
-    public void AlienMessageEncodingTest1()
-    {
-        const string alienMessage = "Di:MSG.eyJleHAiOiIyMDIyLTA2LTA4VDA5OjUxOjA4LjA3Mzk2MTNaIiwiaXNzIjoiNTFEQzdEMDEtODdEQy00NEM1LTlEMjctMEVGMjZEMjdCODVGIiwidWlkIjoiMTU3MjdFQTMtNDk0QS00QzVGLUE1M0UtMDE4Q0IyMUEzMjM5IiwiY3R4IjoiY29ubmVjdGlvbi1yZXF1ZXN0IiwiaWF0IjoiMjAyMi0wNi0wOFQwOTo0OTowOC4wNzM5NjEzWiJ9.eyJyZXF1ZXN0Ijp7InR5cCI6NSwiYWRkIjpbeyJ0eXAiOjEsIm1zZyI6IldlIHdpbGwgc2VuZCBhbiBTTVMgdG8gMDcqKioqKioqKjE5In1dLCJyZWYiOiJhR2J1RXdGYlVkfDV8RkpzQ09zb251bEtpMHRiTSIsImhkciI6IkJCTCAtIEFkZCBDb25uZWN0aW9uIiwibXNnIjoiRG8geW91IHdhbnQgdG8gY29ubmVjdCB0aGlzIHBob25lIHRvIEJCTD8ifX0.iAWGwidsaiI49xj2oNy5F2Yxubi+PC8WduUF+UuRQItxu4w60ILCnyWxRMD4kO78I1fcmbkDKbOa/o5+AgbhCA";
-        var message = Item.Import<Message>(alienMessage);
-        var reExported = message.Export();
-        Assert.AreEqual(alienMessage, reExported);
-    }
-*/
+ 
 }
