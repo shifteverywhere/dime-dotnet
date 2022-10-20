@@ -11,6 +11,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.Text;
 using DiME;
+using DiME.Exceptions;
 
 namespace DiME_test;
 

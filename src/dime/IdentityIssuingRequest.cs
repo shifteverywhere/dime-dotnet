@@ -11,6 +11,7 @@ using System;
 using System.Linq;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using DiME.Exceptions;
 
 namespace DiME;
 
@@ -235,7 +236,7 @@ public class IdentityIssuingRequest: Item
         var isSelfSign = issuerIdentity == null || PublicKey.Public.Equals(issuerKey.Public);
         CompleteCapabilities(allowedCapabilities, requiredCapabilities, isSelfSign);
         if (!isSelfSign && !issuerIdentity.HasCapability(IdentityCapability.Issue))
-            throw new IdentityCapabilityException("Issuing identity missing 'issue' capability.");
+            throw new CapabilityException("Issuing identity missing 'issue' capability.");
         var now = Utility.CreateDateTime();
         var expires = now.AddSeconds(validFor);
         var issuerId = issuerIdentity?.SubjectId ?? subjectId;
@@ -276,8 +277,8 @@ public class IdentityIssuingRequest: Item
         else 
         {
             if (allowedCapabilities == null || allowedCapabilities.Count == 0) { throw new ArgumentException("Allowed capabilities must be defined to issue identity.", nameof(allowedCapabilities)); }
-            if (caps.Except(allowedCapabilities).Any()) { throw new IdentityCapabilityException("IIR contains one or more disallowed capabilities."); }
-            if (requiredCapabilities != null && requiredCapabilities.Except(caps).Any()) { throw new IdentityCapabilityException("IIR is missing one or more required capabilities."); }
+            if (caps.Except(allowedCapabilities).Any()) { throw new CapabilityException("IIR contains one or more disallowed capabilities."); }
+            if (requiredCapabilities != null && requiredCapabilities.Except(caps).Any()) { throw new CapabilityException("IIR is missing one or more required capabilities."); }
         }
         Claims().Put(Claim.Cap, caps.ConvertAll(obj => obj.ToString().ToLower()));
         _capabilities = null;

@@ -11,6 +11,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.Collections.Generic;
 using DiME;
+using DiME.Exceptions;
 
 namespace DiME_test;
 
@@ -188,7 +189,7 @@ public class IdentityIssuingRequestTests
             _ = iir.Issue(Guid.NewGuid(), Dime.ValidFor1Year, Commons.IntermediateKey,
                 Commons.IntermediateIdentity, true, allowedCapabilities);
         }
-        catch (IdentityCapabilityException)
+        catch (CapabilityException)
         {
             return;
         } // All is well
@@ -209,7 +210,7 @@ public class IdentityIssuingRequestTests
             _ = iir.Issue(Guid.NewGuid(), Dime.ValidFor1Year, Commons.IntermediateKey,
                 Commons.IntermediateIdentity, true, allowedCapabilities, requiredCapabilities);
         }
-        catch (IdentityCapabilityException)
+        catch (CapabilityException)
         {
             return;
         } // All is well
@@ -242,7 +243,7 @@ public class IdentityIssuingRequestTests
             IdentityIssuingRequest.Generate(Key.Generate(new List<KeyCapability>() {KeyCapability.Sign}, null), requestedCapabilities).Issue(
                 Guid.NewGuid(), 100L, Commons.TrustedKey, Commons.TrustedIdentity, true, allowedCapabilities);
         }
-        catch (IdentityCapabilityException)
+        catch (CapabilityException)
         {
             return;
         } // All is well

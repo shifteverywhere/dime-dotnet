@@ -13,9 +13,13 @@ using System.Collections.Generic;
 using System.Text;
 using DiME;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using DiME.Exceptions;
 
 namespace DiME_test;
 
+/// <summary>
+/// Tests DiME envelopes/items from other platforms (Java)
+/// </summary>
 [TestClass]
 public class AlienTests
 {
@@ -150,7 +154,6 @@ public class AlienTests
         Assert.IsNotNull(exchangeKey);
         var payload = message.GetPayload(alienExchangeKey, exchangeKey);
         Assert.IsNotNull(payload);
-        var s = Encoding.UTF8.GetString(payload);
         Assert.AreEqual(Commons.Payload, Encoding.UTF8.GetString(payload));
     }
     

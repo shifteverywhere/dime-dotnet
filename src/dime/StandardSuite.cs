@@ -11,6 +11,7 @@ using System;
 using ASodium;
 using System.Collections.Generic;
 using System.Linq;
+using DiME.Exceptions;
 
 namespace DiME;
 

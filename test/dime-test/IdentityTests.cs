@@ -13,6 +13,7 @@ using System.Collections.Generic;
 using System.Text;
 using System.Threading;
 using DiME;
+using DiME.Exceptions;
 
 namespace DiME_test;
 
@@ -77,7 +78,7 @@ public class IdentityTests
         var allowCaps = new List<IdentityCapability> { IdentityCapability.Generic, IdentityCapability.Identify };
         try {
             _ = IdentityIssuingRequest.Generate(Key.Generate(new List<KeyCapability>() {KeyCapability.Sign}, null), reqCaps).Issue(Guid.NewGuid(), 100L, Commons.TrustedKey, Commons.TrustedIdentity, true, allowCaps);
-        } catch (IdentityCapabilityException) { return; } // All is well
+        } catch (CapabilityException) { return; } // All is well
         Assert.IsTrue(false, "Should not happen.");
     }
 

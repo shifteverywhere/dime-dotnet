@@ -178,7 +178,7 @@ public static class Utility
     /// Format as a RFC 3339 date.
     /// </summary>
     /// <param name="date">The date to format.</param>
-    /// <returns>A string with a RF 3339 formatted date.</returns>
+    /// <returns>A string with a RFC 3339 formatted date.</returns>
     public static string ToTimestamp(DateTime date)
     {
         return XmlConvert.ToString(date, XmlDateTimeSerializationMode.Utc);
@@ -206,7 +206,7 @@ public static class Utility
     public static int GracefulDateTimeCompare(DateTime? baseTime, DateTime? otherTime)
     {
         if (baseTime is null || otherTime is null) return 0;
-        long gracePeriod = Dime.GracePeriod;
+        var gracePeriod = Dime.GracePeriod;
         if (gracePeriod == 0L)
             return baseTime.Value.CompareTo(otherTime.Value);
         var lower = baseTime.Value.AddSeconds(-gracePeriod);

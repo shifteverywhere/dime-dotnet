@@ -7,10 +7,11 @@
 //  Released under the MIT licence, see LICENSE for more information.
 //  Copyright © 2022 Shift Everywhere AB. All rights reserved.
 //
+
 using System;
 using System.Runtime.Serialization;
 
-namespace DiME;
+namespace DiME.Exceptions;
 
 /// <summary>
 /// Exception that is thrown if there is any problems with verifying the trust of an identity.
@@ -108,30 +109,4 @@ public class KeyMismatchException : Exception
     /// <param name="innerException">The causing exception.</param>
     public KeyMismatchException(string message, Exception innerException) : base(message, innerException) { }
     protected KeyMismatchException(SerializationInfo info, StreamingContext context) : base(info, context) { }
-}
-
-/// <summary>
-/// Exception that is thrown if there is any problems with capabilities for an identity. This may happen when trying
-/// to issue a new identity and the identity issuing request (IIR) contains more capabilities than allowed. It may
-/// also happen when an identity that is missing the ISSUE capability is trying to issue a new identity from an IIR.
-/// </summary>
-[Serializable]
-public class IdentityCapabilityException : Exception
-{
-    /// <summary>
-    /// Create a new exception.
-    /// </summary>
-    public IdentityCapabilityException() { }
-    /// <summary>
-    /// Create a new exception with a description.
-    /// </summary>
-    /// <param name="message">A short description of what happened.</param>
-    public IdentityCapabilityException(string message) : base(message) { }
-    /// <summary>
-    /// Create a new exception with a description and the underlying causing exception.
-    /// </summary>
-    /// <param name="message">A short description of what happened.</param>
-    /// <param name="innerException">The causing exception.</param>
-    public IdentityCapabilityException(string message, Exception innerException) : base(message, innerException) { }
-    protected IdentityCapabilityException(SerializationInfo info, StreamingContext context) : base(info, context) { }
 }
