@@ -26,7 +26,7 @@ public class ItemLinkTest
         Assert.IsNotNull(link);
         Assert.AreEqual(key.Header, link.ItemIdentifier);
         Assert.AreEqual(key.Thumbprint(), link.Thumbprint);
-        Assert.AreEqual(key.UniqueId, link.UniqueId);
+        Assert.AreEqual(key.GetClaim<Guid>(Claim.Uid), link.UniqueId);
     }
 
     // itemLinkTest2 not relevant, as found in Java ref impl.
@@ -34,22 +34,22 @@ public class ItemLinkTest
     [TestMethod]
     public void ItemLinkTest3() {
         var key = Key.Generate(new List<KeyCapability>() {KeyCapability.Sign}, null);
-        var link = new ItemLink(Key.ItemHeader, key.Thumbprint(), key.UniqueId);
+        var link = new ItemLink(Key.ItemHeader, key.Thumbprint(), key.GetClaim<Guid>(Claim.Uid));
         Assert.IsNotNull(link);
         Assert.AreEqual(Key.ItemHeader, link.ItemIdentifier);
         Assert.AreEqual(key.Thumbprint(), link.Thumbprint);
-        Assert.AreEqual(key.UniqueId, link.UniqueId);
+        Assert.AreEqual(key.GetClaim<Guid>(Claim.Uid), link.UniqueId);
     }
 
     [TestMethod]
     public void ItemLinkTest4() {
         var key = Key.Generate(new List<KeyCapability>() {KeyCapability.Sign}, null);
         try {
-            _ = new ItemLink("", key.Thumbprint(), key.UniqueId);
+            _ = new ItemLink("", key.Thumbprint(), key.GetClaim<Guid>(Claim.Uid));
             Assert.IsTrue(false, "Exception not thrown.");
         } catch (ArgumentException) { /* All is well, carry on. */ }
         try {
-            _ = new ItemLink(Key.ItemHeader, "", key.UniqueId);
+            _ = new ItemLink(Key.ItemHeader, "", key.GetClaim<Guid>(Claim.Uid));
             Assert.IsTrue(false, "Exception not thrown.");
         } catch (ArgumentException) { /* All is well, carry on. */ }
     }
@@ -60,7 +60,7 @@ public class ItemLinkTest
         var link = new ItemLink(key);
         var encoded = link.ToEncoded();
         Assert.IsNotNull(encoded);
-        var compare = $"{key.Header}.{key.UniqueId.ToString()}.{key.Thumbprint()}";
+        var compare = $"{key.Header}.{key.GetClaim<Guid>(Claim.Uid).ToString()}.{key.Thumbprint()}";
         Assert.AreEqual(compare, encoded);
         Assert.AreNotEqual(Commons.AudienceKey.Thumbprint(), link.Thumbprint);
     }
@@ -85,21 +85,21 @@ public class ItemLinkTest
         var items = new List<Item> { Commons.AudienceKey, Commons.AudienceIdentity };
         var revItems = new List<Item> { Commons.AudienceIdentity, Commons.AudienceKey };
         var links = new List<ItemLink> { new ItemLink(Commons.AudienceKey), new ItemLink(Commons.AudienceIdentity) };
-        ItemLink.Verify(items, links);
-        ItemLink.Verify(revItems, links);
-        ItemLink.Verify(new List<Item> { Commons.AudienceKey }, links);
-        ItemLink.Verify(new List<Item> { Commons.AudienceKey }, links);
-        try { ItemLink.Verify(new List<Item>(), links); Assert.IsTrue(false,"Exception not thrown."); } catch (IntegrityException) { /* all is well */ }
-        try { ItemLink.Verify(items, new List<ItemLink>()); Assert.IsTrue(false,"Exception not thrown."); } catch (IntegrityException) { /* all is well */ }
+        Assert.IsTrue(Dime.IsIntegrityStateValid(ItemLink.Verify(items, links)));
+        Assert.IsTrue(Dime.IsIntegrityStateValid(ItemLink.Verify(revItems, links)));
+        Assert.IsTrue(Dime.IsIntegrityStateValid(ItemLink.Verify(new List<Item> { Commons.AudienceKey }, links)));
+        Assert.IsTrue(Dime.IsIntegrityStateValid(ItemLink.Verify(new List<Item> { Commons.AudienceKey }, links)));
+        Assert.IsFalse(Dime.IsIntegrityStateValid(ItemLink.Verify(new List<Item>(), links)));
+        Assert.IsFalse(Dime.IsIntegrityStateValid(ItemLink.Verify(items, new List<ItemLink>())));
     }
 
     [TestMethod]
     public void ToEncodedTest2() {
         var key = Commons.AudienceKey.PublicCopy();
-        var link = new ItemLink(key.Header, key.Thumbprint(), key.UniqueId);
+        var link = new ItemLink(key.Header, key.Thumbprint(), key.GetClaim<Guid>(Claim.Uid));
         var encoded = link.ToEncoded();
         Assert.IsNotNull(encoded);
-        var compare = $"{key.Header}.{key.UniqueId.ToString()}.{key.Thumbprint()}";
+        var compare = $"{key.Header}.{key.GetClaim<Guid>(Claim.Uid).ToString()}.{key.Thumbprint()}";
         Assert.AreEqual(compare, encoded);
         Assert.AreNotEqual(Commons.AudienceKey.Thumbprint(), link.Thumbprint);
     }

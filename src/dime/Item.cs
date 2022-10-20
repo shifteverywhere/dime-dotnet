@@ -30,35 +30,13 @@ public abstract class Item
     /// </summary>
     public abstract string Header { get; }
     /// <summary>
-    /// Returns a unique identifier for the instance. This will be generated at instance creation.
-    /// </summary>
-    public Guid UniqueId => (Guid) Claims()!.GetGuid(Claim.Uid)!;
-    /// <summary>
-    /// Returns the issuer's subject identifier. The issuer is the entity that has issued the identity to another
-    /// entity. If this value is equal to the subject identifier, then this identity is self-issued.
-    /// </summary>
-    public Guid? IssuerId => Claims().GetGuid(Claim.Iss);
-    /// <summary>
-    /// The date and time when this Dime item was issued. Although, this date will most often be in the past, the
-    /// item should not be processed if it is in the future.
-    /// </summary>
-    public DateTime? IssuedAt => Claims().GetDateTime(Claim.Iat);
-    /// <summary>
-    /// The date and time when the identity will expire, and should not be used and not trusted anymore.
-    /// </summary>
-    public DateTime? ExpiresAt => Claims().GetDateTime(Claim.Exp);
-    /// <summary>
-    /// Returns the context that is attached to the Dime item.
-    /// </summary>
-    public string? Context => Claims().Get<string>(Claim.Ctx);
-    /// <summary>
     /// Checks if the item has been signed or not.
     /// </summary>
     public bool IsSigned { get; protected set; }
     /// <summary>
     /// Returns if the item is marked as legacy (compatible with Dime format before official version 1). 
     /// </summary>
-    public virtual bool IsLegacy { get; internal set; } = false;
+    public virtual bool IsLegacy { get; internal set; }
         
     /// <summary>
     /// Will import an item from a Dime encoded string.Dime envelopes cannot be imported using this method, for
@@ -89,6 +67,30 @@ public abstract class Item
         return envelope.Export();
     }
 
+    public T? GetClaim<T>(Claim claim)
+    {
+        return HasClaims ? Claims()!.Get<T>(claim) : default;
+    }
+
+    public void PutClaim(Claim claim, object value)
+    {
+        ThrowIfSigned();
+        if (!AllowedToSetClaimDirectly(claim))
+            throw new ArgumentException($"Unable to set claim '{claim}', may be unsupported or locked.", nameof(claim));
+        SetClaimValue(claim, value);
+    }
+
+    public void RemoveClaim(Claim claim)
+    {
+        ThrowIfSigned();
+        Claims()?.Remove(claim);
+    }
+
+    public bool HasClaim(Claim claim)
+    {
+        return Claims()?.HasClaim(claim) ?? false;
+    }
+    
     /// <summary>
     /// Will sign an item with the proved key. The Key instance must contain a secret key and be of type IDENTITY.
     /// </summary>
@@ -113,7 +115,7 @@ public abstract class Item
     ///  Will remove the signature of an item.
     /// </summary>
     /// <returns>True if the item was stripped of the signature, false otherwise.</returns>
-    public bool strip()
+    public bool Strip()
     {
         Encoded = null;
         Components = null;
@@ -148,7 +150,7 @@ public abstract class Item
 
     public IntegrityState Verify(Identity verifyIdentity, List<Item>? linkedItems = null)
     {
-        return Verify(verifyIdentity.PublicKey, null);
+        return Verify(verifyIdentity.PublicKey, linkedItems);
     }
     
     public virtual IntegrityState Verify(Key? verifyKey = null, List<Item>? linkedItems = null)
@@ -170,12 +172,12 @@ public abstract class Item
     {
         if (!HasClaims) return IntegrityState.ValidDates;
         var now = Utility.CreateDateTime();
-        if (Utility.GracefulDateTimeCompare(IssuedAt, now) > 0)
+        if (Utility.GracefulDateTimeCompare(GetClaim<DateTime>(Claim.Iat), now) > 0)
             return IntegrityState.FailedUsedBeforeIssued;
-        if (ExpiresAt is null) return IntegrityState.ValidDates;
-        if (Utility.GracefulDateTimeCompare(IssuedAt, ExpiresAt) > 0)
+        if (!HasClaim(Claim.Exp)) return IntegrityState.ValidDates;
+        if (Utility.GracefulDateTimeCompare(GetClaim<DateTime>(Claim.Iat), GetClaim<DateTime>(Claim.Exp)) > 0)
             return IntegrityState.FailedDateMismatch;
-        return Utility.GracefulDateTimeCompare(ExpiresAt, now) < 0 
+        return Utility.GracefulDateTimeCompare(GetClaim<DateTime>(Claim.Exp), now) < 0 
             ? IntegrityState.FailedUsedAfterExpired : IntegrityState.ValidDates;
     }
     
@@ -201,7 +203,7 @@ public abstract class Item
 
     public IntegrityState VerifyLinkedItems(List<Item> linkedItems)
     {
-        ItemLinks ??= Claims().GetItemLinks(Claim.Lnk);
+        ItemLinks ??= GetClaim<List<ItemLink>>(Claim.Lnk);
         return ItemLinks is not null ? ItemLink.Verify(linkedItems, ItemLinks) : IntegrityState.FailedLinkedItemMissing;
     }
 
@@ -235,9 +237,7 @@ public abstract class Item
     public List<ItemLink>? GetItemLinks()
     {
         if (ItemLinks is not null) return ItemLinks;
-        var lnk = Claims().Get<string>(Claim.Lnk);
-        if (string.IsNullOrEmpty(lnk)) return null;
-        ItemLinks = ItemLink.FromEncodedList(lnk);
+        ItemLinks = Claims()?.Get<List<ItemLink>>(Claim.Lnk);
         return ItemLinks;
     }
 
@@ -257,7 +257,7 @@ public abstract class Item
     /// </summary>
     public virtual void ConvertToLegacy()
     { 
-        strip();
+        Strip();
         IsLegacy = true;
     }
 
@@ -323,6 +323,13 @@ public abstract class Item
     /// <summary>Indicates if an item has any claims attached to it.</summary>
     protected bool HasClaims => Claims()?.Size() > 0;
 
+    protected void SetClaimValue(Claim claim, object? value)
+    {
+        Claims()?.Put(claim, value);
+    }
+    
+    protected abstract bool AllowedToSetClaimDirectly(Claim claim);
+    
     /// <summary>
     /// Holds all signatures attached to the item.
     /// </summary>

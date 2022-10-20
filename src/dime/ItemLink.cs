@@ -47,7 +47,7 @@ public sealed class ItemLink
     {
         ItemIdentifier = item.Header;
         Thumbprint = item.Thumbprint();
-        UniqueId = item.UniqueId;
+        UniqueId = item.GetClaim<Guid>(Claim.Uid);
     }
 
     /// <summary>
@@ -105,7 +105,7 @@ public sealed class ItemLink
     /// <returns>True if verified successfully.</returns>
     public bool Verify(Item item)
     {
-        return UniqueId.Equals(item.UniqueId) 
+        return UniqueId.Equals(item.GetClaim<Guid>(Claim.Uid)) 
                && ItemIdentifier.Equals(item.Header)
                && Thumbprint.Equals(item.Thumbprint());
     }
@@ -115,14 +115,13 @@ public sealed class ItemLink
     /// </summary>
     /// <param name="items">The items to verify against.</param>
     /// <param name="links">The list of ItemLink instances.</param>
-    /// <exception cref="IntegrityException"></exception>
     public static IntegrityState Verify(List<Item> items, List<ItemLink> links)
     {
-        if (items.Count == 0 || links.Count == 0) throw new IntegrityException("Unable to verify, item links or items missing for verification.");
+        if (items.Count == 0 || links.Count == 0) return IntegrityState.FailedLinkedItemMissing;
         foreach (var item in items)
         {
             var matchFound = false;
-            foreach (var link in links.Where(link => link.UniqueId.Equals(item.UniqueId)))
+            foreach (var link in links.Where(link => link.UniqueId.Equals(item.GetClaim<Guid>(Claim.Uid))))
             {
                 matchFound = true;
                 if (!link.ItemIdentifier.Equals(item.Header) || !link.Thumbprint.Equals(item.Thumbprint()))

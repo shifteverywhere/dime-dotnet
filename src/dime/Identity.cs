@@ -34,29 +34,21 @@ public class Identity: Item
     /// </summary>
     public override string Header => ItemHeader;
     /// <summary>
-    /// Returns the name of the system or network that the entity belongs to. If issued by another entity and part
-    /// of a trust chain, then all entities will share the same system name.
+    /// Returns the public key attached to the identity of an entity. The Key instance returned will only contain a
+    /// public key with the capability 'Sign'.
     /// </summary>
-    public string? SystemName => Claims()?.Get<string>(Claim.Sys);
-
-    /// <summary>
-    /// Returns the entity's subject identifier. This is, within the system, defined by system name, unique for one
-    /// specific entity.
-    /// </summary>
-    public Guid SubjectId
+    public Key? PublicKey
     {
         get
         {
-            var guid = Claims()?.GetGuid(Claim.Sub);
-            if (guid is null) return Guid.Empty;
-            return (Guid) guid;
+            if (_publicKey is not null) return _publicKey;
+            _publicKey = new Key(new List<KeyCapability>() {KeyCapability.Sign}, GetClaim<string>(Claim.Pub),
+                Claim.Pub);
+            return _publicKey;
         }
-    } 
-    /// <summary>
-    /// Returns the public key attached to the identity of an entity. The Key instance returned will only contain a
-    /// public key or type IDENTITY.
-    /// </summary>
-    public Key? PublicKey => Claims()?.GetKey(Claim.Pub, new List<KeyCapability>() { KeyCapability.Sign });
+    }
+    private Key? _publicKey;
+
     /// <summary>
     /// Returns a list of any capabilities given to an identity. These are requested by an entity and approved (and
     /// potentially modified) by the issuing entity when issuing a new identity. Capabilities are usually used to
@@ -66,7 +58,7 @@ public class Identity: Item
     { 
         get {
             if (_capabilities is not null) return _capabilities;
-            var caps = Claims()?.Get<List<string>>(Claim.Cap);
+            var caps = GetClaim<List<string>>(Claim.Cap);
             if (caps != null)
                 _capabilities = caps.ConvertAll(str =>
                 {
@@ -86,30 +78,19 @@ public class Identity: Item
         get
         {
             if (_principles is not null) return _principles;
-            _principles = Claims()?.Get<Dictionary<string, object>>(Claim.Pri);
+            _principles = GetClaim<Dictionary<string, object>>(Claim.Pri);
             return _principles;
         }
     }
     private Dictionary<string, object>? _principles;
     /// <summary>
-    /// Returns an ambit list assigned to an identity. An ambit defines the scope, region or role where an identity
-    /// may be used.
-    /// </summary>
-    public IList<string>? AmbitList => Claims()?.Get<IList<string>>(Claim.Amb);
-    /// <summary>
-    /// Returns a list of methods associated with an identity. The usage of this is normally context or application
-    /// specific, and may specify different methods that can be used convert, transfer or further process a Di:ME
-    /// identity.
-    /// </summary>
-    public IList<string>? Methods => Claims()?.Get<IList<string>>(Claim.Mtd);
-    /// <summary>
-    /// Returns if the identity has been self-issued. Self-issuing happens when the same entity issues its own identity.
-    /// </summary>
-    public bool IsSelfSigned => SubjectId == IssuerId && HasCapability(IdentityCapability.Self);
-    /// <summary>
     /// Returns the parent identity of a trust chain for an identity. This is the issuing identity.
     /// </summary>
     public Identity? TrustChain { get; internal set; }        
+    /// <summary>
+    /// Returns if the identity has been self-issued. Self-issuing happens when the same entity issues its own identity.
+    /// </summary>
+    public bool IsSelfSigned => GetClaim<Guid>(Claim.Sub).Equals(GetClaim<Guid>(Claim.Iss)) && HasCapability(IdentityCapability.Self);
 
     /// <summary>
     /// Empty constructor, not to be used. Required for Generics.
@@ -140,8 +121,9 @@ public class Identity: Item
     /// <returns>true or false</returns>
     public bool HasAmbit(string ambit)
     {
-        if (AmbitList is not null && AmbitList.Count > 0)
-            return AmbitList.Contains(ambit);
+        var list = GetClaim<List<string>>(Claim.Amb);
+        if (list is not null && list.Count > 0)
+            return list.Contains(ambit);
         return false;
     }
 
@@ -171,6 +153,15 @@ public class Identity: Item
         }
     }
 
+    #endregion
+
+    # region -- PROTECTED --
+
+    protected override bool AllowedToSetClaimDirectly(Claim claim)
+    {
+        return AllowedClaims.Contains(claim);
+    }
+    
     protected override void CustomDecoding(List<string> components)
     {
         if (components.Count <= MaximumNbrComponents)
@@ -202,12 +193,9 @@ public class Identity: Item
 
     #endregion
 
-    # region -- PROTECTED --
-
-    #endregion
-
     #region -- PRIVATE --
 
+    private static readonly List<Claim> AllowedClaims = new() { Claim.Amb, Claim.Aud, Claim.Ctx, Claim.Exp, Claim.Iat, Claim.Iss, Claim.Kid, Claim.Mtd, Claim.Pri, Claim.Sub, Claim.Sys, Claim.Uid };
     private new const int MinimumNbrComponents = 3;
     private const int MaximumNbrComponents = MinimumNbrComponents + 1;
     private const int ComponentsChainIndex = 2;

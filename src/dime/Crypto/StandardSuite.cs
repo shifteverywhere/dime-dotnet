@@ -87,7 +87,7 @@ internal class StandardSuite: ICryptoSuite
             shared = serverSharedSecretBox.ReadSharedSecret;
         }
         else
-            throw new KeyMismatchException("Unable to generate, invalid keys provided.");
+            throw new ArgumentException("Unable to generate, invalid keys provided.");
         return shared;
     }
 

@@ -31,33 +31,24 @@ public class Message: Data
     /// </summary>
     public override string Header => ItemHeader;
     /// <summary>
-    /// Returns the audience (receiver) identifier. This is optional, although required if encrypting the message
-    /// payload.
-    /// </summary>
-    public Guid? AudienceId => Claims().GetGuid(Claim.Aud);
-    /// <summary>
-    /// The identifier of the key that was used when encryption the message payload. This is optional, and usage is
-    /// application specific.
-    /// </summary>
-    public Guid? KeyId { get => Claims().Get<Guid>(Claim.Kid); set { ThrowIfSigned(); Claims().Put(Claim.Kid, value); } }
-    /// <summary>
     /// A public key that was included in the message. Normally this public key was used for a key exchange where
     /// the shared key was used to encrypt the payload. This is optional.
     /// </summary>
-    public string? PublicKey { get => Claims().Get<string>(Claim.Pub); set { ThrowIfSigned(); Claims().Put(Claim.Pub, value); } }
-    /// <summary>
-    /// If the message is linked to another Di:ME item, thus creating a cryptographic link between them, then this
-    /// will return the identifier, as a UUID, of the linked item. This is optional.
-    /// </summary>
-    [Obsolete("Obsolete method, use Item.GetItemLinks() instead.")]
-    public Guid? LinkedId 
-    { 
+    public Key? PublicKey
+    {
         get
         {
-            var links = GetItemLinks();
-            return links is not null && links.Count > 0 ? links[0].UniqueId : null;
-        } 
+            if (_publicKey is not null) return _publicKey;
+            _publicKey = new Key(new List<KeyCapability>() {KeyCapability.Exchange}, GetClaim<string>(Claim.Pub),
+                Claim.Pub);
+            return _publicKey;
+        }
+        set
+        {
+            _publicKey = value;
+        }
     }
+    private Key? _publicKey;
 
     #endregion
         
@@ -92,12 +83,12 @@ public class Message: Data
         var iat = Utility.CreateDateTime();
         DateTime? exp = validFor != -1 ? iat.AddSeconds(validFor) : null;
         var claims = Claims();
-        claims.Put(Claim.Uid, Guid.NewGuid());
-        claims.Put(Claim.Aud, audienceId);
-        claims.Put(Claim.Iss, issuerId);
-        claims.Put(Claim.Iat, iat);
-        claims.Put(Claim.Exp, exp);
-        claims.Put(Claim.Ctx, context);
+        claims?.Put(Claim.Uid, Guid.NewGuid());
+        claims?.Put(Claim.Aud, audienceId);
+        claims?.Put(Claim.Iss, issuerId);
+        claims?.Put(Claim.Iat, iat);
+        claims?.Put(Claim.Exp, exp);
+        claims?.Put(Claim.Ctx, context);
     }
 
     #endregion
@@ -144,17 +135,22 @@ public class Message: Data
             throw new InvalidOperationException("Unable to generate thumbprint, message not signed.");
         return base.Thumbprint();
     }
-        
-    #endregion
-
-    # region -- PROTECTED --
 
     internal override string ForExport()
     {
         if (!IsSigned) throw new InvalidOperationException("Unable to encode item, must be signed first.");
         return base.ForExport();
     }
+    
+    #endregion
 
+    # region -- PROTECTED --
+
+    protected override bool AllowedToSetClaimDirectly(Claim claim)
+    {
+        return AllowedClaims.Contains(claim);
+    }
+    
     protected override void CustomDecoding(List<string> components)
     {
         base.CustomDecoding(components);
@@ -169,7 +165,8 @@ public class Message: Data
     #endregion
 
     #region -- PRIVATE --
-        
+    
+    private static readonly List<Claim> AllowedClaims = new() { Claim.Amb, Claim.Aud, Claim.Ctx, Claim.Exp, Claim.Iat, Claim.Iss, Claim.Kid, Claim.Mim, Claim.Mtd, Claim.Sub, Claim.Sys, Claim.Uid };
     private new const int MinimumNbrComponents = 4;
 
     #endregion

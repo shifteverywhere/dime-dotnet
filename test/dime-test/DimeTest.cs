@@ -141,7 +141,7 @@ public class DimeTest
     [TestMethod]
     public void JsonCanonicailzerTest1()
     {
-        var key = Key.Generate(new List<KeyCapability>() {KeyCapability.Sign}, Dime.ValidFor1Minute, Commons.IssuerIdentity.SubjectId, Commons.Context);
+        var key = Key.Generate(new List<KeyCapability>() {KeyCapability.Sign}, Dime.ValidFor1Minute, Commons.IssuerIdentity.GetClaim<Guid>(Claim.Sub), Commons.Context);
         var encoded = key.Export();
         var claims = new List<string>() { Claim.Cap.ToString().ToLower(), 
             Claim.Ctx.ToString().ToLower(), 
@@ -171,8 +171,8 @@ public class DimeTest
         const string exported = "Di:IIR.eyJ1aWQiOiIzZTViZGU0YS02Mjc3LTRkYTUtODY2NC0xZDNmMDQzYTkwMjgiLCJjYXAiOlsiZ2VuZXJpYyJdLCJwdWIiOiIyVERYZG9OdlNVTnlMRFNVaU1ocExDZEViRGF6NXp1bUQzNXRYMURBdUE4Q0U0MXhvREdnU2QzVUUiLCJpYXQiOiIyMDIxLTExLTE4VDEyOjAzOjUzLjM4MTY2MVoifQ.13/fVQLNOMbnHQXIE//T9PWnE0reDR0LVJUugy3SZ8J7g68idwutFqEGUiTwlPz/t0Ci1IU46kI+ftA83cc2AA";
         var iir = Item.Import<IdentityIssuingRequest>(exported);
         Assert.IsNotNull(iir);
-        Assert.AreEqual(Guid.Parse("3e5bde4a-6277-4da5-8664-1d3f043a9028"), iir.UniqueId);
-        Assert.AreEqual(DateTime.Parse("2021-11-18T12:03:53.381661Z").ToUniversalTime(), iir.IssuedAt);
+        Assert.AreEqual(Guid.Parse("3e5bde4a-6277-4da5-8664-1d3f043a9028"), iir.GetClaim<Guid>(Claim.Uid));
+        Assert.AreEqual(DateTime.Parse("2021-11-18T12:03:53.381661Z").ToUniversalTime(), iir.GetClaim<DateTime>(Claim.Iat));
         Assert.IsTrue(iir.WantsCapability(IdentityCapability.Generic));
         Assert.IsNotNull(iir.PublicKey);
         Assert.AreEqual("2TDXdoNvSUNyLDSUiMhpLCdEbDaz5zumD35tX1DAuA8CE41xoDGgSd3UE", iir.PublicKey.Public);
@@ -187,12 +187,12 @@ public class DimeTest
         const string legacyExported = "Di:ID.eyJ1aWQiOiIyYTdkNDJhMy02YjQ1LTRhNGEtYmIzZC1lYzk0ZWMzNzlmMWYiLCJzdWIiOiJiZTRhZjVmMy1lODM4LTQ3MzItYTBmYy1mZmEyYzMyOGVhMTAiLCJjYXAiOlsiZ2VuZXJpYyIsImlkZW50aWZ5Il0sImlzcyI6ImJkMjhkYjhmLTEzNjItNGFmZC1hZWQ3LTRjYTM5ZjY1OTc1ZSIsInN5cyI6ImRpbWUtamF2YS1yZWYiLCJleHAiOiIyMDIyLTExLTIwVDEyOjExOjAyLjc2NTI1OVoiLCJwdWIiOiIyVERYZG9OdzF3WlF0ZVU1MzI1czZSbVJYVnBUa1lXdlR1RXpSMWpOZFZ2WWpFUjZiNmJZYUR6dEYiLCJpYXQiOiIyMDIxLTExLTIwVDEyOjExOjAyLjc2NTI1OVoifQ.SUQuZXlKMWFXUWlPaUl5TTJRNVpXUmtaaTFtWXpoa0xUUmpNemN0WW1NNU1pMDNNVFF6TkRVMFlUSTBaRFVpTENKemRXSWlPaUppWkRJNFpHSTRaaTB4TXpZeUxUUmhabVF0WVdWa055MDBZMkV6T1dZMk5UazNOV1VpTENKallYQWlPbHNpWjJWdVpYSnBZeUlzSW1sa1pXNTBhV1o1SWl3aWFYTnpkV1VpWFN3aWFYTnpJam9pTVdaalpEVm1PRGd0TkdFM05TMDBOems1TFdKa05EZ3RNalZpTm1WaE1EWTBNRFV6SWl3aWMzbHpJam9pWkdsdFpTMXFZWFpoTFhKbFppSXNJbVY0Y0NJNklqSXdNall0TVRFdE1UbFVNVEk2TVRFNk1ESXVOell6TmpVeVdpSXNJbkIxWWlJNklqSlVSRmhrYjA1MlJEaGpRemwxZUZOaU5FcEdTSEpyTVdaUVNGZDNjWEZUUTFWS1IyVTRWbWRXUm5OaFZ6VkxjVVl5ZDJ0WVlsVlFUaUlzSW1saGRDSTZJakl3TWpFdE1URXRNakJVTVRJNk1URTZNREl1TnpZek5qVXlXaUo5LjU2djVMeVg4anRLQ3N0eTdnbTZOczJjWStiTUlYNHBxNDRnODBTRXB1NjF2QklzUlZ6UTFOZFY5Q1BXaHRTdHZEM3d3N01hOFg3QlZvMWxrMjZjMkRn.7H3RwTTeDcI3pGMIWMPbAjpDnCN2O91JG4lKu3JJbxlLNwTbgTB/03xrwi28wl0iMReJ4zUPc3cCqbymAlxwAw";
         var identity =  Item.Import<Identity>(legacyExported);
         Assert.IsNotNull(identity);
-        Assert.AreEqual("dime-java-ref", identity.SystemName);
-        Assert.AreEqual(Guid.Parse("2a7d42a3-6b45-4a4a-bb3d-ec94ec379f1f"), identity.UniqueId);
-        Assert.AreEqual(Guid.Parse("be4af5f3-e838-4732-a0fc-ffa2c328ea10"), identity.SubjectId);
-        Assert.AreEqual(DateTime.Parse("2021-11-20T12:11:02.765259Z").ToUniversalTime(), identity.IssuedAt);
-        Assert.AreEqual(DateTime.Parse("2022-11-20T12:11:02.765259Z").ToUniversalTime(), identity.ExpiresAt);
-        Assert.AreEqual(Guid.Parse("bd28db8f-1362-4afd-aed7-4ca39f65975e"), identity.IssuerId);
+        Assert.AreEqual("dime-java-ref", identity.GetClaim<string>(Claim.Sys));
+        Assert.AreEqual(Guid.Parse("2a7d42a3-6b45-4a4a-bb3d-ec94ec379f1f"), identity.GetClaim<Guid>(Claim.Uid));
+        Assert.AreEqual(Guid.Parse("be4af5f3-e838-4732-a0fc-ffa2c328ea10"), identity.GetClaim<Guid>(Claim.Sub));
+        Assert.AreEqual(DateTime.Parse("2021-11-20T12:11:02.765259Z").ToUniversalTime(), identity.GetClaim<DateTime>(Claim.Iat));
+        Assert.AreEqual(DateTime.Parse("2022-11-20T12:11:02.765259Z").ToUniversalTime(), identity.GetClaim<DateTime>(Claim.Exp));
+        Assert.AreEqual(Guid.Parse("bd28db8f-1362-4afd-aed7-4ca39f65975e"), identity.GetClaim<Guid>(Claim.Iss));
         Assert.IsNotNull(identity.PublicKey);
         Assert.AreEqual("2TDXdoNw1wZQteU5325s6RmRXVpTkYWvTuEzR1jNdVvYjER6b6bYaDztF", identity.PublicKey.Public);
         Assert.IsTrue(identity.HasCapability(IdentityCapability.Generic));
@@ -208,8 +208,8 @@ public class DimeTest
         var key =  Item.Import<Key>(exported);
         Assert.IsNotNull(key);
         Assert.IsTrue(key.HasCapability(KeyCapability.Sign));
-        Assert.AreEqual(Guid.Parse("3f00cd13-4474-4c04-9b6b-7383d490f17f"), key.UniqueId);
-        Assert.AreEqual(DateTime.Parse("2021-11-18T08:48:25.137918Z").ToUniversalTime(), key.IssuedAt);
+        Assert.AreEqual(Guid.Parse("3f00cd13-4474-4c04-9b6b-7383d490f17f"), key.GetClaim<Guid>(Claim.Uid));
+        Assert.AreEqual(DateTime.Parse("2021-11-18T08:48:25.137918Z").ToUniversalTime(), key.GetClaim<DateTime>(Claim.Iat));
         Assert.AreEqual("S21Tkgozxhzk5ttFgHhgey6t1419WCMUUM98ZhniVAjfT4iniUknfUrNqfPqdLua2SvxFf8SXkHS1PTBCrdkYXN6qTEm7Mwa2LRd", key.Secret);
         Assert.AreEqual("S21TZSL1uvF5mTWKiomQKNhmkcYPw5XZ1VBfbSPqmyqG5GaNCUGB7Pj19WShuJuLkhREEJ4kLThehqRkadJLSTAkL9DtyhmLxGfn", key.Public);
     }
@@ -234,12 +234,12 @@ public class DimeTest
         const string exported = "Di:MSG.eyJ1aWQiOiIwY2VmMWQ4Zi01NGJlLTRjZTAtYTY2OS1jZDI4OTdhYzY0ZTAiLCJhdWQiOiJhNjkwMjE4NC0yYmEwLTRiYTAtYWI5MS1jYTc3ZGE3ZDA1ZDMiLCJpc3MiOiIwYWE1NjEzMy03OGIwLTRkZDktOTI4ZC01ZDdmZjlkYTU0NDUiLCJleHAiOiIyMDIxLTExLTE4VDE4OjA2OjAyLjk3NDM5NVoiLCJpYXQiOiIyMDIxLTExLTE4VDE4OjA1OjUyLjk3NDM5NVoifQ.UmFjZWNhciBpcyByYWNlY2FyIGJhY2t3YXJkcy4.vWWk/1Ny6FzsVRNSEsqjhRrSEDvmbfLIE9CmADySp/pa3hqNau0tnhwH3YwRPPEpSl4wXpw0Uqkf56EQJI2TDQ";
         var message =  Item.Import<Message>(exported);
         Assert.IsNotNull(message);
-        Assert.AreEqual(Guid.Parse("0cef1d8f-54be-4ce0-a669-cd2897ac64e0"), message.UniqueId);
-        Assert.AreEqual(Guid.Parse("a6902184-2ba0-4ba0-ab91-ca77da7d05d3"), message.AudienceId);
-        Assert.AreEqual(Guid.Parse("0aa56133-78b0-4dd9-928d-5d7ff9da5445"), message.IssuerId);
+        Assert.AreEqual(Guid.Parse("0cef1d8f-54be-4ce0-a669-cd2897ac64e0"), message.GetClaim<Guid>(Claim.Uid));
+        Assert.AreEqual(Guid.Parse("a6902184-2ba0-4ba0-ab91-ca77da7d05d3"), message.GetClaim<Guid>(Claim.Aud));
+        Assert.AreEqual(Guid.Parse("0aa56133-78b0-4dd9-928d-5d7ff9da5445"), message.GetClaim<Guid>(Claim.Iss));
         Assert.AreEqual(Commons.Payload, Encoding.UTF8.GetString(message.GetPayload()));
-        Assert.AreEqual(DateTime.Parse("2021-11-18T18:05:52.974395Z").ToUniversalTime(), message.IssuedAt);
-        Assert.AreEqual(DateTime.Parse("2021-11-18T18:06:02.974395Z").ToUniversalTime(), message.ExpiresAt);
+        Assert.AreEqual(DateTime.Parse("2021-11-18T18:05:52.974395Z").ToUniversalTime(), message.GetClaim<DateTime>(Claim.Iat));
+        Assert.AreEqual(DateTime.Parse("2021-11-18T18:06:02.974395Z").ToUniversalTime(), message.GetClaim<DateTime>(Claim.Exp));
     }
 
     [TestMethod] 
@@ -267,7 +267,7 @@ public class DimeTest
         IdentityIssuingRequest iir = IdentityIssuingRequest.Generate(key);
         String exported = iir.Export();
         Assert.IsNotNull(exported);
-        iir.strip();
+        iir.Strip();
         iir.ConvertToLegacy();
         iir.Sign(key);
         Assert.IsTrue(iir.IsLegacy);

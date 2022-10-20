@@ -39,7 +39,17 @@ public class IdentityIssuingRequest: Item
     /// included in any issued identity. The equivalent secret (private) key was used to sign the IIR, thus the
     /// public key can be used to verify the signature. This must be a key of type IDENTITY.
     /// </summary>
-    public Key? PublicKey => Claims()?.GetKey(Claim.Pub, new List<KeyCapability>() { KeyCapability.Sign });
+    public Key? PublicKey
+    {
+        get
+        {
+            if (_publicKey is not null) return _publicKey;
+            _publicKey = new Key(new List<KeyCapability>() {KeyCapability.Sign}, GetClaim<string>(Claim.Pub),
+                Claim.Pub);
+            return _publicKey;
+        }
+    }
+    private Key? _publicKey;
     /// <summary>
     /// Returns a list of any capabilities requested by this IIR. Capabilities are usually used to
     /// determine what an entity may do with its issued identity.
@@ -148,7 +158,7 @@ public class IdentityIssuingRequest: Item
     public Identity Issue(Guid subjectId, long validFor, Key issuerKey, Identity issuerIdentity, bool includeChain, List<IdentityCapability> allowedCapabilities, List<IdentityCapability>? requiredCapabilities = null, string? systemName = null, List<string>? ambit = null, List<string>? methods = null) 
     {    
         if (issuerIdentity == null) { throw new ArgumentNullException(nameof(issuerIdentity), "Issuer identity must not be null."); }
-        var sys = !string.IsNullOrEmpty(systemName) ? systemName : issuerIdentity.SystemName;
+        var sys = !string.IsNullOrEmpty(systemName) ? systemName : issuerIdentity.GetClaim<string>(Claim.Sys);
         return IssueNewIdentity(sys, subjectId, validFor, issuerKey, issuerIdentity, includeChain, allowedCapabilities, requiredCapabilities, ambit, methods);
     }
 
@@ -186,6 +196,11 @@ public class IdentityIssuingRequest: Item
 
     # region -- PROTECTED --
 
+    protected override bool AllowedToSetClaimDirectly(Claim claim)
+    {
+        return AllowedClaims.Contains(claim);
+    }
+    
     protected override void CustomDecoding(List<string> components)
     {
         IsSigned = true; // Identity issuing requests are always signed
@@ -199,7 +214,8 @@ public class IdentityIssuingRequest: Item
     #endregion
 
     #region -- PRIVATE --
-        
+    
+    private static readonly List<Claim> AllowedClaims = new() { Claim.Amb, Claim.Aud, Claim.Ctx, Claim.Exp, Claim.Iat, Claim.Iss, Claim.Kid, Claim.Mtd, Claim.Pri, Claim.Sub, Claim.Sys, Claim.Uid };
     private new const int MinimumNbrComponents = 3;
         
     private Identity IssueNewIdentity(string? systemName, Guid subjectId, long validFor, Key issuerKey, Identity? issuerIdentity, bool includeChain, List<IdentityCapability>? allowedCapabilities, IReadOnlyCollection<IdentityCapability>? requiredCapabilities = null, List<string>? ambit = null, List<string>? methods = null)
@@ -213,7 +229,7 @@ public class IdentityIssuingRequest: Item
             throw new CapabilityException("Issuing identity missing 'issue' capability.");
         var now = Utility.CreateDateTime();
         var expires = now.AddSeconds(validFor);
-        var issuerId = issuerIdentity?.SubjectId ?? subjectId;
+        var issuerId = issuerIdentity?.GetClaim<Guid>(Claim.Sub) ?? subjectId;
         var identity = new Identity(systemName, 
             subjectId, 
             PublicKey?.Public, 

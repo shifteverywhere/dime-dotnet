@@ -13,7 +13,6 @@ using System.Collections.Generic;
 using System.Text;
 using System.Threading;
 using DiME;
-using DiME.Exceptions;
 
 namespace DiME_test;
 
@@ -28,7 +27,90 @@ public class MessageTests
         Assert.AreEqual("MSG", msg.Header);
         Assert.AreEqual("MSG", Message.ItemHeader);
     }
+    
+    [TestMethod]
+    public void ClaimTest1() 
+    {
+        var message = new Message(Commons.IssuerIdentity.GetClaim<Guid>(Claim.Sub));
+        Assert.IsNotNull(message.GetClaim<Guid>(Claim.Iss));
+        Assert.AreEqual(Commons.IssuerIdentity.GetClaim<Guid>(Claim.Sub), message.GetClaim<Guid>(Claim.Iss));
+    }
 
+    [TestMethod]
+    public void ClaimTest2() 
+    {
+        var message = new Message(Commons.IssuerIdentity.GetClaim<Guid>(Claim.Sub));
+        message.SetPayload(Encoding.UTF8.GetBytes(Commons.Payload), Commons.Mimetype);
+        Assert.IsNotNull(message.GetClaim<string>(Claim.Mim));
+        Assert.AreEqual(Commons.Mimetype, message.GetClaim<string>(Claim.Mim));
+        message.RemoveClaim(Claim.Mim);
+        Assert.AreEqual(default, message.GetClaim<string>(Claim.Mim));
+    }
+
+    [TestMethod]
+    public void ClaimTest3() 
+    {
+        var message = new Message(Commons.IssuerIdentity.GetClaim<Guid>(Claim.Sub));
+        message.SetPayload(Encoding.UTF8.GetBytes(Commons.Payload));
+        message.PutClaim(Claim.Amb, new List<string>() { "one", "two" });
+        Assert.IsNotNull(message.GetClaim<List<string>>(Claim.Amb));
+        message.PutClaim(Claim.Aud, Guid.NewGuid());
+        Assert.IsNotNull(message.GetClaim<Guid>(Claim.Aud));
+        Assert.AreNotEqual(default, message.GetClaim<Guid>(Claim.Aud));
+        message.PutClaim(Claim.Ctx, Commons.Context);
+        Assert.IsNotNull(message.GetClaim<string>(Claim.Ctx));
+        message.PutClaim(Claim.Exp, DateTime.UtcNow);
+        Assert.IsNotNull(message.GetClaim<DateTime>(Claim.Exp));
+        Assert.AreNotEqual(default, message.GetClaim<DateTime>(Claim.Exp));
+        message.PutClaim(Claim.Iat, DateTime.UtcNow);
+        Assert.IsNotNull(message.GetClaim<DateTime>(Claim.Iat));
+        Assert.AreNotEqual(default, message.GetClaim<DateTime>(Claim.Iat));
+        message.PutClaim(Claim.Iss, Guid.NewGuid());
+        Assert.IsNotNull(message.GetClaim<Guid>(Claim.Iss));
+        Assert.AreNotEqual(default, message.GetClaim<Guid>(Claim.Iss));
+        message.PutClaim(Claim.Kid, Guid.NewGuid());
+        Assert.IsNotNull(message.GetClaim<Guid>(Claim.Kid));
+        Assert.AreNotEqual(default, message.GetClaim<Guid>(Claim.Kid));
+        message.PutClaim(Claim.Mim, Commons.Mimetype);
+        Assert.IsNotNull(message.GetClaim<string>(Claim.Mim));
+        message.PutClaim(Claim.Mtd, new List<string>() { "abc", "def" });
+        Assert.IsNotNull(message.GetClaim<List<string>>(Claim.Mtd));
+        message.PutClaim(Claim.Sub, Guid.NewGuid());
+        Assert.IsNotNull(message.GetClaim<Guid>(Claim.Sub));
+        Assert.AreNotEqual(default, message.GetClaim<Guid>(Claim.Sub));
+        message.PutClaim(Claim.Sys, Commons.SystemName);
+        Assert.IsNotNull(message.GetClaim<string>(Claim.Sys));
+        message.PutClaim(Claim.Uid, Guid.NewGuid());
+        Assert.IsNotNull(message.GetClaim<Guid>(Claim.Uid));
+        Assert.AreNotEqual(default, message.GetClaim<Guid>(Claim.Uid));
+        try { message.PutClaim(Claim.Cap, new List<KeyCapability>() { KeyCapability.Encrypt }); Assert.IsTrue(false, "Exception not thrown."); } catch (ArgumentException) { /* all is well */ }
+        try { message.PutClaim(Claim.Key,Commons.IssuerKey.Secret); Assert.IsTrue(false, "Exception not thrown."); } catch (ArgumentException) { /* all is well */ }
+        try { message.PutClaim(Claim.Lnk, new ItemLink(Commons.IssuerKey)); Assert.IsTrue(false, "Exception not thrown."); } catch (ArgumentException) { /* all is well */ }
+        try { var pri = new Dictionary<string, object>(); pri["tag"] = Commons.Payload; message.PutClaim(Claim.Pri, pri); Assert.IsTrue(false, "Exception not thrown."); } catch (ArgumentException) { /* all is well */ }
+        try { message.PutClaim(Claim.Pub, Commons.IssuerKey.Public); Assert.IsTrue(false, "Exception not thrown."); } catch (ArgumentException) { /* all is well */ }
+    }
+
+    [TestMethod]
+    public void ClaimTest4() 
+    {
+        var message = new Message(Commons.IssuerIdentity.GetClaim<Guid>(Claim.Sub));
+        message.SetPayload(Encoding.UTF8.GetBytes(Commons.Payload));
+        message.Sign(Commons.IssuerKey);
+        try { message.RemoveClaim(Claim.Iss); Assert.IsTrue(false, "Exception not thrown."); } catch (InvalidOperationException) { /* all is well */ }
+        try { message.PutClaim(Claim.Exp, DateTime.UtcNow); } catch (InvalidOperationException) { /* all is well */ }
+    }
+
+    [TestMethod]
+    public void ClaimTest5() 
+    {
+        var message = new Message(Commons.IssuerIdentity.GetClaim<Guid>(Claim.Sub));
+        message.SetPayload(Encoding.UTF8.GetBytes(Commons.Payload));
+        message.Sign(Commons.IssuerKey);
+        message.Strip();
+        message.RemoveClaim(Claim.Iss);
+        message.PutClaim(Claim.Iat, DateTime.UtcNow);
+    }
+    
     [TestMethod]
     public void GetTagTest1()
     {
@@ -41,13 +123,13 @@ public class MessageTests
     {
         Commons.InitializeKeyRing();
         var now = DateTime.UtcNow;
-        var message = new Message(Commons.AudienceIdentity.SubjectId, Commons.IssuerIdentity.SubjectId, 10L);
+        var message = new Message(Commons.AudienceIdentity.GetClaim<Guid>(Claim.Sub), Commons.IssuerIdentity.GetClaim<Guid>(Claim.Sub), 10L);
         message.SetPayload(Encoding.UTF8.GetBytes(Commons.Payload));
-        Assert.IsNotNull(message.UniqueId);
-        Assert.AreEqual(Commons.AudienceIdentity.SubjectId, message.AudienceId);
+        Assert.IsNotNull(message.GetClaim<Guid>(Claim.Uid));
+        Assert.AreEqual(Commons.AudienceIdentity.GetClaim<Guid>(Claim.Sub), message.GetClaim<Guid>(Claim.Aud));
         Assert.AreEqual(Commons.Payload, Encoding.UTF8.GetString(message.GetPayload()));
-        Assert.IsTrue(message.IssuedAt >= now && message.IssuedAt <= (now.AddSeconds(1)));
-        Assert.IsTrue(message.ExpiresAt > (now.AddSeconds(9)) && message.ExpiresAt < (now.AddSeconds(11)));
+        Assert.IsTrue(message.GetClaim<DateTime>(Claim.Iat) >= now && message.GetClaim<DateTime>(Claim.Iat) <= (now.AddSeconds(1)));
+        Assert.IsTrue(message.GetClaim<DateTime>(Claim.Exp) > (now.AddSeconds(9)) && message.GetClaim<DateTime>(Claim.Exp) < (now.AddSeconds(11)));
     }
 
     [TestMethod]
@@ -56,11 +138,11 @@ public class MessageTests
         Commons.InitializeKeyRing();
         var payload = Encoding.UTF8.GetBytes(Commons.Payload);
         const long validFor = 10L;
-        var message1 = new Message(Commons.AudienceIdentity.SubjectId, Commons.IssuerIdentity.SubjectId, validFor);
+        var message1 = new Message(Commons.AudienceIdentity.GetClaim<Guid>(Claim.Sub), Commons.IssuerIdentity.GetClaim<Guid>(Claim.Sub), validFor);
         message1.SetPayload(payload);
-        var message2 = new Message(Commons.AudienceIdentity.SubjectId, Commons.IssuerIdentity.SubjectId, validFor);
+        var message2 = new Message(Commons.AudienceIdentity.GetClaim<Guid>(Claim.Sub), Commons.IssuerIdentity.GetClaim<Guid>(Claim.Sub), validFor);
         message2.SetPayload(payload);
-        Assert.AreNotEqual(message1.UniqueId, message2.UniqueId);
+        Assert.AreNotEqual(message1.GetClaim<Guid>(Claim.Uid), message2.GetClaim<Guid>(Claim.Uid));
     }
 
     [TestMethod]
@@ -69,12 +151,12 @@ public class MessageTests
         Commons.InitializeKeyRing();
         const string text = Commons.Payload;
         var payload = Encoding.UTF8.GetBytes(text);
-        var message1 = new Message(Commons.IssuerIdentity.SubjectId);
+        var message1 = new Message(Commons.IssuerIdentity.GetClaim<Guid>(Claim.Sub));
         message1.SetPayload(payload);
-        Assert.IsNull(message1.AudienceId);
+        Assert.AreEqual(default(Guid), message1.GetClaim<Guid>(Claim.Aud));
         message1.Sign(Commons.IssuerKey);
         var message2 = Item.Import<Message>(message1.Export());
-        Assert.IsNull(message2.AudienceId);
+        Assert.AreEqual(default(Guid), message2.GetClaim<Guid>(Claim.Aud));
         Assert.AreEqual(text, Encoding.UTF8.GetString(message2.GetPayload()));
     }
 
@@ -82,7 +164,7 @@ public class MessageTests
     public void ExportTest1()
     {
         Commons.InitializeKeyRing();
-        var message = new Message(Commons.AudienceIdentity.SubjectId, Commons.IssuerIdentity.SubjectId, 10L);
+        var message = new Message(Commons.AudienceIdentity.GetClaim<Guid>(Claim.Sub), Commons.IssuerIdentity.GetClaim<Guid>(Claim.Sub), 10L);
         message.SetPayload(Encoding.UTF8.GetBytes(Commons.Payload));
         message.Sign(Commons.IssuerKey);
         var encoded = message.Export();
@@ -96,7 +178,7 @@ public class MessageTests
     public void ExportTest2()
     {
         Commons.InitializeKeyRing();
-        var message = new Message(Commons.AudienceIdentity.SubjectId, Commons.IssuerIdentity.SubjectId, 10L);
+        var message = new Message(Commons.AudienceIdentity.GetClaim<Guid>(Claim.Sub), Commons.IssuerIdentity.GetClaim<Guid>(Claim.Sub), 10L);
         try
         {
             message.Export();
@@ -113,7 +195,7 @@ public class MessageTests
     public void ExportTest3()
     {
         Commons.InitializeKeyRing();
-        var message = new Message(Commons.AudienceIdentity.SubjectId, Commons.IssuerIdentity.SubjectId, 10L);
+        var message = new Message(Commons.AudienceIdentity.GetClaim<Guid>(Claim.Sub), Commons.IssuerIdentity.GetClaim<Guid>(Claim.Sub), 10L);
         message.SetPayload(Encoding.UTF8.GetBytes(Commons.Payload));
         message.Sign(Commons.IssuerKey);
         Assert.AreEqual(message.Export(), message.Export());
@@ -123,7 +205,7 @@ public class MessageTests
     public void VerifyTest1()
     {
         Commons.InitializeKeyRing();
-        var message = new Message(Commons.AudienceIdentity.SubjectId, Commons.IssuerIdentity.SubjectId, -10L);
+        var message = new Message(Commons.AudienceIdentity.GetClaim<Guid>(Claim.Sub), Commons.IssuerIdentity.GetClaim<Guid>(Claim.Sub), -10L);
         message.SetPayload(Encoding.UTF8.GetBytes(Commons.Payload));
         message.Sign(Commons.IssuerKey);
         Assert.IsFalse(Dime.IsIntegrityStateValid(message.Verify(Commons.IssuerKey)));
@@ -136,7 +218,7 @@ public class MessageTests
         var untrustedSender = IdentityIssuingRequest.Generate(key)
             .SelfIssue(Guid.NewGuid(), 120L, key, Commons.SystemName);
         Commons.InitializeKeyRing();
-        var message = new Message(Commons.AudienceIdentity.SubjectId, untrustedSender.SubjectId, 120L);
+        var message = new Message(Commons.AudienceIdentity.GetClaim<Guid>(Claim.Sub), untrustedSender.GetClaim<Guid>(Claim.Sub), 120L);
         message.SetPayload(Encoding.UTF8.GetBytes(Commons.Payload));
         message.Sign(key);
         Assert.IsFalse(Dime.IsIntegrityStateValid(message.Verify(Commons.IssuerKey)));
@@ -146,7 +228,7 @@ public class MessageTests
     public void VerifyTest3()
     {
         Commons.InitializeKeyRing();
-        var message = new Message(Commons.AudienceIdentity.SubjectId, Commons.IssuerIdentity.SubjectId, 120L);
+        var message = new Message(Commons.AudienceIdentity.GetClaim<Guid>(Claim.Sub), Commons.IssuerIdentity.GetClaim<Guid>(Claim.Sub), 120L);
         message.SetPayload(Encoding.UTF8.GetBytes(Commons.Payload));
         message.Sign(Commons.IssuerKey);
         message.Verify(Commons.IssuerIdentity.PublicKey);
@@ -156,7 +238,7 @@ public class MessageTests
     public void VerifyTest4()
     {
         Commons.InitializeKeyRing();
-        var message = new Message(Commons.AudienceIdentity.SubjectId, Commons.IssuerIdentity.SubjectId);
+        var message = new Message(Commons.AudienceIdentity.GetClaim<Guid>(Claim.Sub), Commons.IssuerIdentity.GetClaim<Guid>(Claim.Sub));
         message.SetPayload(Encoding.UTF8.GetBytes(Commons.Payload));
         message.Sign(Commons.IssuerKey);
         message.Verify(Commons.IssuerIdentity.PublicKey);
@@ -166,7 +248,7 @@ public class MessageTests
     public void VerifyTest5() 
     {
         Commons.InitializeKeyRing();
-        var message = new Message(Commons.AudienceIdentity.SubjectId, Commons.IssuerIdentity.SubjectId,1L);
+        var message = new Message(Commons.AudienceIdentity.GetClaim<Guid>(Claim.Sub), Commons.IssuerIdentity.GetClaim<Guid>(Claim.Sub),1L);
         message.SetPayload(Encoding.UTF8.GetBytes(Commons.Payload));
         message.Sign(Commons.IssuerKey);
         Thread.Sleep(1000);
@@ -180,7 +262,7 @@ public class MessageTests
     public void VerifyTest6() 
     {
         Commons.InitializeKeyRing();
-        var message = new Message(Commons.AudienceIdentity.SubjectId, Commons.IssuerIdentity.SubjectId,1L);
+        var message = new Message(Commons.AudienceIdentity.GetClaim<Guid>(Claim.Sub), Commons.IssuerIdentity.GetClaim<Guid>(Claim.Sub),1L);
         message.SetPayload(Encoding.UTF8.GetBytes(Commons.Payload));
         message.Sign(Commons.IssuerKey);
         Thread.Sleep(2000);
@@ -193,7 +275,7 @@ public class MessageTests
     {
         Dime.TimeModifier = -2;
         Commons.InitializeKeyRing();
-        var message = new Message(Commons.AudienceIdentity.SubjectId, Commons.IssuerIdentity.SubjectId, 1L);
+        var message = new Message(Commons.AudienceIdentity.GetClaim<Guid>(Claim.Sub), Commons.IssuerIdentity.GetClaim<Guid>(Claim.Sub), 1L);
         message.SetPayload(Encoding.UTF8.GetBytes(Commons.Payload));
         message.Sign(Commons.IssuerKey);
         Thread.Sleep(2000);
@@ -207,13 +289,13 @@ public class MessageTests
         const string exported =
             "Di:MSG.eyJhdWQiOiI4ZmRkYzI0Mi02NzBlLTRjNzMtODRiZS04Mjc2MWEzOTI3ZWYiLCJleHAiOiIyMDIyLTEwLTE3VDE5OjA0OjMyLjExODI3MloiLCJpYXQiOiIyMDIyLTEwLTE3VDE5OjA0OjIyLjExODI3MloiLCJpc3MiOiIzYjAxZDcyMi1lNjZiLTQ2ODMtYTViNi05M2RjNmU2MGUwMTciLCJ1aWQiOiIxNzlhMzU4OC0wNGZjLTQ4MWUtODdlOS0xY2NmNjNlMGM5NDAifQ.UmFjZWNhciBpcyByYWNlY2FyIGJhY2t3YXJkcy4.MzFhMDYyN2JlZjk1NjNiZC4wM2E1ZmYxYjZjMzE3NWJkNTcwODgxZjZjYzczZGUwZTQ3MzhlNTEwNGI5YTQyYmM4YzhkYTJjMzFhNjQ5N2FlZGZhMGE2YjQzOGRlYjU5Yzg3YjIzODNiYjU5NDcyMzMxZWVjM2YyMzg2ZWY3ZTI2YmRmNGRkZDJmNmM2NTUwMQ";
         var message = Item.Import<Message>(exported);
-        Assert.AreEqual(new Guid("179a3588-04fc-481e-87e9-1ccf63e0c940"), message.UniqueId);
-        Assert.AreEqual(Commons.AudienceIdentity.SubjectId, message.AudienceId);
-        Assert.AreEqual(Commons.IssuerIdentity.SubjectId, message.IssuerId);
+        Assert.AreEqual(new Guid("179a3588-04fc-481e-87e9-1ccf63e0c940"), message.GetClaim<Guid>(Claim.Uid));
+        Assert.AreEqual(Commons.AudienceIdentity.GetClaim<Guid>(Claim.Sub), message.GetClaim<Guid>(Claim.Aud));
+        Assert.AreEqual(Commons.IssuerIdentity.GetClaim<Guid>(Claim.Sub), message.GetClaim<Guid>(Claim.Iss));
         Assert.AreEqual(Commons.Payload, Encoding.UTF8.GetString(message.GetPayload()));
-        Assert.AreEqual(DateTime.Parse("2022-10-17T19:04:22.118272Z").ToUniversalTime(), message.IssuedAt);
-        Assert.AreEqual(DateTime.Parse("2022-10-17T19:04:32.118272Z").ToUniversalTime(), message.ExpiresAt);
-        Assert.AreEqual(message.IssuerId, Commons.IssuerIdentity.SubjectId);
+        Assert.AreEqual(DateTime.Parse("2022-10-17T19:04:22.118272Z").ToUniversalTime(), message.GetClaim<DateTime>(Claim.Iat));
+        Assert.AreEqual(DateTime.Parse("2022-10-17T19:04:32.118272Z").ToUniversalTime(), message.GetClaim<DateTime>(Claim.Exp));
+        Assert.AreEqual(message.GetClaim<Guid>(Claim.Iss), Commons.IssuerIdentity.GetClaim<Guid>(Claim.Sub));
     }
 
     [TestMethod]
@@ -237,7 +319,7 @@ public class MessageTests
     [TestMethod]
     public void ImportTest3()
     {
-        var message1 = new Message(Commons.AudienceIdentity.SubjectId, Commons.IssuerIdentity.SubjectId, 120L);
+        var message1 = new Message(Commons.AudienceIdentity.GetClaim<Guid>(Claim.Sub), Commons.IssuerIdentity.GetClaim<Guid>(Claim.Sub), 120L);
         message1.SetPayload(Encoding.UTF8.GetBytes(Commons.Payload));
         message1.Sign(Commons.IssuerKey);
         var encoded = message1.Export();
@@ -249,7 +331,7 @@ public class MessageTests
     public void SignTest1()
     {  
         Commons.InitializeKeyRing();
-        var message = new Message(Commons.AudienceIdentity.SubjectId, Commons.IssuerIdentity.SubjectId, 10L);
+        var message = new Message(Commons.AudienceIdentity.GetClaim<Guid>(Claim.Sub), Commons.IssuerIdentity.GetClaim<Guid>(Claim.Sub), 10L);
         try {
             message.Sign(Commons.IssuerKey);
         } catch (InvalidOperationException) { return; } // All is well
@@ -260,21 +342,17 @@ public class MessageTests
     public void SignTest2()
     {  
         Commons.InitializeKeyRing();
-        var message = new Message(Commons.AudienceIdentity.SubjectId, Commons.IssuerIdentity.SubjectId, 10L);
+        var message = new Message(Commons.AudienceIdentity.GetClaim<Guid>(Claim.Sub), Commons.IssuerIdentity.GetClaim<Guid>(Claim.Sub), 10L);
         message.SetPayload(Encoding.UTF8.GetBytes(Commons.Payload));
         message.Sign(Commons.IssuerKey);
-        try {
-            message.KeyId = Guid.NewGuid();
-            message.PublicKey = Commons.IssuerKey.Public;
-        } catch (InvalidOperationException) { return; } // All is well
-        Assert.IsTrue(false, Commons.Payload);
+        try { message.SetPayload(Encoding.UTF8.GetBytes(Commons.Payload)); Assert.IsTrue(false, "Exception not thrown."); } catch (InvalidOperationException) { /* all is well */ }
     }
 
     [TestMethod]
     public void IsSignedTest1()
     {
         Commons.InitializeKeyRing();
-        var message = new Message(Commons.AudienceIdentity.SubjectId, Commons.IssuerIdentity.SubjectId, 10L);
+        var message = new Message(Commons.AudienceIdentity.GetClaim<Guid>(Claim.Sub), Commons.IssuerIdentity.GetClaim<Guid>(Claim.Sub), 10L);
         message.SetPayload(Encoding.UTF8.GetBytes(Commons.Payload));
         Assert.IsFalse(message.IsSigned);
         message.Sign(Commons.IssuerKey);
@@ -284,7 +362,7 @@ public class MessageTests
     [TestMethod]
     public void SetPayloadTest1()
     {
-        var message = new Message(Commons.AudienceIdentity.SubjectId, Commons.IssuerIdentity.SubjectId, 100L);
+        var message = new Message(Commons.AudienceIdentity.GetClaim<Guid>(Claim.Sub), Commons.IssuerIdentity.GetClaim<Guid>(Claim.Sub), 100L);
         message.SetPayload(Encoding.UTF8.GetBytes(Commons.Payload));
         Assert.AreEqual(Commons.Payload, Encoding.UTF8.GetString(message.GetPayload()));
     }
@@ -292,7 +370,7 @@ public class MessageTests
     [TestMethod]
     public void SetPayloadTest2()
     {
-        var message1 = new Message(Commons.AudienceIdentity.SubjectId, Commons.IssuerIdentity.SubjectId, 100L);
+        var message1 = new Message(Commons.AudienceIdentity.GetClaim<Guid>(Claim.Sub), Commons.IssuerIdentity.GetClaim<Guid>(Claim.Sub), 100L);
         message1.SetPayload(Encoding.UTF8.GetBytes(Commons.Payload));
         Assert.AreEqual(Commons.Payload, Encoding.UTF8.GetString(message1.GetPayload()));
         message1.Sign(Commons.IssuerKey);
@@ -305,7 +383,7 @@ public class MessageTests
     {
         var localKey = Key.Generate(new List<KeyCapability>() {KeyCapability.Exchange}, null);
         var remoteKey =Key.Generate(new List<KeyCapability>() {KeyCapability.Exchange}, null).PublicCopy();
-        var message = new Message(Commons.AudienceIdentity.SubjectId, Commons.IssuerIdentity.SubjectId, 100L);
+        var message = new Message(Commons.AudienceIdentity.GetClaim<Guid>(Claim.Sub), Commons.IssuerIdentity.GetClaim<Guid>(Claim.Sub), 100L);
         message.SetPayload(Encoding.UTF8.GetBytes(Commons.Payload), localKey, remoteKey);
         Assert.AreNotEqual(Commons.Payload, Encoding.UTF8.GetString(message.GetPayload()));
     }
@@ -315,14 +393,14 @@ public class MessageTests
     {
         var issuerKey = Key.Generate(new List<KeyCapability>() {KeyCapability.Exchange}, null);
         var audienceKey = Key.Generate(new List<KeyCapability>() {KeyCapability.Exchange}, null);
-        var message = new Message(Commons.AudienceIdentity.SubjectId, Commons.IssuerIdentity.SubjectId, 100L)
-        {
-            KeyId = issuerKey.UniqueId,
-            PublicKey = audienceKey.Public
-        };
+        var message = new Message(Commons.AudienceIdentity.GetClaim<Guid>(Claim.Sub),
+            Commons.IssuerIdentity.GetClaim<Guid>(Claim.Sub), Dime.ValidFor1Minute);
+        message.PutClaim(Claim.Kid, issuerKey.GetClaim<Guid>(Claim.Uid));
+        message.PublicKey = audienceKey.PublicCopy();
         message.SetPayload(Encoding.UTF8.GetBytes(Commons.Payload), issuerKey, audienceKey.PublicCopy());
-        Assert.AreEqual(issuerKey.UniqueId, message.KeyId);
-        Assert.AreEqual(audienceKey.Public, message.PublicKey);
+        Assert.AreEqual(issuerKey.GetClaim<Guid>(Claim.Uid), message.GetClaim<Guid>(Claim.Kid));
+        Assert.IsNotNull(message.PublicKey);
+        Assert.AreEqual(audienceKey.Public, message.PublicKey.Public);
         Assert.AreEqual(Commons.Payload, Encoding.UTF8.GetString(message.GetPayload(issuerKey.PublicCopy(), audienceKey)));
     }
 
@@ -331,7 +409,7 @@ public class MessageTests
     {
         var issuerKey = Key.Generate(new List<KeyCapability>() {KeyCapability.Exchange}, null);
         var audienceKey = Key.Generate(new List<KeyCapability>() {KeyCapability.Exchange}, null);
-        var message1 = new Message(Commons.AudienceIdentity.SubjectId, Commons.IssuerIdentity.SubjectId, 100L);
+        var message1 = new Message(Commons.AudienceIdentity.GetClaim<Guid>(Claim.Sub), Commons.IssuerIdentity.GetClaim<Guid>(Claim.Sub), Dime.ValidFor1Minute);
         message1.SetPayload(Encoding.UTF8.GetBytes(Commons.Payload), issuerKey, audienceKey.PublicCopy());
         message1.Sign(Commons.IssuerKey);
         var message2 = Item.Import<Message>(message1.Export());
@@ -342,7 +420,7 @@ public class MessageTests
     public void SetPayloadTest6()
     {
         var key = Key.Generate(new List<KeyCapability>() {KeyCapability.Sign}, null);
-        var message = new Message(Commons.AudienceIdentity.SubjectId, Commons.IssuerIdentity.SubjectId, 100L);
+        var message = new Message(Commons.AudienceIdentity.GetClaim<Guid>(Claim.Sub), Commons.IssuerIdentity.GetClaim<Guid>(Claim.Sub), Dime.ValidFor1Minute);
         try {
             message.SetPayload(Encoding.UTF8.GetBytes(Commons.Payload), key, key);
         } catch (ArgumentException) { return; } // All is well
@@ -355,13 +433,13 @@ public class MessageTests
         Commons.InitializeKeyRing();
         var issuer = Commons.IssuerIdentity;
         var receiver = Commons.AudienceIdentity;
-        var issuerMessage = new Message(receiver.SubjectId, issuer.SubjectId, 100L);
+        var issuerMessage = new Message(receiver.GetClaim<Guid>(Claim.Sub), issuer.GetClaim<Guid>(Claim.Sub), 100L);
         issuerMessage.SetPayload(Encoding.UTF8.GetBytes(Commons.Payload));
         issuerMessage.Sign(Commons.IssuerKey);
             
         var issuerEncoded = issuerMessage.Export();
         var receivedMessage = Item.Import<Message>(issuerEncoded);
-        var responseMessage = new Message(issuer.SubjectId, receiver.SubjectId, 100L);
+        var responseMessage = new Message(issuer.GetClaim<Guid>(Claim.Sub), receiver.GetClaim<Guid>(Claim.Sub), Dime.ValidFor1Minute);
         responseMessage.SetPayload(Encoding.UTF8.GetBytes("It is!"));
         responseMessage.AddItemLink(receivedMessage);
         responseMessage.Sign(Commons.AudienceKey);
@@ -374,7 +452,7 @@ public class MessageTests
     public void LinkItemTest2()
     {
         Commons.InitializeKeyRing();
-        var message = new Message(Commons.AudienceIdentity.SubjectId, Commons.IssuerIdentity.SubjectId, 100L);
+        var message = new Message(Commons.AudienceIdentity.GetClaim<Guid>(Claim.Sub), Commons.IssuerIdentity.GetClaim<Guid>(Claim.Sub), Dime.ValidFor1Minute);
         message.SetPayload(Encoding.UTF8.GetBytes(Commons.Payload));
         message.AddItemLink(Key.Generate(new List<KeyCapability>() {KeyCapability.Exchange}, null));
         message.Sign(Commons.IssuerKey);
@@ -385,7 +463,7 @@ public class MessageTests
     public void LinkItemTest3()
     {
         Commons.InitializeKeyRing();
-        var message = new Message(Commons.AudienceIdentity.SubjectId, Commons.IssuerIdentity.SubjectId, 100L);
+        var message = new Message(Commons.AudienceIdentity.GetClaim<Guid>(Claim.Sub), Commons.IssuerIdentity.GetClaim<Guid>(Claim.Sub), Dime.ValidFor1Minute);
         message.SetPayload(Encoding.UTF8.GetBytes(Commons.Payload));
         message.Sign(Commons.IssuerKey);
         try {
@@ -398,7 +476,7 @@ public class MessageTests
     public void ThumbprintTest1()
     {
         Commons.InitializeKeyRing();
-        var message1 = new Message(Commons.AudienceIdentity.SubjectId, Commons.IssuerIdentity.SubjectId, 100L);
+        var message1 = new Message(Commons.AudienceIdentity.GetClaim<Guid>(Claim.Sub), Commons.IssuerIdentity.GetClaim<Guid>(Claim.Sub), Dime.ValidFor1Minute);
         message1.SetPayload(Encoding.UTF8.GetBytes(Commons.Payload));
         message1.Sign(Commons.IssuerKey);
         var thumbprint1 = message1.Thumbprint();
@@ -414,10 +492,10 @@ public class MessageTests
         Commons.InitializeKeyRing();
         var issuer = Commons.IssuerIdentity;
         var receiver = Commons.AudienceIdentity;
-        var issuerMessage1 = new Message(receiver.SubjectId, issuer.SubjectId, 100);
+        var issuerMessage1 = new Message(receiver.GetClaim<Guid>(Claim.Sub), issuer.GetClaim<Guid>(Claim.Sub), Dime.ValidFor1Minute);
         issuerMessage1.SetPayload(Encoding.UTF8.GetBytes(Commons.Payload));
         issuerMessage1.Sign(Commons.IssuerKey);
-        var issuerMessage2 = new Message(receiver.SubjectId, issuer.SubjectId, 100);
+        var issuerMessage2 = new Message(receiver.GetClaim<Guid>(Claim.Sub), issuer.GetClaim<Guid>(Claim.Sub), Dime.ValidFor1Minute);
         issuerMessage2.SetPayload(Encoding.UTF8.GetBytes(Commons.Payload));
         issuerMessage2.Sign(Commons.IssuerKey);
         Assert.AreNotEqual(issuerMessage1.Thumbprint(), issuerMessage2.Thumbprint());
@@ -428,21 +506,21 @@ public class MessageTests
     public void ContextTest1() 
     {
         const string context = "123456789012345678901234567890123456789012345678901234567890123456789012345678901234";
-        Assert.IsNotNull(Commons.IssuerIdentity.IssuerId);
-        var message = new Message(Commons.IssuerIdentity.IssuerId.Value, -1, context);
-        Assert.AreEqual(context, message.Context);
+        Assert.IsNotNull(Commons.IssuerIdentity.GetClaim<Guid>(Claim.Iss));
+        var message = new Message(Commons.IssuerIdentity.GetClaim<Guid>(Claim.Iss), Dime.NoExpiration, context);
+        Assert.AreEqual(context, message.GetClaim<string>(Claim.Ctx));
     }
 
     [TestMethod]
     public void ContextTest2() 
     {
         const string context = "123456789012345678901234567890123456789012345678901234567890123456789012345678901234";
-        Assert.IsNotNull(Commons.IssuerIdentity.IssuerId);
-        var message1 = new Message(Commons.IssuerIdentity.IssuerId.Value, -1, context);
+        Assert.IsNotNull(Commons.IssuerIdentity.GetClaim<Guid>(Claim.Iss));
+        var message1 = new Message(Commons.IssuerIdentity.GetClaim<Guid>(Claim.Iss), Dime.NoExpiration, context);
         message1.SetPayload(Encoding.UTF8.GetBytes(Commons.Payload));
         message1.Sign(Commons.IssuerKey);
         var message2 = Item.Import<Message>(message1.Export());
-        Assert.AreEqual(context, message2.Context);
+        Assert.AreEqual(context, message2.GetClaim<string>(Claim.Ctx));
     }
 
     [TestMethod]
@@ -450,8 +528,8 @@ public class MessageTests
     {
         const string context = "123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890";
         try {
-            Assert.IsNotNull(Commons.IssuerIdentity.IssuerId);
-            _ = new Message(Commons.IssuerIdentity.IssuerId.Value, -1, context);
+            Assert.IsNotNull(Commons.IssuerIdentity.GetClaim<Guid>(Claim.Iss));
+            _ = new Message(Commons.IssuerIdentity.GetClaim<Guid>(Claim.Iss), Dime.NoExpiration, context);
         } catch (ArgumentException) { return; } // All is well
         Assert.IsTrue(false, "Should not happen.");
     }

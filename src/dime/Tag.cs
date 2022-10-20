@@ -10,7 +10,6 @@
 #nullable enable
 using System;
 using System.Collections.Generic;
-using DiME.Exceptions;
 
 namespace DiME;
 
@@ -48,9 +47,9 @@ public class Tag: Item
         if (context is {Length: > Dime.MaxContextLength}) 
             throw new ArgumentException($"Context must not be longer than {Dime.MaxContextLength}.", nameof(context));
         var claims = Claims();
-        claims.Put(Claim.Uid, Guid.NewGuid());
-        claims.Put(Claim.Iss, issuerId);
-        claims.Put(Claim.Ctx, context);
+        claims?.Put(Claim.Uid, Guid.NewGuid());
+        claims?.Put(Claim.Iss, issuerId);
+        claims?.Put(Claim.Ctx, context);
         if (items is not null && items.Count > 0)
             SetItemLinks(items);
     }
@@ -72,6 +71,11 @@ public class Tag: Item
     
     #region -- PROTECTED --
     
+    protected override bool AllowedToSetClaimDirectly(Claim claim)
+    {
+        return AllowedClaims.Contains(claim);
+    }
+    
     protected override void CustomDecoding(List<string> components)
     {
         IsSigned = true; // Tags are always signed
@@ -86,6 +90,7 @@ public class Tag: Item
 
     #region -- PRIVATE --
 
+    private static readonly List<Claim> AllowedClaims = new() { Claim.Amb, Claim.Aud, Claim.Ctx, Claim.Exp, Claim.Iat, Claim.Iss, Claim.Kid, Claim.Mtd, Claim.Sub, Claim.Sys, Claim.Uid };
     private new const int MinimumNbrComponents = 3;
     
     #endregion

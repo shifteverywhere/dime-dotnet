@@ -32,10 +32,10 @@ public class AlienTests
         var key = Item.Import<Key>(alienKey);
         Assert.IsNotNull(key);
         Assert.IsTrue(key.HasCapability(KeyCapability.Sign));
-        Assert.AreEqual(DateTime.Parse("2022-10-17T17:16:11.087330Z").ToUniversalTime(), key.IssuedAt);
+        Assert.AreEqual(DateTime.Parse("2022-10-17T17:16:11.087330Z").ToUniversalTime(), key.GetClaim<DateTime>(Claim.Iat));
         Assert.AreEqual("STN.4BMyqzzqcvEjuWDmN2DN9YAuNMSbPnQoMgEECdfjsDoj1DgfKhGHWMyej1xHWZf9GRVP4yfyQDubsPaCw5zLhyRCPCQQF", key.Secret);
         Assert.AreEqual("STN.bqaWQxJQjktAXn66vwaFU55cKy31quaHoFdzco6MifE1au4qH", key.Public);
-        Assert.AreEqual(Guid.Parse("1125e020-b42b-4a8f-9ffa-026b41795ed8"), key.UniqueId);
+        Assert.AreEqual(Guid.Parse("1125e020-b42b-4a8f-9ffa-026b41795ed8"), key.GetClaim<Guid>(Claim.Uid));
     }
     
     [TestMethod]
@@ -46,11 +46,11 @@ public class AlienTests
         var key = Item.Import<Key>(alienKey);
         Assert.IsNotNull(key);
         Assert.IsTrue(key.HasCapability(KeyCapability.Exchange));
-        Assert.AreEqual(Commons.Context, key.Context);
-        Assert.AreEqual(DateTime.Parse("2022-10-17T17:42:51.093244Z").ToUniversalTime(), key.IssuedAt);
+        Assert.AreEqual(Commons.Context, key.GetClaim<string>(Claim.Ctx));
+        Assert.AreEqual(DateTime.Parse("2022-10-17T17:42:51.093244Z").ToUniversalTime(), key.GetClaim<DateTime>(Claim.Iat));
         Assert.IsNull(key.Secret);
         Assert.AreEqual("STN.xUm6ebHbX4P6gv6qKejug9Gatg9x1Tw7kCPkV8WxMo9rk5wf9", key.Public);
-        Assert.AreEqual(Guid.Parse("5104e1b9-facf-4af3-88d3-e1275b0752db"), key.UniqueId);
+        Assert.AreEqual(Guid.Parse("5104e1b9-facf-4af3-88d3-e1275b0752db"), key.GetClaim<Guid>(Claim.Uid));
     }
 
     [TestMethod]
@@ -60,11 +60,11 @@ public class AlienTests
         var iir = Item.Import<IdentityIssuingRequest>(alienIir);
         Assert.IsNotNull(iir);
         Assert.IsTrue(iir.WantsCapability(IdentityCapability.Generic));
-        Assert.AreEqual(DateTime.Parse("2022-10-17T17:24:15.456913Z").ToUniversalTime(), iir.IssuedAt);
+        Assert.AreEqual(DateTime.Parse("2022-10-17T17:24:15.456913Z").ToUniversalTime(), iir.GetClaim<DateTime>(Claim.Iat));
         var key = iir.PublicKey;
         Assert.IsNotNull(key);
         Assert.AreEqual("STN.2u96qu8UQbsbDGdAKkCzeRRShhPQ78tBtBANzENgHjRj4H6uVU", key.Public);
-        Assert.AreEqual(Guid.Parse("18389044-92c0-4a87-8e14-a01e8be75873"), iir.UniqueId);
+        Assert.AreEqual(Guid.Parse("18389044-92c0-4a87-8e14-a01e8be75873"), iir.GetClaim<Guid>(Claim.Uid));
         Assert.AreEqual(IntegrityState.Complete, iir.Verify(key));
     }
 
@@ -91,13 +91,13 @@ public class AlienTests
         Assert.IsNotNull(identity);
         Assert.IsTrue(identity.HasCapability(IdentityCapability.Generic));
         Assert.IsTrue(identity.HasCapability(IdentityCapability.Identify));
-        Assert.AreEqual(DateTime.Parse("2023-10-17T17:35:00.631203Z").ToUniversalTime(), identity.ExpiresAt);
-        Assert.AreEqual(DateTime.Parse("2022-10-17T17:35:00.631203Z").ToUniversalTime(), identity.IssuedAt);
-        Assert.AreEqual(Guid.Parse("ce578b36-ba2c-4cf1-ae5c-37c565af6e11"), identity.IssuerId);
+        Assert.AreEqual(DateTime.Parse("2023-10-17T17:35:00.631203Z").ToUniversalTime(), identity.GetClaim<DateTime>(Claim.Exp));
+        Assert.AreEqual(DateTime.Parse("2022-10-17T17:35:00.631203Z").ToUniversalTime(), identity.GetClaim<DateTime>(Claim.Iat));
+        Assert.AreEqual(Guid.Parse("ce578b36-ba2c-4cf1-ae5c-37c565af6e11"), identity.GetClaim<Guid>(Claim.Iss));
         Assert.AreEqual("STN.29jWNPXEkgNjopxFdszjhAXAYSmSpv1CKV98rpGkszZZweZP4B", identity.PublicKey.Public);
-        Assert.AreEqual(Guid.Parse("c8d1342f-7a22-452c-ab8f-b4d23ac50c62"), identity.SubjectId);
-        Assert.AreEqual(Commons.SystemName, identity.SystemName);
-        Assert.AreEqual(Guid.Parse("351fc1a6-cb76-4a3a-8304-984f38f60976"), identity.UniqueId);
+        Assert.AreEqual(Guid.Parse("c8d1342f-7a22-452c-ab8f-b4d23ac50c62"), identity.GetClaim<Guid>(Claim.Sub));
+        Assert.AreEqual(Commons.SystemName, identity.GetClaim<string>(Claim.Sys));
+        Assert.AreEqual(Guid.Parse("351fc1a6-cb76-4a3a-8304-984f38f60976"), identity.GetClaim<Guid>(Claim.Uid));
         Assert.IsNotNull(identity.TrustChain);
     }
 
@@ -108,12 +108,12 @@ public class AlienTests
             "Di:DAT.eyJjdHgiOiJ0ZXN0LWNvbnRleHQiLCJleHAiOiIyMDIyLTEwLTE3VDE3OjQ2OjQxLjI1Mjg2NVoiLCJpYXQiOiIyMDIyLTEwLTE3VDE3OjQ1OjQxLjI1Mjg2NVoiLCJpc3MiOiJlZjRkNWJmMC1mOWVkLTQzZTktYmE3ZC0wMGNkNDEwYzJmMmMiLCJtaW0iOiJ0ZXh0L3BsYWluIiwidWlkIjoiODRiNDlhNGMtOGM2OS00YTM5LWFkMjQtN2M1NjUyMTY5ZGEzIn0.UmFjZWNhciBpcyByYWNlY2FyIGJhY2t3YXJkcy4";
         var data = Item.Import<Data>(alienData);
         Assert.IsNotNull(data);
-        Assert.AreEqual(Commons.Context, data.Context);
-        Assert.AreEqual(DateTime.Parse("2022-10-17T17:46:41.252865Z").ToUniversalTime(), data.ExpiresAt);
-        Assert.AreEqual(DateTime.Parse("2022-10-17T17:45:41.252865Z").ToUniversalTime(), data.IssuedAt);
-        Assert.AreEqual(Guid.Parse("ef4d5bf0-f9ed-43e9-ba7d-00cd410c2f2c"), data.IssuerId);
-        Assert.AreEqual(Commons.Mimetype, data.MimeType);
-        Assert.AreEqual(Guid.Parse("84b49a4c-8c69-4a39-ad24-7c5652169da3"), data.UniqueId);
+        Assert.AreEqual(Commons.Context, data.GetClaim<string>(Claim.Ctx));
+        Assert.AreEqual(DateTime.Parse("2022-10-17T17:46:41.252865Z").ToUniversalTime(), data.GetClaim<DateTime>(Claim.Exp));
+        Assert.AreEqual(DateTime.Parse("2022-10-17T17:45:41.252865Z").ToUniversalTime(), data.GetClaim<DateTime>(Claim.Iat));
+        Assert.AreEqual(Guid.Parse("ef4d5bf0-f9ed-43e9-ba7d-00cd410c2f2c"), data.GetClaim<Guid>(Claim.Iss));
+        Assert.AreEqual(Commons.Mimetype, data.GetClaim<string>(Claim.Mim));
+        Assert.AreEqual(Guid.Parse("84b49a4c-8c69-4a39-ad24-7c5652169da3"), data.GetClaim<Guid>(Claim.Uid));
         Assert.AreEqual(Commons.Payload, Encoding.UTF8.GetString(data.GetPayload()));
     }
 
@@ -130,8 +130,8 @@ public class AlienTests
         Assert.IsNotNull(key);
         var tag = Item.Import<Tag>(alienTag);
         Assert.IsNotNull(tag);
-        Assert.AreEqual(Guid.Parse("ef4d5bf0-f9ed-43e9-ba7d-00cd410c2f2c"), tag.IssuerId);
-        Assert.AreEqual(Guid.Parse("141926f9-d061-48ac-82eb-f6080c1eefdd"), tag.UniqueId);
+        Assert.AreEqual(Guid.Parse("ef4d5bf0-f9ed-43e9-ba7d-00cd410c2f2c"), tag.GetClaim<Guid>(Claim.Iss));
+        Assert.AreEqual(Guid.Parse("141926f9-d061-48ac-82eb-f6080c1eefdd"), tag.GetClaim<Guid>(Claim.Uid));
         var data = Item.Import<Data>(localData);
         Assert.IsNotNull(data);
         Assert.AreEqual(IntegrityState.Complete, tag.Verify(key, new List<Item>() {data}));

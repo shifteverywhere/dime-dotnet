@@ -32,11 +32,6 @@ public class Key: Item
     /// </summary>
     public override string Header => ItemHeader;
     /// <summary>
-    /// Returns the version of the Di:ME specification for which this key was generated.
-    /// </summary>
-    [Obsolete("This method is no longer used, use Dime.Version instead.")]
-    public int Version => Dime.Version;
-    /// <summary>
     /// Returns the type of the key. The type determines what the key may be used for, this since it is also
     /// closely associated with the cryptographic algorithm the key is generated for.
     /// </summary>
@@ -101,13 +96,13 @@ public class Key: Item
         if (claim == Claim.Key)
         {
             if (_secretBytes == null)
-                DecodeKey(Claims().Get<string>(Claim.Key), Claim.Key);
+                DecodeKey(Claims()?.Get<string>(Claim.Key), Claim.Key);
             return _secretBytes;
         } 
         if (claim == Claim.Pub)
         {
             if (_publicBytes == null)
-                DecodeKey(Claims().Get<string>(Claim.Pub), Claim.Pub);
+                DecodeKey(Claims()?.Get<string>(Claim.Pub), Claim.Pub);
             return _publicBytes;
         }
         throw new ArgumentException($"Invalid claim for key provided: {claim}.");
@@ -237,11 +232,10 @@ public class Key: Item
             keyBytes[(int)KeyIndex.SecretKey], 
             keyBytes.Length == 2 ? keyBytes[(int)KeyIndex.PublicKey] : null,
             suiteName);
-        var claims = key.Claims();
-        if (validFor != -1L)
-            claims.Put(Claim.Exp, claims.GetDateTime(Claim.Iat)?.AddSeconds(validFor));
-        claims.Put(Claim.Iss, issuerId);
-        claims.Put(Claim.Ctx, context);
+        if (validFor != Dime.NoExpiration)
+            key.SetClaimValue(Claim.Exp, key.GetClaim<DateTime>(Claim.Iat).AddSeconds(validFor));
+        key.SetClaimValue(Claim.Iss, issuerId);
+        key.SetClaimValue(Claim.Ctx, context);
         return key;
     }
 
@@ -253,12 +247,11 @@ public class Key: Item
     public Key PublicCopy()
     {
         var copyKey = new Key(Capabilities.ToList(), null, Public, _suiteName);
-        var claims = copyKey.Claims();
-        claims.Put(Claim.Uid, UniqueId);
-        claims.Put(Claim.Iat, IssuedAt);
-        claims.Put(Claim.Exp, ExpiresAt);
-        claims.Put(Claim.Iss, IssuerId);
-        claims.Put(Claim.Ctx, Context);
+        if (HasClaim(Claim.Uid)) copyKey.SetClaimValue(Claim.Uid, GetClaim<Guid>(Claim.Uid));
+        if (HasClaim(Claim.Iat)) copyKey.SetClaimValue(Claim.Iat, GetClaim<DateTime>(Claim.Iat));
+        if (HasClaim(Claim.Exp)) copyKey.SetClaimValue(Claim.Exp, GetClaim<DateTime>(Claim.Exp));
+        if (HasClaim(Claim.Iss)) copyKey.SetClaimValue(Claim.Iss, GetClaim<Guid>(Claim.Iss));
+        if (HasClaim(Claim.Ctx)) copyKey.SetClaimValue(Claim.Ctx, GetClaim<string>(Claim.Ctx));
         return copyKey;
     }
 
@@ -338,6 +331,11 @@ public class Key: Item
 
     # region -- PROTECTED --
 
+    protected override bool AllowedToSetClaimDirectly(Claim claim)
+    {
+        return AllowedClaims.Contains(claim);
+    }
+    
     /// <summary>
     /// Any additional decoding done by subclasses of Item.
     /// </summary>
@@ -354,6 +352,7 @@ public class Key: Item
 
     #region -- PRIVATE --
 
+    private static readonly List<Claim> AllowedClaims = new() { Claim.Amb, Claim.Aud, Claim.Ctx, Claim.Exp, Claim.Iat, Claim.Iss, Claim.Kid, Claim.Mtd, Claim.Sub, Claim.Sys, Claim.Uid };
     private const int CryptoSuiteIndex = 0;
     private const int EncodedKeyIndex = 1;
     private const int LegacyKeyHeaderSize = 6;

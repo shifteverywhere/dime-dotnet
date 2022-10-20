@@ -26,7 +26,80 @@ public class IdentityIssuingRequestTests
         Assert.AreEqual("IIR", iir.Header);
         Assert.AreEqual("IIR", IdentityIssuingRequest.ItemHeader);
     }
+    
+    [TestMethod]
+    public void ClaimTest1() 
+    {
+        var iir = IdentityIssuingRequest.Generate(Commons.AudienceKey);
+        Assert.IsNotNull(iir.GetClaim<string>(Claim.Pub));
+        Assert.AreEqual(Commons.AudienceKey.GetClaim<string>(Claim.Pub), iir.GetClaim<string>(Claim.Pub));
+    }
 
+    [TestMethod]
+    public void ClaimTest2() 
+    {
+        var iir = IdentityIssuingRequest.Generate(Commons.AudienceKey);
+        iir.Strip();
+        iir.PutClaim(Claim.Amb, new List<string>() { "one", "two" });
+        Assert.IsNotNull(iir.GetClaim<List<string>>(Claim.Amb));
+        iir.PutClaim(Claim.Aud, Guid.NewGuid());
+        Assert.IsNotNull(iir.GetClaim<Guid>(Claim.Aud));
+        Assert.AreNotEqual(default, iir.GetClaim<Guid>(Claim.Aud));
+        iir.PutClaim(Claim.Ctx, Commons.Context);
+        Assert.IsNotNull(iir.GetClaim<string>(Claim.Ctx));
+        iir.PutClaim(Claim.Exp, DateTime.UtcNow);
+        Assert.IsNotNull(iir.GetClaim<DateTime>(Claim.Exp));
+        Assert.AreNotEqual(default, iir.GetClaim<DateTime>(Claim.Exp));
+        iir.PutClaim(Claim.Iat, DateTime.UtcNow);
+        Assert.IsNotNull(iir.GetClaim<DateTime>(Claim.Iat));
+        Assert.AreNotEqual(default, iir.GetClaim<DateTime>(Claim.Iat));
+        iir.PutClaim(Claim.Iss, Guid.NewGuid());
+        Assert.IsNotNull(iir.GetClaim<Guid>(Claim.Iss));
+        Assert.AreNotEqual(default, iir.GetClaim<Guid>(Claim.Iss));
+        iir.PutClaim(Claim.Kid, Guid.NewGuid());
+        Assert.IsNotNull(iir.GetClaim<Guid>(Claim.Kid));
+        Assert.AreNotEqual(default, iir.GetClaim<Guid>(Claim.Kid));
+        iir.PutClaim(Claim.Mtd, new List<string>() { "abc", "def" });
+        Assert.IsNotNull(iir.GetClaim<List<string>>(Claim.Mtd));
+        var pri = new Dictionary<string, object>
+        {
+            ["tag"] = Commons.Payload
+        };
+        iir.PutClaim(Claim.Pri, pri);
+        Assert.IsNotNull(iir.GetClaim<Dictionary<string, object>>(Claim.Pri));
+        Assert.AreNotEqual(default,iir.GetClaim<Dictionary<string, object>>(Claim.Pri));
+        iir.PutClaim(Claim.Sub, Guid.NewGuid());
+        Assert.IsNotNull(iir.GetClaim<Guid>(Claim.Sub));
+        Assert.AreNotEqual(default, iir.GetClaim<Guid>(Claim.Sub));
+        iir.PutClaim(Claim.Sys, Commons.SystemName);
+        Assert.IsNotNull(iir.GetClaim<string>(Claim.Sys));
+        iir.PutClaim(Claim.Uid, Guid.NewGuid());
+        Assert.IsNotNull(iir.GetClaim<Guid>(Claim.Uid));
+        Assert.AreNotEqual(default, iir.GetClaim<Guid>(Claim.Uid));
+        try { iir.PutClaim(Claim.Cap, new List<KeyCapability>() { KeyCapability.Encrypt }); Assert.IsTrue(false, "Exception not thrown."); } catch (ArgumentException) { /* all is well */ }
+        try { iir.PutClaim(Claim.Key,Commons.IssuerKey.Secret); Assert.IsTrue(false, "Exception not thrown."); } catch (ArgumentException) { /* all is well */ }
+        try { iir.PutClaim(Claim.Lnk, new ItemLink(Commons.IssuerKey)); Assert.IsTrue(false, "Exception not thrown."); } catch (ArgumentException) { /* all is well */ }
+        try { iir.PutClaim(Claim.Mim, Commons.Mimetype); Assert.IsTrue(false, "Exception not thrown."); } catch (ArgumentException) { /* all is well*/ }
+        try { iir.PutClaim(Claim.Pub, Commons.IssuerKey.Public); Assert.IsTrue(false, "Exception not thrown."); } catch (ArgumentException) { /* all is well */ }
+    }
+
+    [TestMethod]
+    public void ClaimTest3() 
+    {
+        var iir = IdentityIssuingRequest.Generate(Commons.AudienceKey);
+        try { iir.RemoveClaim(Claim.Iss); Assert.IsTrue(false, "Exception not thrown."); } catch (InvalidOperationException) { /* all is well */ }
+        try { iir.PutClaim(Claim.Exp, DateTime.UtcNow); } catch (InvalidOperationException) { /* all is well */ }
+    }
+
+    [TestMethod]
+    public void ClaimTest4() 
+    {
+        var iir = IdentityIssuingRequest.Generate(Commons.AudienceKey);
+        iir.Strip();
+        iir.RemoveClaim(Claim.Iss);
+        iir.PutClaim(Claim.Iat, DateTime.UtcNow);
+    }
+    
     [TestMethod]
     public void GenerateRequestTest1()
     {
@@ -147,8 +220,8 @@ public class IdentityIssuingRequestTests
             "Di:IIR.eyJ1aWQiOiJkNWRkNzEyZC1hM2U3LTQ3YjAtYjRmNi0yMjU2NzJlYzZkMjMiLCJpYXQiOiIyMDIxLTEyLTAxVDIxOjA4OjQ0LjQxMzMyNloiLCJwdWIiOiIyVERYZG9Odk0xVmhNWjhpRzVZNFVlZkVBQzVFQWZiR1NacGt6OUVoWkVGNEw1a1p5RzhuVDRTSkoiLCJjYXAiOlsiZ2VuZXJpYyJdfQ.eduHuVrUY/Q9xpZVApuPjBnbG4Oo29PeTPSQIRW6xJVRYZiH0h5jEL1MgZrIFxQRPyiBQlK6BMVTc6e7OwFVDw";
         var iir = Item.Import<IdentityIssuingRequest>(exported);
         Assert.IsNotNull(iir);
-        Assert.AreEqual(new Guid("d5dd712d-a3e7-47b0-b4f6-225672ec6d23"), iir.UniqueId);
-        Assert.AreEqual(DateTime.Parse("2021-12-01T21:08:44.413326Z").ToUniversalTime(), iir.IssuedAt);
+        Assert.AreEqual(new Guid("d5dd712d-a3e7-47b0-b4f6-225672ec6d23"), iir.GetClaim<Guid>(Claim.Uid));
+        Assert.AreEqual(DateTime.Parse("2021-12-01T21:08:44.413326Z").ToUniversalTime(), iir.GetClaim<DateTime>(Claim.Iat));
         Assert.IsTrue(iir.WantsCapability(IdentityCapability.Generic));
         Assert.AreEqual("2TDXdoNvM1VhMZ8iG5Y4UefEAC5EAfbGSZpkz9EhZEF4L5kZyG8nT4SJJ", iir.PublicKey.Public);
         iir.Verify();
@@ -307,7 +380,7 @@ public class IdentityIssuingRequestTests
         var caps = new List<IdentityCapability> {IdentityCapability.Generic};
         var identity = IdentityIssuingRequest.Generate(Key.Generate(new List<KeyCapability>() {KeyCapability.Sign}, null)).Issue(Guid.NewGuid(), 100L,
             Commons.IntermediateKey, Commons.IntermediateIdentity, true, caps);
-        Assert.AreEqual(Commons.IntermediateIdentity.SystemName, identity.SystemName);
+        Assert.AreEqual(Commons.IntermediateIdentity.GetClaim<string>(Claim.Sys), identity.GetClaim<string>(Claim.Sys));
     }
 
     [TestMethod]
@@ -317,8 +390,8 @@ public class IdentityIssuingRequestTests
         var caps = new List<IdentityCapability> {IdentityCapability.Generic};
         var identity = IdentityIssuingRequest.Generate(Key.Generate(new List<KeyCapability>() {KeyCapability.Sign}, null)).Issue(Guid.NewGuid(), 100L,
             Commons.IntermediateKey, Commons.IntermediateIdentity, true, caps, null, system);
-        Assert.AreNotEqual(Commons.IntermediateIdentity.SystemName, identity.SystemName);
-        Assert.AreEqual(system, identity.SystemName);
+        Assert.AreNotEqual(Commons.IntermediateIdentity.GetClaim<string>(Claim.Sys), identity.GetClaim<string>(Claim.Sys));
+        Assert.AreEqual(system, identity.GetClaim<string>(Claim.Sys));
     }
 
     [TestMethod]

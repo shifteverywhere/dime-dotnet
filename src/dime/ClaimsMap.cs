@@ -17,7 +17,7 @@ using jsoncanonicalizer;
 
 namespace DiME;
 
-public class ClaimsMap
+internal class ClaimsMap
 {
     #region -- INTERNAL --
 
@@ -56,66 +56,29 @@ public class ClaimsMap
     
     internal T? Get<T>(Claim claim)
     {
-        var key = ClaimToString(claim);
-        if (_claims != null && !_claims.ContainsKey(key)) return default;
-        return (T) _claims?[key]!;
-    }
-
-    internal Guid? GetGuid(Claim claim)
-    {
-        switch (Get<object>(claim))
+        if (!HasClaim(claim)) return default;
+        object? value;
+        switch (claim)
         {
-            case null:
-                return null;
-            case Guid guid:
-                return guid;
-            case string str:
-            {
-                var uuid = new Guid(str);
-                Put(claim, uuid);
-                return uuid;
-            }
+            case Claim.Aud:
+            case Claim.Iss:
+            case Claim.Kid:
+            case Claim.Sub:
+            case Claim.Uid:
+                value = GetGuid(claim);
+                break;
+            case Claim.Exp:
+            case Claim.Iat:
+                value = GetDateTime(claim);
+                break;
+            case Claim.Lnk:
+                value = GetItemLinks(claim);
+                break;
             default:
-                throw new ArgumentException("Requested claim is not a Guid.", nameof(claim));
+                value = _claims?[ClaimToString(claim)];
+                break;
         }
-    }
-
-    internal DateTime? GetDateTime(Claim claim)
-    {
-        switch (Get<object>(claim))
-        {
-            case null:
-                return null;
-            case DateTime dateTime:
-                return dateTime;
-            case string str:
-            {
-                var dateTime = Utility.FromTimestamp(str);
-                Put(claim, dateTime);
-                return dateTime;
-            }
-            default:
-                throw new ArgumentException("Requested claim is not a DateTime.", nameof(claim));
-        }
-    }
-
-    internal byte[] GetBytes(Claim claim)
-    {
-        var obj = Get<object>(claim);
-        if (obj is string str)
-           return Base58.Decode(str);
-        return Array.Empty<byte>();
-    }
-
-    internal Key? GetKey(Claim claim, List<KeyCapability> use)
-    {
-        var value = Get<string>(claim);
-        return string.IsNullOrEmpty(value) ? null : new Key(use, value, claim);
-    }
-    
-    internal List<ItemLink>? GetItemLinks(Claim claim) {
-        var value = Get<string>(claim);
-        return string.IsNullOrEmpty(value) ? null : ItemLink.FromEncodedList(value);
+        return value is not null ? (T) value : default;
     }
     
     internal void Put(Claim claim, object? value)
@@ -138,9 +101,57 @@ public class ClaimsMap
         _claims!.Remove(ClaimToString(claim));
     }
 
+    internal bool HasClaim(Claim claim)
+    {
+        return _claims?.ContainsKey(ClaimToString(claim)) ?? false;
+    }
+
     #endregion
     
     #region -- PRIVATE --
+
+    private Guid? GetGuid(Claim claim)
+    {
+        switch (_claims?[ClaimToString(claim)])
+        {
+            case null:
+                return null;
+            case Guid guid:
+                return guid;
+            case string str:
+            {
+                var uuid = new Guid(str);
+                Put(claim, uuid);
+                return uuid;
+            }
+            default:
+                throw new ArgumentException("Requested claim is not a Guid.", nameof(claim));
+        }
+    }
+
+    private DateTime? GetDateTime(Claim claim)
+    {
+        switch (_claims?[ClaimToString(claim)])
+        {
+            case null:
+                return null;
+            case DateTime dateTime:
+                return dateTime;
+            case string str:
+            {
+                var dateTime = Utility.FromTimestamp(str);
+                Put(claim, dateTime);
+                return dateTime;
+            }
+            default:
+                throw new ArgumentException("Requested claim is not a DateTime.", nameof(claim));
+        }
+    }
+
+    private List<ItemLink>? GetItemLinks(Claim claim) {
+        var value = _claims?[ClaimToString(claim)];
+        return value is null ? null : ItemLink.FromEncodedList((string) value);
+    }
 
     private readonly Dictionary<string, object>? _claims;
 

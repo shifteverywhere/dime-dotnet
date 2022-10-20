@@ -9,9 +9,9 @@
 //
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
+using System.Collections.Generic;
 using System.Text;
 using DiME;
-using DiME.Exceptions;
 
 namespace DiME_test;
 
@@ -33,12 +33,12 @@ public class DataTests
         var now = DateTime.UtcNow;
         var data = new Data(Guid.NewGuid(), 10L, Commons.Context);
         data.SetPayload(Encoding.UTF8.GetBytes(Commons.Payload));
-        Assert.IsNotNull(data.UniqueId);
-        Assert.AreEqual(Commons.Context, data.Context);
+        Assert.IsNotNull(data.GetClaim<Guid>(Claim.Uid));
+        Assert.AreEqual(Commons.Context, data.GetClaim<string>(Claim.Ctx));
         Assert.AreEqual(Commons.Payload, Encoding.UTF8.GetString(data.GetPayload()));
-        Assert.IsTrue(data.IssuedAt >= now && data.IssuedAt <= (now.AddSeconds(1)));
-        Assert.IsTrue(data.ExpiresAt > (now.AddSeconds(9)) && data.ExpiresAt < (now.AddSeconds(11)));
-        Assert.IsNull(data.MimeType);
+        Assert.IsTrue(data.GetClaim<DateTime>(Claim.Iat) >= now && data.GetClaim<DateTime>(Claim.Iat) <= (now.AddSeconds(1)));
+        Assert.IsTrue(data.GetClaim<DateTime>(Claim.Exp) > (now.AddSeconds(9)) && data.GetClaim<DateTime>(Claim.Exp) < (now.AddSeconds(11)));
+        Assert.IsNull(data.GetClaim<string>(Claim.Mim));
     }
 
     [TestMethod]
@@ -46,8 +46,9 @@ public class DataTests
     {
         var data = new Data(Guid.NewGuid(), -1, Commons.Context);
         data.SetPayload(Encoding.UTF8.GetBytes(Commons.Payload), Commons.Mimetype);
-        Assert.AreEqual(Commons.Mimetype, data.MimeType);
-        Assert.IsNull(data.ExpiresAt);
+        Assert.AreEqual(Commons.Mimetype, data.GetClaim<string>(Claim.Mim));
+        var d = data.GetClaim<DateTime>(Claim.Exp);
+        Assert.AreEqual(default(DateTime), data.GetClaim<DateTime>(Claim.Exp)); 
     }
 
     [TestMethod]
@@ -55,14 +56,97 @@ public class DataTests
     {
         var data1 = new Data(Guid.NewGuid());
         var data2 = new Data(Guid.NewGuid());
-        Assert.AreNotEqual(data1.UniqueId, data2.UniqueId);
+        Assert.AreNotEqual(data1.GetClaim<Guid>(Claim.Uid), data2.GetClaim<Guid>(Claim.Uid));
+    }
+    
+    [TestMethod]
+    public void ClaimTest1() 
+    {
+        var data = new Data(Commons.IssuerIdentity.GetClaim<Guid>(Claim.Sub));
+        Assert.IsNotNull(data.GetClaim<Guid>(Claim.Iss));
+        Assert.AreEqual(Commons.IssuerIdentity.GetClaim<Guid>(Claim.Sub), data.GetClaim<Guid>(Claim.Iss));
+    }
+
+    [TestMethod]
+    public void ClaimTest2() 
+    {
+        var data = new Data(Commons.IssuerIdentity.GetClaim<Guid>(Claim.Sub));
+        data.SetPayload(Encoding.UTF8.GetBytes(Commons.Payload), Commons.Mimetype);
+        Assert.IsNotNull(data.GetClaim<string>(Claim.Mim));
+        Assert.AreEqual(Commons.Mimetype, data.GetClaim<string>(Claim.Mim));
+        data.RemoveClaim(Claim.Mim);
+        Assert.AreEqual(default(string), data.GetClaim<string>(Claim.Mim));
+    }
+
+    [TestMethod]
+    public void ClaimTest3() 
+    {
+        var data = new Data(Commons.IssuerIdentity.GetClaim<Guid>(Claim.Sub));
+        data.SetPayload(Encoding.UTF8.GetBytes(Commons.Payload));
+        data.PutClaim(Claim.Amb, new List<string>() { "one", "two" });
+        Assert.IsNotNull(data.GetClaim<List<string>>(Claim.Amb));
+        data.PutClaim(Claim.Aud, Guid.NewGuid());
+        Assert.IsNotNull(data.GetClaim<Guid>(Claim.Aud));
+        Assert.AreNotEqual(default, data.GetClaim<Guid>(Claim.Aud));
+        data.PutClaim(Claim.Ctx, Commons.Context);
+        Assert.IsNotNull(data.GetClaim<string>(Claim.Ctx));
+        data.PutClaim(Claim.Exp, DateTime.UtcNow);
+        Assert.IsNotNull(data.GetClaim<DateTime>(Claim.Exp));
+        Assert.AreNotEqual(default, data.GetClaim<DateTime>(Claim.Exp));
+        data.PutClaim(Claim.Iat, DateTime.UtcNow);
+        Assert.IsNotNull(data.GetClaim<DateTime>(Claim.Iat));
+        Assert.AreNotEqual(default, data.GetClaim<DateTime>(Claim.Iat));
+        data.PutClaim(Claim.Iss, Guid.NewGuid());
+        Assert.IsNotNull(data.GetClaim<Guid>(Claim.Iss));
+        Assert.AreNotEqual(default, data.GetClaim<Guid>(Claim.Iss));
+        data.PutClaim(Claim.Kid, Guid.NewGuid());
+        Assert.IsNotNull(data.GetClaim<Guid>(Claim.Kid));
+        Assert.AreNotEqual(default, data.GetClaim<Guid>(Claim.Kid));
+        data.PutClaim(Claim.Mim, Commons.Mimetype);
+        Assert.IsNotNull(data.GetClaim<string>(Claim.Mim));
+        data.PutClaim(Claim.Mtd, new List<string>() { "abc", "def" });
+        Assert.IsNotNull(data.GetClaim<List<string>>(Claim.Mtd));
+        data.PutClaim(Claim.Sub, Guid.NewGuid());
+        Assert.IsNotNull(data.GetClaim<Guid>(Claim.Sub));
+        Assert.AreNotEqual(default, data.GetClaim<Guid>(Claim.Sub));
+        data.PutClaim(Claim.Sys, Commons.SystemName);
+        Assert.IsNotNull(data.GetClaim<string>(Claim.Sys));
+        data.PutClaim(Claim.Uid, Guid.NewGuid());
+        Assert.IsNotNull(data.GetClaim<Guid>(Claim.Uid));
+        Assert.AreNotEqual(default, data.GetClaim<Guid>(Claim.Uid));
+        try { data.PutClaim(Claim.Cap, new List<KeyCapability>() { KeyCapability.Encrypt }); Assert.IsTrue(false, "Exception not thrown."); } catch (ArgumentException) { /* all is well */ }
+        try { data.PutClaim(Claim.Key,Commons.IssuerKey.Secret); Assert.IsTrue(false, "Exception not thrown."); } catch (ArgumentException) { /* all is well */ }
+        try { data.PutClaim(Claim.Lnk, new ItemLink(Commons.IssuerKey)); Assert.IsTrue(false, "Exception not thrown."); } catch (ArgumentException) { /* all is well */ }
+        try { var pri = new Dictionary<string, object>(); pri["tag"] = Commons.Payload; data.PutClaim(Claim.Pri, pri); Assert.IsTrue(false, "Exception not thrown."); } catch (ArgumentException) { /* all is well */ }
+        try { data.PutClaim(Claim.Pub, Commons.IssuerKey.Public); Assert.IsTrue(false, "Exception not thrown."); } catch (ArgumentException) { /* all is well */ }
+    }
+
+    [TestMethod]
+    public void ClaimTest4() 
+    {
+        var data = new Data(Commons.IssuerIdentity.GetClaim<Guid>(Claim.Sub));
+        data.SetPayload(Encoding.UTF8.GetBytes(Commons.Payload));
+        data.Sign(Commons.IssuerKey);
+        try { data.RemoveClaim(Claim.Iss); Assert.IsTrue(false, "Exception not thrown."); } catch (InvalidOperationException) { /* all is well */ }
+        try { data.PutClaim(Claim.Exp, DateTime.UtcNow); } catch (InvalidOperationException) { /* all is well */ }
+    }
+
+    [TestMethod]
+    public void ClaimTest5() 
+    {
+        var data = new Data(Commons.IssuerIdentity.GetClaim<Guid>(Claim.Sub));
+        data.SetPayload(Encoding.UTF8.GetBytes(Commons.Payload));
+        data.Sign(Commons.IssuerKey);
+        data.Strip();
+        data.RemoveClaim(Claim.Iss);
+        data.PutClaim(Claim.Iat, DateTime.UtcNow);
     }
 
     [TestMethod]
     public void ExportTest1() 
     {
             Commons.InitializeKeyRing();
-            var data = new Data(Commons.IssuerIdentity.SubjectId, 120L, Commons.Context);
+            var data = new Data(Commons.IssuerIdentity.GetClaim<Guid>(Claim.Sub), 120L, Commons.Context);
             data.SetPayload(Encoding.UTF8.GetBytes(Commons.Payload), Commons.Mimetype);
             var encoded = data.Export();
             Assert.IsNotNull(encoded);
@@ -94,13 +178,13 @@ public class DataTests
         const string exported = "Di:DAT.eyJjdHgiOiJ0ZXN0LWNvbnRleHQiLCJleHAiOiIyMDIyLTA4LTE4VDIwOjIwOjEwLjQ0ODM0M1oiLCJpYXQiOiIyMDIyLTA4LTE4VDIwOjE4OjEwLjQ0ODM0M1oiLCJpc3MiOiJiYjdhNzQ1OC0zZjVjLTQ4ZmItYWJmOC0zN2Y3Mzc4ZmEyMTkiLCJtaW0iOiJ0ZXh0L3BsYWluIiwidWlkIjoiNTZmOTJjOTAtNTg2OC00YzkyLTkxYzktNWY4N2FiNDhjNjQyIn0.UmFjZWNhciBpcyByYWNlY2FyIGJhY2t3YXJkcy4.YThlNGMxZWJlYWIyMDliZi42YjRjYzUxMzExNjk2OTRiMDBmMjllNDNiNmU5N2RkZjY4MDRkYjlkMGMwZGJlZjA5MWQwOTg1ZjViNGVjOThkZTkzNTk5YzQ1NmEzNzAwMDM3MzRkM2NmYzI1NmI2NjhmMTE4ZTVlYjBjNjdiNGNhYThiYjdmNTU4NTFjYTAwMA";
         var data = Item.Import<Data>(exported);
         Assert.IsNotNull(data);
-        Assert.AreEqual(Guid.Parse("56f92c90-5868-4c92-91c9-5f87ab48c642"), data.UniqueId);
-        Assert.AreEqual(Commons.IssuerIdentity.SubjectId, data.IssuerId);
+        Assert.AreEqual(Guid.Parse("56f92c90-5868-4c92-91c9-5f87ab48c642"), data.GetClaim<Guid>(Claim.Uid));
+        Assert.AreEqual(Commons.IssuerIdentity.GetClaim<Guid>(Claim.Sub), data.IssuerId);
         Assert.AreEqual(Commons.Mimetype, data.MimeType);
         Assert.AreEqual(Commons.Context, data.Context);
         Assert.AreEqual(Commons.Payload, Encoding.UTF8.GetString(data.GetPayload()));
-        Assert.AreEqual(DateTime.Parse("2022-08-18T20:18:10.448343Z").ToUniversalTime(), data.IssuedAt);
-        Assert.AreEqual(DateTime.Parse("2022-08-18T20:20:10.448343Z").ToUniversalTime(), data.ExpiresAt);
+        Assert.AreEqual(DateTime.Parse("2022-08-18T20:18:10.448343Z").ToUniversalTime(), data.GetClaim<DateTime>(Claim.Iat));
+        Assert.AreEqual(DateTime.Parse("2022-08-18T20:20:10.448343Z").ToUniversalTime(), data.GetClaim<DateTime>(Claim.Exp));
     }
     */
 
@@ -108,15 +192,15 @@ public class DataTests
     public void ImportTest2() 
     {
         Commons.InitializeKeyRing();
-        var data1 = new Data(Commons.IssuerIdentity.SubjectId, 120, Commons.Context);
+        var data1 = new Data(Commons.IssuerIdentity.GetClaim<Guid>(Claim.Sub), 120, Commons.Context);
         data1.SetPayload(Encoding.UTF8.GetBytes(Commons.Payload), Commons.Mimetype);
         var exported = data1.Export();
         var data2 = Item.Import<Data>(exported);
         Assert.IsNotNull(data2);
-        Assert.AreEqual(Commons.IssuerIdentity.SubjectId, data2.IssuerId);
-        Assert.AreEqual(data1.IssuedAt, data2.IssuedAt);
-        Assert.AreEqual(data1.ExpiresAt, data2.ExpiresAt);
-        Assert.AreEqual(Commons.Mimetype, data2.MimeType);
+        Assert.AreEqual(Commons.IssuerIdentity.GetClaim<Guid>(Claim.Sub), data2.GetClaim<Guid>(Claim.Iss));
+        Assert.AreEqual(data1.GetClaim<DateTime>(Claim.Iat), data2.GetClaim<DateTime>(Claim.Iat));
+        Assert.AreEqual(data1.GetClaim<DateTime>(Claim.Exp), data2.GetClaim<DateTime>(Claim.Exp));
+        Assert.AreEqual(Commons.Mimetype, data2.GetClaim<string>(Claim.Mim));
         Assert.AreEqual(Commons.Payload, Encoding.UTF8.GetString(data2.GetPayload()));
     }
 
@@ -137,7 +221,7 @@ public class DataTests
     public void VerifyTest1() 
     {
         Commons.InitializeKeyRing();
-        var data = new Data(Commons.IssuerIdentity.SubjectId);
+        var data = new Data(Commons.IssuerIdentity.GetClaim<Guid>(Claim.Sub));
         data.SetPayload(Encoding.UTF8.GetBytes(Commons.Payload));
         data.Sign(Commons.IssuerKey);
         data.Verify(Commons.IssuerKey);
@@ -146,22 +230,18 @@ public class DataTests
     [TestMethod]
     public void VerifyTest2() 
     {
-        try {
             Commons.InitializeKeyRing();
-            var data = new Data(Commons.IssuerIdentity.SubjectId);
+            var data = new Data(Commons.IssuerIdentity.GetClaim<Guid>(Claim.Sub));
             data.SetPayload(Encoding.UTF8.GetBytes(Commons.Payload));
             data.Sign(Commons.IssuerKey);
-            data.Verify(Commons.AudienceKey);
-        } catch (IntegrityException) {
-            // All is well
-        }
+            Assert.IsFalse(Dime.IsIntegrityStateValid(data.Verify(Commons.AudienceKey)));
     }
 
     [TestMethod]
     public void ContextTest1() {
         const string context = "123456789012345678901234567890123456789012345678901234567890123456789012345678901234";
-        var data = new Data(Commons.IssuerIdentity.SubjectId,Dime.NoExpiration, context);
-        Assert.AreEqual(context, data.Context);
+        var data = new Data(Commons.IssuerIdentity.GetClaim<Guid>(Claim.Sub),Dime.NoExpiration, context);
+        Assert.AreEqual(context, data.GetClaim<string>(Claim.Ctx));
     }
 
     [TestMethod]
@@ -169,7 +249,7 @@ public class DataTests
         const string context = "123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890";
         try
         {
-            _ = new Data(Commons.IssuerIdentity.SubjectId, Dime.NoExpiration, context);
+            _ = new Data(Commons.IssuerIdentity.GetClaim<Guid>(Claim.Sub), Dime.NoExpiration, context);
         }
         catch (ArgumentException)
         {

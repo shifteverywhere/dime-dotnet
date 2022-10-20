@@ -45,8 +45,8 @@ public class KeyRing
         {
             case Key key:
             {
-                var name = Dime.Crypto.GenerateKeyName(key);
-                if (_keyRing.ContainsKey(name))
+                var name = ItemName(item);
+                if (!string.IsNullOrEmpty(name) && _keyRing.ContainsKey(name))
                 {
                     var ringKey = (Key) _keyRing[name];
                     return ringKey.Public.Equals(key.Public);
@@ -55,12 +55,12 @@ public class KeyRing
             }
             case Identity identity:
             {
-                var name = identity.SubjectId.ToString().ToLower();
-                if (_keyRing.ContainsKey(name))
+                var name = ItemName(item);
+                if (!string.IsNullOrEmpty(name) && _keyRing.ContainsKey(name))
                 {
                     var ringIdentity = (Identity) _keyRing[name];
-                    return ringIdentity.SubjectId.Equals(identity.SubjectId) &&
-                           ringIdentity.PublicKey.Public.Equals(identity.PublicKey.Public);
+                    return ringIdentity.GetClaim<Guid>(Claim.Sub).Equals(identity.GetClaim<Guid>(Claim.Sub)) &&
+                           ringIdentity.PublicKey!.Public.Equals(identity.PublicKey!.Public);
                 }
                 break;
             }
@@ -211,7 +211,7 @@ public class KeyRing
         return item switch
         {
             Key key => Dime.Crypto.GenerateKeyName(key),
-            Identity identity => identity.SubjectId.ToString().ToLower(),
+            Identity identity => identity.GetClaim<Guid>(Claim.Sub).ToString().ToLower(),
             _ => null
         };
     }

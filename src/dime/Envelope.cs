@@ -24,20 +24,11 @@ namespace DiME;
 /// </summary>
 public class Envelope: Item
 {
-    /// <summary>
-    /// The maximum length that the context claim may hold. This is also used for the context claim in messages.
-    /// </summary>
-    [Obsolete("Obsolete constant, use Dime.MaxContextLength instead.")]
-    public const int _MAX_CONTEXT_LENGTH = Dime.MaxContextLength;
+
     /// <summary>
     /// The standard envelope header.
     /// </summary>
     public const string ItemHeader = "Di";
-    /// <summary>
-    /// The current version of the implemented Di:ME specification.
-    /// </summary>
-    ///  [Obsolete("Obsolete constant, use Dime.Version instead.")]
-    public const int _DIME_VERSION = 0x01;
     /// <summary>
     /// Returns the tag of the Di:ME item.
     /// </summary>
@@ -72,10 +63,10 @@ public class Envelope: Item
         if (context is {Length: > Dime.MaxContextLength}) { throw new ArgumentException($"Context must not be longer than {Dime.MaxContextLength}.", nameof(context)); }
         _items = new List<Item>();
         var claims = Claims();
-        claims.Put(Claim.Iss, issuerId);
-        claims.Put(Claim.Iat, Utility.ToTimestamp(Utility.CreateDateTime()));
+        claims?.Put(Claim.Iss, issuerId);
+        claims?.Put(Claim.Iat, Utility.ToTimestamp(Utility.CreateDateTime()));
         if (context is not null)
-            claims.Put(Claim.Ctx, context);
+            claims?.Put(Claim.Ctx, context);
     }
 
     /// <summary>
@@ -155,7 +146,7 @@ public class Envelope: Item
     public Item? GetItem(string context)
     {
         if (context.Length == 0 || _items.Count == 0) return null;
-        return (from item in _items let ctx = item.Context where ctx is not null && ctx.Equals(context) select item).FirstOrDefault();
+        return (from item in _items let ctx = item.GetClaim<string>(Claim.Ctx) where ctx is not null && ctx.Equals(context) select item).FirstOrDefault();
     }
         
     /// <summary>
@@ -165,7 +156,7 @@ public class Envelope: Item
     /// <returns>The found item, or null if none was found.</returns>
     public Item? GetItem(Guid uniqueId)
     {
-        return _items.Count == 0 ? null : (from item in _items where item.UniqueId.Equals(uniqueId) select item).FirstOrDefault();
+        return _items.Count == 0 ? null : (from item in _items where item.GetClaim<Guid>(Claim.Uid).Equals(uniqueId) select item).FirstOrDefault();
     }
 
     /// <summary>
@@ -210,6 +201,11 @@ public class Envelope: Item
 
     #region -- PROTECTED --
 
+    protected override bool AllowedToSetClaimDirectly(Claim claim)
+    {
+        return AllowedClaims.Contains(claim);
+    }
+    
     protected override void CustomDecoding(List<string> components) { /* ignored */}
 
     protected override string Encode(bool withSignature)
@@ -221,7 +217,7 @@ public class Envelope: Item
             if (!IsAnonymous)
             {
                 builder.Append(Dime.ComponentDelimiter);
-                builder.Append((Utility.ToBase64(Claims().ToJson())));
+                builder.Append((Utility.ToBase64(Claims()?.ToJson())));
             }
             foreach(var item in _items)
             {
@@ -239,6 +235,7 @@ public class Envelope: Item
         
     #region -- PRIVATE --
 
+    private static readonly List<Claim> AllowedClaims = new() { Claim.Amb, Claim.Aud, Claim.Ctx, Claim.Exp, Claim.Iat, Claim.Iss, Claim.Kid, Claim.Mtd, Claim.Sub, Claim.Sys, Claim.Uid };
     private List<Item> _items;
         
     #endregion

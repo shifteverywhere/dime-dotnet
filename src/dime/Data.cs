@@ -32,11 +32,7 @@ public class Data: Item
     /// Returns the header of the DiME item.
     /// </summary>
     public override string Header => ItemHeader;
-    /// <summary>
-    /// Returns the mime type associated with the data payload. This is optional.
-    /// </summary>
-    public string? MimeType => Claims().Get<string>(Claim.Mim);
-    
+
     /// <summary>
     /// Empty constructor, not to be used. Required for generics.
     /// </summary>
@@ -102,7 +98,6 @@ public class Data: Item
     /// <param name="linkedItems">Items that are linked to the item being verified.</param>
     /// <exception cref="InvalidOperationException"></exception>
     /// <exception cref="FormatException"></exception>
-    /// <exception cref="IntegrityException"></exception>
     public override IntegrityState Verify(Key? key = null, List<Item>? linkedItems = null) { 
         if (string.IsNullOrEmpty(Payload)) 
             throw new InvalidOperationException("Unable to verify message, no payload added.");
@@ -121,6 +116,11 @@ public class Data: Item
     #region -- PROTECTED --
 
     protected string? Payload;
+
+    protected override bool AllowedToSetClaimDirectly(Claim claim)
+    {
+        return AllowedClaims.Contains(claim);
+    }
     
     protected override void CustomDecoding(List<string> components)
     {
@@ -147,6 +147,7 @@ public class Data: Item
 
     #region --PRIVATE --
 
+    private static readonly List<Claim> AllowedClaims = new () { Claim.Amb, Claim.Aud, Claim.Ctx, Claim.Exp, Claim.Iat, Claim.Iss, Claim.Kid, Claim.Mim, Claim.Mtd, Claim.Sub, Claim.Sys, Claim.Uid };
     private new const int MinimumNbrComponents = 3;
     private const int MaximumNbrComponents = MinimumNbrComponents + 1;
     private const int ComponentsPayloadIndex = 2;
