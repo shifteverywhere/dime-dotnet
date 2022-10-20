@@ -7,13 +7,13 @@
 //  Released under the MIT licence, see LICENSE for more information.
 //  Copyright © 2022 Shift Everywhere AB. All rights reserved.
 //
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using DiME.Exceptions;
 
-namespace DiME;
+namespace DiME.Crypto;
 
 /// <summary>
 /// Cryptographic helper methods, which also abstracts the rest of the implementation from any underlying
@@ -53,13 +53,13 @@ public class Crypto
     }
 
     /// <summary>
-    /// Will generate a unique key identifier from the provided key. This will be used to extract which key was used to
+    /// Will generate a unique key name from the provided key. This will be used to extract which key was used to
     /// create a signature. How a key identifier is generated is specific to the cryptographic suite used.
     /// </summary>
     /// <param name="key">The key to generate an identifier for.</param>
-    /// <returns>A key identifier, as a String.</returns>
+    /// <returns>A key name, as a String.</returns>
     /// <exception cref="ArgumentNullException"></exception>
-    public string GenerateKeyIdentifier(Key key)
+    public string GenerateKeyName(Key key)
     {
         if (key is null) { throw new ArgumentNullException(nameof(key), "Unable to generate, key must not be null."); }
         var impl = CryptoSuite(key.CryptoSuiteName);

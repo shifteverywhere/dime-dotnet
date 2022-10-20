@@ -7,9 +7,10 @@
 //  Released under the MIT licence, see LICENSE for more information.
 //  Copyright © 2022 Shift Everywhere AB. All rights reserved.
 //
+
 using System.Collections.Generic;
 
-namespace DiME;
+namespace DiME.Crypto;
 
 /// <summary>
 /// 

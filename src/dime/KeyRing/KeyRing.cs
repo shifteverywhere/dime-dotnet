@@ -45,7 +45,7 @@ public class KeyRing
         {
             case Key key:
             {
-                var name = Dime.Crypto.GenerateKeyIdentifier(key);
+                var name = Dime.Crypto.GenerateKeyName(key);
                 if (_keyRing.ContainsKey(name))
                 {
                     var ringKey = (Key) _keyRing[name];
@@ -210,7 +210,7 @@ public class KeyRing
     {
         return item switch
         {
-            Key key => Dime.Crypto.GenerateKeyIdentifier(key),
+            Key key => Dime.Crypto.GenerateKeyName(key),
             Identity identity => identity.SubjectId.ToString().ToLower(),
             _ => null
         };

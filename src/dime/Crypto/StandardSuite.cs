@@ -8,12 +8,12 @@
 //  Copyright © 2022 Shift Everywhere AB. All rights reserved.
 //
 using System;
-using ASodium;
 using System.Collections.Generic;
 using System.Linq;
+using ASodium;
 using DiME.Exceptions;
 
-namespace DiME;
+namespace DiME.Crypto;
 
 /// <summary>
 /// Implements the Dime standard cryptographic suite (STN).

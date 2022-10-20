@@ -24,7 +24,7 @@ public abstract class Dime
     /// <summary>
     ///  Manager of cryptographic suites and operations. May be used to add additional cryptographic suits in run-time.
     /// </summary>
-    public static readonly Crypto Crypto = new();
+    public static readonly DiME.Crypto.Crypto Crypto = new();
     /// <summary>
     /// A set of keys and identities that are set to be trusted.
     /// </summary>

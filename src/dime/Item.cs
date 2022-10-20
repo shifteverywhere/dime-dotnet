@@ -101,10 +101,10 @@ public abstract class Item
             throw new InvalidOperationException("Unable to sign, legacy item is already signed.");
         if (key.Secret is null)
             throw new ArgumentNullException(nameof(key), "Unable to sign, key for signing must not be null.");
-        if (IsSigned && Signature.Find(Dime.Crypto.GenerateKeyIdentifier(key), Signatures) is not null)
+        if (IsSigned && Signature.Find(Dime.Crypto.GenerateKeyName(key), Signatures) is not null)
             throw new InvalidOperationException("Item already signed with provided key.");
         var signature = Dime.Crypto.GenerateSignature(Encode(false), key);
-        var name = IsLegacy ? null : Dime.Crypto.GenerateKeyIdentifier(key);
+        var name = IsLegacy ? null : Dime.Crypto.GenerateKeyName(key);
         Signatures.Add(new Signature(signature, name));
         IsSigned = true;
     }
@@ -185,7 +185,7 @@ public abstract class Item
             return IntegrityState.FailedNoSignature;
         if (verifyKey is null)
             return Dime.KeyRing.Verify(this);
-        var signature = IsLegacy ? Signatures[0] : Signature.Find(Dime.Crypto.GenerateKeyIdentifier(verifyKey), Signatures);
+        var signature = IsLegacy ? Signatures[0] : Signature.Find(Dime.Crypto.GenerateKeyName(verifyKey), Signatures);
         if (signature is null)
             return IntegrityState.FailedKeyMismatch;
         try
