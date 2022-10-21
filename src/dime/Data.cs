@@ -12,7 +12,6 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
-using DiME.Exceptions;
 using DiME.KeyRing;
 
 namespace DiME;
@@ -49,13 +48,13 @@ public class Data: Item
         if (context is {Length: > Dime.MaxContextLength})
             throw new ArgumentException($"Context must not be longer than {Dime.MaxContextLength}.", nameof(context));
         var claims = Claims();
-        claims.Put(Claim.Uid, Guid.NewGuid());
-        claims.Put(Claim.Iss, issuerId);
+        claims?.Put(Claim.Uid, Guid.NewGuid());
+        claims?.Put(Claim.Iss, issuerId);
         var iat = Utility.CreateDateTime();
-        claims.Put(Claim.Iat, iat);
+        claims?.Put(Claim.Iat, iat);
         DateTime? exp = validFor != Dime.NoExpiration ? iat.AddSeconds(validFor) : null;
-        claims.Put(Claim.Exp, exp);
-        claims.Put(Claim.Ctx, context);
+        claims?.Put(Claim.Exp, exp);
+        claims?.Put(Claim.Ctx, context);
     }
     
     /// <summary>
@@ -63,11 +62,11 @@ public class Data: Item
     /// </summary>
     /// <param name="payload">The payload to set.</param>
     /// <param name="mimeType">The MIME type of the payload, may be null.</param>
-    public void SetPayload(byte[] payload, string mimeType = null) 
+    public void SetPayload(byte[] payload, string? mimeType = null) 
     {
         ThrowIfSigned();
         Payload = Utility.ToBase64(payload);
-        Claims().Put(Claim.Mim, mimeType);
+        Claims()?.Put(Claim.Mim, mimeType);
     }
     
     /// <summary>
@@ -104,6 +103,12 @@ public class Data: Item
         return base.Verify(key, linkedItems);
     }
     
+    /// <summary>
+    /// Returns the thumbprint of the item. This may be used to easily identify an item or detect if an item has
+    /// been changed. This is created by securely hashing the item and will be unique and change as soon as any
+    /// content changes.
+    /// </summary>
+    /// <returns>The hash of the item as a hex string.</returns>
     public override string Thumbprint()
     {
         if (Payload == null) 
@@ -115,13 +120,25 @@ public class Data: Item
 
     #region -- PROTECTED --
 
+    /// <summary>
+    /// The Base64 encoded payload attached to the item.
+    /// </summary>
     protected string? Payload;
 
+    /// <summary>
+    /// For internal use. Checks if the item supports a claim.
+    /// </summary>
+    /// <param name="claim">The claim to check.</param>
+    /// <returns>True if allowed, false otherwise.</returns>
     protected override bool AllowedToSetClaimDirectly(Claim claim)
     {
         return AllowedClaims.Contains(claim);
     }
     
+    /// <summary>
+    /// Any additional decoding done by subclasses of Item.
+    /// </summary>
+    /// <param name="components">Components to decode.</param>
     protected override void CustomDecoding(List<string> components)
     {
         if (components.Count > MaximumNbrComponents)
@@ -131,6 +148,11 @@ public class Data: Item
         IsSigned = components.Count == MaximumNbrComponents;
     }
 
+    /// <summary>
+    /// For internal use. Allows a subclass of item to do custom encoding when exporting an item.
+    /// </summary>
+    /// <param name="builder">The string builder for adding any encoded strings.</param>
+    /// <exception cref="FormatException">If there is a problem with the encoding</exception>
     protected override void CustomEncoding(StringBuilder builder)
     {
         base.CustomEncoding(builder);
@@ -138,6 +160,11 @@ public class Data: Item
         builder.Append(Payload);
     }
 
+    /// <summary>
+    /// Internal use. Allows subclasses of item to return the minimum number of components that make up the encoded
+    /// DiME exported string for the item type.
+    /// </summary>
+    /// <returns>The minimum number of components.</returns>
     protected override int GetMinNbrOfComponents()
     {
         return MinimumNbrComponents;

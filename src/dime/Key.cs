@@ -49,11 +49,11 @@ public class Key: Item
     /// <summary>
     /// The secret part of the key. This part should never be stored or transmitted in plain text.
     /// </summary>
-    public string Secret => Claims().Get<string>(Claim.Key);
+    public string Secret => Claims()?.Get<string>(Claim.Key);
     /// <summary>
     /// The public part of the key. This part may be stored or transmitted in plain text.
     /// </summary>
-    public string Public => Claims().Get<string>(Claim.Pub);
+    public string Public => Claims()?.Get<string>(Claim.Pub);
     /// <summary>
     /// Returns the raw byte array of the requested key. Valid claims to request are Claim.KEY and Claim.PUB.
     /// </summary>
@@ -84,7 +84,7 @@ public class Key: Item
         get
         {
             if (_capabilities is not null) return _capabilities;
-            var caps = Claims().Get<List<string>>(Claim.Cap);
+            var caps = Claims()?.Get<List<string>>(Claim.Cap);
             if (caps is not null)
             {
                 _capabilities = caps.ConvertAll(input =>
@@ -103,7 +103,9 @@ public class Key: Item
             return _capabilities;
         }
     }
-
+    /// <summary>
+    /// Returns if the item is marked as legacy (compatible with Dime format before official version 1). 
+    /// </summary>
     public override bool IsLegacy
     {
         get
@@ -211,6 +213,9 @@ public class Key: Item
         return new Key(Guid.NewGuid(), capabilities, sharedKey, null, _suiteName);
     }
 
+    /// <summary>
+    /// Converts the item to legacy (compatible with earlier version of the Dime specification, before version 1)
+    /// </summary>
     public override void ConvertToLegacy()
     {
         if (IsLegacy) return;
@@ -227,53 +232,41 @@ public class Key: Item
     {
         _suiteName = suiteName ?? Dime.Crypto.DefaultSuiteName;
         var claims = Claims();
-        claims.Put(Claim.Cap, capabilities.ConvertAll(keyUse => keyUse.ToString().ToLower()));
-        claims.Put(Claim.Uid, id);
-        claims.Put(Claim.Iat, Utility.CreateDateTime());
+        claims?.Put(Claim.Cap, capabilities.ConvertAll(keyUse => keyUse.ToString().ToLower()));
+        claims?.Put(Claim.Uid, id);
+        claims?.Put(Claim.Iat, Utility.CreateDateTime());
         if (key is not null)
-            claims.Put(Claim.Key, EncodedKey(_suiteName, key));
+            claims?.Put(Claim.Key, EncodedKey(_suiteName, key));
         if (pub is not null)
-            claims.Put(Claim.Pub, EncodedKey(_suiteName, pub));
+            claims?.Put(Claim.Pub, EncodedKey(_suiteName, pub));
     }
 
     internal Key(List<KeyCapability> capabilities, string key, string pub, string suiteName)
     {
         _suiteName = suiteName ?? Dime.Crypto.DefaultSuiteName;
         var claims = Claims();
-        claims.Put(Claim.Cap, capabilities.ConvertAll(keyUse => keyUse.ToString().ToLower()));
+        claims?.Put(Claim.Cap, capabilities.ConvertAll(keyUse => keyUse.ToString().ToLower()));
         if (key is not null)
-            claims.Put(Claim.Key, key);
+            claims?.Put(Claim.Key, key);
         if (pub is not null)
-            claims.Put(Claim.Pub, pub);
+            claims?.Put(Claim.Pub, pub);
     }
 
     internal Key(List<KeyCapability> capabilities, string key, Claim claim)
     {
-        Claims().Put(Claim.Cap, capabilities.ConvertAll(keyUse => keyUse.ToString().ToLower()));
-        Claims().Put(claim, key);
-    }
-
-    internal static void ConvertKeyToLegacy(Item item, KeyCapability capability, Claim claim)
-    {
-        var key = item.Claims().Get<string>(claim);
-        if (key is null) { return; }
-        var header = new byte[] { 0x01, 0x00, 0x00, 0x00, 0x00, 0x00 };
-        var b58 = key[(key.IndexOf(Dime.ComponentDelimiter) + 1)..];
-        var rawKey = Base58.Decode(b58);
-        var legacyKey = Utility.Combine(header, rawKey);
-        legacyKey[1] = capability == KeyCapability.Encrypt ? (byte) 0x10 : capability == KeyCapability.Exchange ? (byte) 0x40 : (byte) 0x80;
-        legacyKey[2] = capability == KeyCapability.Exchange ? (byte) 0x02 : (byte) 0x01;
-        if (claim == Claim.Pub)
-            legacyKey[3] = 0x01;
-        else if (capability == KeyCapability.Encrypt)
-            legacyKey[3] = 0x02;
-        item.Claims().Put(claim, Base58.Encode(legacyKey));
+        Claims()?.Put(Claim.Cap, capabilities.ConvertAll(keyUse => keyUse.ToString().ToLower()));
+        Claims()?.Put(claim, key);
     }
         
     #endregion
 
     # region -- PROTECTED --
 
+    /// <summary>
+    /// For internal use. Checks if the item supports a claim.
+    /// </summary>
+    /// <param name="claim">The claim to check.</param>
+    /// <returns>True if allowed, false otherwise.</returns>
     protected override bool AllowedToSetClaimDirectly(Claim claim)
     {
         return AllowedClaims.Contains(claim);
@@ -398,10 +391,10 @@ public class Key: Item
             if (_type is not null) return (KeyType) _type;
             if (IsLegacy)
             {
-                var key = Claims().Get<string>(Claim.Key);
+                var key = Claims()?.Get<string>(Claim.Key);
                 if (key is null)
                 {
-                    key = Claims().Get<string>(Claim.Pub);
+                    key = Claims()?.Get<string>(Claim.Pub);
                     DecodeKey(key, Claim.Pub);
                 }
                 else
@@ -419,6 +412,23 @@ public class Key: Item
             Debug.Assert(_type != null, "Unexpected error, unable to get legacy type of key.");
             return (KeyType) _type;
         }
+    }
+    
+    private static void ConvertKeyToLegacy(Item item, KeyCapability capability, Claim claim)
+    {
+        var key = item.Claims()?.Get<string>(claim);
+        if (key is null) { return; }
+        var header = new byte[] { 0x01, 0x00, 0x00, 0x00, 0x00, 0x00 };
+        var b58 = key[(key.IndexOf(Dime.ComponentDelimiter) + 1)..];
+        var rawKey = Base58.Decode(b58);
+        var legacyKey = Utility.Combine(header, rawKey);
+        legacyKey[1] = capability == KeyCapability.Encrypt ? (byte) 0x10 : capability == KeyCapability.Exchange ? (byte) 0x40 : (byte) 0x80;
+        legacyKey[2] = capability == KeyCapability.Exchange ? (byte) 0x02 : (byte) 0x01;
+        if (claim == Claim.Pub)
+            legacyKey[3] = 0x01;
+        else if (capability == KeyCapability.Encrypt)
+            legacyKey[3] = 0x02;
+        item.Claims()?.Put(claim, Base58.Encode(legacyKey));
     }
     
     #endregion

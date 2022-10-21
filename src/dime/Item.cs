@@ -67,11 +67,24 @@ public abstract class Item
         return envelope.Export();
     }
 
+    /// <summary>
+    /// Returns the value of a claim that is associated with the item. The default value of the type for the claim is
+    /// returned if there is no value to return (i.e. the item does not have that claim).
+    /// </summary>
+    /// <param name="claim">The claim to return the value for.</param>
+    /// <typeparam name="T">The type of the expected return.</typeparam>
+    /// <returns>The value of the claim, default value if none exists.</returns>
     public T? GetClaim<T>(Claim claim)
     {
         return HasClaims ? Claims()!.Get<T>(claim) : default;
     }
 
+    /// <summary>
+    /// Associates a value of a claim with the item.
+    /// </summary>
+    /// <param name="claim">The claim to add a value to.</param>
+    /// <param name="value">The value of the claim</param>
+    /// <exception cref="ArgumentException">If it is not allowed to set the claim on this item type.</exception>
     public void PutClaim(Claim claim, object value)
     {
         ThrowIfSigned();
@@ -80,12 +93,21 @@ public abstract class Item
         SetClaimValue(claim, value);
     }
 
+    /// <summary>
+    /// Removes a claim and value associated with the item.
+    /// </summary>
+    /// <param name="claim">The claim to remove.</param>
     public void RemoveClaim(Claim claim)
     {
         ThrowIfSigned();
         Claims()?.Remove(claim);
     }
 
+    /// <summary>
+    /// Checks if the item has a value associated with a specified claim.
+    /// </summary>
+    /// <param name="claim">The claim to check for.</param>
+    /// <returns>True if there is a value, false otherwise.</returns>
     public bool HasClaim(Claim claim)
     {
         return Claims()?.HasClaim(claim) ?? false;
@@ -148,11 +170,26 @@ public abstract class Item
         return Utility.ToHex(Dime.Crypto.GenerateHash(Encoding.UTF8.GetBytes(encoded)));
     }
 
+    /// <summary>
+    /// Verifies the integrity and over all validity and trust of the item. The verification will be made using the
+    /// public key in the provided identity.
+    /// </summary>
+    /// <param name="verifyIdentity">The identity to use when verifying.</param>
+    /// <param name="linkedItems">A list of item where item links should be verified, may be null.</param>
+    /// <returns>The integrity state of the verification.</returns>
     public IntegrityState Verify(Identity verifyIdentity, List<Item>? linkedItems = null)
     {
+        // TODO: check issue here
         return Verify(verifyIdentity.PublicKey, linkedItems);
     }
     
+    /// <summary>
+    /// Verifies the integrity and over all validity and trust of the item. If a key is provided, then verification will
+    /// use that key. If verifyKey is omitted, then the local key ring will be used to verify signatures of the item.
+    /// </summary>
+    /// <param name="verifyKey">Key used to verify the item, may be null.</param>
+    /// <param name="linkedItems">A list of item where item links should be verified, may be null.</param>
+    /// <returns>The integrity state of the verification.</returns>
     public virtual IntegrityState Verify(Key? verifyKey = null, List<Item>? linkedItems = null)
     {
         var state = VerifySignature(verifyKey);
@@ -168,6 +205,12 @@ public abstract class Item
         return !Dime.IsIntegrityStateValid(state) ? state : IntegrityState.Complete;
     }
 
+    /// <summary>
+    /// Verifies any dates in the item. This will verify the validity period of the item, if it should be used or if it
+    /// has expired. Failure here does not necessary mean that the item cannot be trusted, the dates of item is no
+    /// longer valid, refer to the returned state.
+    /// </summary>
+    /// <returns>The integrity state of the verification.</returns>
     public IntegrityState VerifyDates()
     {
         if (!HasClaims) return IntegrityState.ValidDates;
@@ -181,6 +224,12 @@ public abstract class Item
             ? IntegrityState.FailedUsedAfterExpired : IntegrityState.ValidDates;
     }
     
+    /// <summary>
+    /// Verifies signatures of the item. The method will try to match an associated signature of the item to the
+    /// provided key. If no key is provided, then the local key ring will be used to verify the item.
+    /// </summary>
+    /// <param name="verifyKey">The key to use for verification, may be null.</param>
+    /// <returns>The integrity state of the verification.</returns>
     public IntegrityState VerifySignature(Key? verifyKey = null)
     {
         if (!IsSigned)
@@ -201,6 +250,12 @@ public abstract class Item
         }
     }
 
+    /// <summary>
+    /// Verifies any linked items to the item. This method will only verify that the list of provided items matches the
+    /// links in the item. The signature of the item will not be verified.
+    /// </summary>
+    /// <param name="linkedItems">A list of item where item links should be verified.</param>
+    /// <returns>The integrity state of the verification.</returns>
     public IntegrityState VerifyLinkedItems(List<Item> linkedItems)
     {
         ItemLinks ??= GetClaim<List<ItemLink>>(Claim.Lnk);
@@ -246,9 +301,9 @@ public abstract class Item
     /// </summary>
     public void RemoveLinkItems()
     {
-        if (Claims().Get<string>(Claim.Lnk) is null) return;
+        if (Claims()?.Get<string>(Claim.Lnk) is null) return;
         ThrowIfSigned();
-        Claims().Remove(Claim.Lnk);
+        Claims()?.Remove(Claim.Lnk);
         ItemLinks = null;
     }
         
@@ -307,10 +362,6 @@ public abstract class Item
 
     /// <summary>The minimum number of components that must be present for a DiME item.</summary>
     protected const int MinimumNbrComponents = 2;
-    /// <summary>The index number of the DiME item identifier string.</summary>
-    protected const int ComponentsIdentifierIndex = 0;
-    /// <summary>The index number of the DiME item claims.</summary>
-    protected const int ComponentsClaimsIndex = 1;
     /// <summary>
     /// The encoded DiME item. Needs to remain intact once created or imported, this so thumbprints and signature
     /// verifications will be correct. 
@@ -322,12 +373,21 @@ public abstract class Item
     protected List<ItemLink>? ItemLinks;
     /// <summary>Indicates if an item has any claims attached to it.</summary>
     protected bool HasClaims => Claims()?.Size() > 0;
-
+    /// <summary>
+    /// For internal use. Will set a claim and value directly. No checks are applied if the item support the claim or not. 
+    /// </summary>
+    /// <param name="claim">The claim to set.</param>
+    /// <param name="value">The value to set</param>
     protected void SetClaimValue(Claim claim, object? value)
     {
         Claims()?.Put(claim, value);
     }
     
+    /// <summary>
+    /// For internal use. Checks if the item supports a claim.
+    /// </summary>
+    /// <param name="claim">The claim to check.</param>
+    /// <returns>True if allowed, false otherwise.</returns>
     protected abstract bool AllowedToSetClaimDirectly(Claim claim);
     
     /// <summary>
@@ -396,22 +456,32 @@ public abstract class Item
         return Encoded;
     }
 
+    /// <summary>
+    /// For internal use. Allows a subclass of item to do custom encoding when exporting an item.
+    /// </summary>
+    /// <param name="builder">The string builder for adding any encoded strings.</param>
+    /// <exception cref="FormatException">If there is a problem with the encoding</exception>
     protected virtual void CustomEncoding(StringBuilder builder)
     {
         if (_claims is null) throw new FormatException("Unable to encode, item is missing claims.");
         builder.Append(Header);
         builder.Append(Dime.ComponentDelimiter);
         if (ItemLinks is not null && ItemLinks.Count > 0)
-            Claims().Put(Claim.Lnk, ItemLink.ToEncoded(ItemLinks));
+            Claims()?.Put(Claim.Lnk, ItemLink.ToEncoded(ItemLinks));
         builder.Append((Utility.ToBase64(_claims.ToJson())));    
     }
 
+    /// <summary>
+    /// Internal use. Allows subclasses of item to return the minimum number of components that make up the encoded
+    /// DiME exported string for the item type.
+    /// </summary>
+    /// <returns>The minimum number of components.</returns>
     protected virtual int GetMinNbrOfComponents() {
         return MinimumNbrComponents;
     }
         
     /// <summary>
-    /// Checks if the Di:ME item is signed, and if it is, will throw an exception.
+    /// Internal use. Checks if the Di:ME item is signed, and if it is, will throw an exception.
     /// </summary>
     /// <exception cref="InvalidOperationException">If the item is signed.</exception>
     protected void ThrowIfSigned() {
@@ -422,6 +492,10 @@ public abstract class Item
 
     #region -- PRIVATE --
 
+    /// <summary>The index number of the DiME item identifier string.</summary>
+    private const int ComponentsIdentifierIndex = 0;
+    /// <summary>The index number of the DiME item claims.</summary>
+    private const int ComponentsClaimsIndex = 1;
     private ClaimsMap? _claims;
     private List<Signature>? _signatures;
         

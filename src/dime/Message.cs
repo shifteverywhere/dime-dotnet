@@ -130,6 +130,12 @@ public class Message: Data
         return Dime.Crypto.Decrypt(GetPayload(), sharedKey);
     }
 
+    /// <summary>
+    /// Returns the thumbprint of the item. This may be used to easily identify an item or detect if an item has
+    /// been changed. This is created by securely hashing the item and will be unique and change as soon as any
+    /// content changes.
+    /// </summary>
+    /// <returns>The hash of the item as a hex string.</returns>
     public override string Thumbprint()
     {
         if (Payload is null)
@@ -137,6 +143,10 @@ public class Message: Data
         return base.Thumbprint();
     }
 
+    #endregion
+    
+    # region -- INTERNAL --
+    
     internal override string ForExport()
     {
         if (!IsSigned) throw new InvalidOperationException("Unable to encode item, must be signed first.");
@@ -147,17 +157,31 @@ public class Message: Data
 
     # region -- PROTECTED --
 
+    /// <summary>
+    /// For internal use. Checks if the item supports a claim.
+    /// </summary>
+    /// <param name="claim">The claim to check.</param>
+    /// <returns>True if allowed, false otherwise.</returns>
     protected override bool AllowedToSetClaimDirectly(Claim claim)
     {
         return AllowedClaims.Contains(claim);
     }
     
+    /// <summary>
+    /// Any additional decoding done by subclasses of Item.
+    /// </summary>
+    /// <param name="components">Components to decode.</param>
     protected override void CustomDecoding(List<string> components)
     {
         base.CustomDecoding(components);
         IsSigned = true; // Messages are always signed
     }
 
+    /// <summary>
+    /// Internal use. Allows subclasses of item to return the minimum number of components that make up the encoded
+    /// DiME exported string for the item type.
+    /// </summary>
+    /// <returns>The minimum number of components.</returns>
     protected override int GetMinNbrOfComponents()
     {
         return MinimumNbrComponents;

@@ -58,9 +58,9 @@ public interface ICryptoSuite
     byte[][] GenerateKey(List<KeyCapability> capabilities);
        
     /// <summary>
-    /// Generates a shared secret from two keys or key pars. These keys must have {#{@link Key.Use#EXCHANGE}} listad as
-    ///  usage. The server/issuer of a key exchange is always the initiator and the client/audience is always the
-    ///  receiver (no matter on which side this method is called).
+    /// Generates a shared secret from two keys or key pars. These keys must have capability 'Exchange'.
+    /// The server/issuer of a key exchange is always the initiator and the client/audience is always the receiver
+    /// (no matter on which side this method is called).
     /// </summary>
     /// <param name="clientKey">The key or key pair from the client (usually the audience).</param>
     /// <param name="serverKey">The key or key pair from the server (usually the issuer).</param>

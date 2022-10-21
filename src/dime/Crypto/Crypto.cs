@@ -64,7 +64,7 @@ public class Crypto
     {
         if (key is null) { throw new ArgumentNullException(nameof(key), "Unable to generate, key must not be null."); }
         var impl = CryptoSuite(key.CryptoSuiteName);
-        var name = impl.GenerateKeyName(new byte[][] { key.KeyBytes(Claim.Key), key.KeyBytes(Claim.Pub) });
+        var name = impl.GenerateKeyName(new[] { key.KeyBytes(Claim.Key), key.KeyBytes(Claim.Pub) });
         return name is not null ? Utility.ToHex(name) : null;
     }
 
@@ -94,7 +94,6 @@ public class Crypto
     {
         if (!key.HasCapability(KeyCapability.Sign)) { throw new ArgumentException("Unable to sign, provided key does not specify Sign usage."); }
         var impl = CryptoSuite(key.CryptoSuiteName);
-        var pub = key.KeyBytes(Claim.Pub);
         return impl.VerifySignature(Encoding.UTF8.GetBytes(data), signature, key.KeyBytes(Claim.Pub));
     }
 
@@ -113,8 +112,8 @@ public class Crypto
         if (!clientKey.HasCapability(KeyCapability.Exchange) || !serverKey.HasCapability(KeyCapability.Exchange)) { throw new ArgumentException("Unable to generate, provided keys do not specify 'Exchange' use."); }
         if (!clientKey.CryptoSuiteName.Equals(serverKey.CryptoSuiteName)) { throw new ArgumentException("Unable to generate, both keys must be generated using the same cryptographic suite."); }
         var impl = CryptoSuite(clientKey.CryptoSuiteName);
-        var rawClientKeys = new byte[][] { clientKey.KeyBytes(Claim.Key), clientKey.KeyBytes(Claim.Pub) };
-        var rawServerKeys = new byte[][] { serverKey.KeyBytes(Claim.Key), serverKey.KeyBytes(Claim.Pub) };
+        var rawClientKeys = new[] { clientKey.KeyBytes(Claim.Key), clientKey.KeyBytes(Claim.Pub) };
+        var rawServerKeys = new[] { serverKey.KeyBytes(Claim.Key), serverKey.KeyBytes(Claim.Pub) };
         return impl.GenerateSharedSecret(rawClientKeys, rawServerKeys, use);
     }
 

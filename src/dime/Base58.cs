@@ -28,7 +28,6 @@ public static class Base58
 	/// array.
 	///</summary>
 	///<param name="data">The main byte array to encode.</param>
-	///<param name="prefix">A byte array that will be added to the front of data before encoding.</param>
 	///<returns>Base 58 encoded string</returns>
 	public static string Encode(byte[] data) {
 		if (data is not {Length: > 0}) return null;

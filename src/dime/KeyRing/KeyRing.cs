@@ -183,6 +183,11 @@ public class KeyRing
         return envelope.Export();
     }
 
+    /// <summary>
+    /// Verify the signature of an item towards trusted keys and identifies in the key ring.
+    /// </summary>
+    /// <param name="item">The item to verify</param>
+    /// <returns>The integrity state of the verification.</returns>
     public IntegrityState Verify(Item item)
     {
         if (Size == 0) {  return IntegrityState.FailedNoKeyRing; }

@@ -9,7 +9,7 @@
 //
 namespace DiME.Crypto;
 
-enum KeyIndex
+internal enum KeyIndex
 {
     SecretKey = 0,
     PublicKey = 1
