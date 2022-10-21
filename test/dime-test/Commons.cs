@@ -11,6 +11,7 @@ using System;
 using System.Collections.Generic;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using DiME;
+using DiME.Capability;
 
 namespace DiME_test;
 

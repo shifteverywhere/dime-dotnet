@@ -12,6 +12,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using DiME;
+using DiME.Capability;
 
 namespace DiME_test;
 

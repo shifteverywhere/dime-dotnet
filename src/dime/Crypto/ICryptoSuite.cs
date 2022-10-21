@@ -9,6 +9,7 @@
 //
 
 using System.Collections.Generic;
+using DiME.Capability;
 
 namespace DiME.Crypto;
 
@@ -63,9 +64,9 @@ public interface ICryptoSuite
     /// </summary>
     /// <param name="clientKey">The key or key pair from the client (usually the audience).</param>
     /// <param name="serverKey">The key or key pair from the server (usually the issuer).</param>
-    /// <param name="use">TThe intended use of the generated key.</param>
+    /// <param name="capabilities">TThe intended use of the generated key.</param>
     /// <returns>The generated shared key.</returns>
-    byte[] GenerateSharedSecret(byte[][] clientKey, byte[][] serverKey, List<KeyCapability> use);
+    byte[] GenerateSharedSecret(byte[][] clientKey, byte[][] serverKey, List<KeyCapability> capabilities);
         
     /// <summary>
     /// Encrypts a plain text byte array using the provided key.

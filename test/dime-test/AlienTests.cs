@@ -12,6 +12,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 using DiME;
+using DiME.Capability;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using DiME.KeyRing;
 

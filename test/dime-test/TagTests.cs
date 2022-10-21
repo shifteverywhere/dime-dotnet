@@ -12,12 +12,14 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 using DiME;
+using DiME.Capability;
 
 namespace DiME_test;
 
 [TestClass]
 public class TagTests
 {
+    
     [TestMethod]
     public void GetItemIdentifierTest1() 
     {

@@ -13,6 +13,7 @@ using System;
 using System.Text;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using DiME.Capability;
 using DiME.KeyRing;
 
 namespace DiME;

@@ -1,19 +1,5 @@
 # CHANGE LOG
 
-## Version 1.2.0 - 2022-10-21
-- Full implementation of DiME data format specification (v1)
-- Many methods marked as deprecated in earlier versions removed
-Introduces KeyRing to hold multiple keys and identities as trusted
-  - Removes trusted Identity in Dime and Identity
-  - Verify has been reworked to support key ring
-  - isTrusted has been replaced with verify in Identity
-- IntegrityState introduced to hold result of a verification
-- Introduced getClaim/putClaim/removeClaim to allow for more flexible claim handling
-  - Removes many claim convenience methods, simplifies usage and code
-- Cleaned up, removed and renamed package specific exceptions
-
-**NOTE** *Version 1.2.0 includes changes that will break 1.1.1 and earlier. These are only code-breaking changes, so all previously created DiME items will continue to work.*
-
 ## Version 1.1.0 - 2022-10-17
 - Changes to .NET 6.0
 - Introduces Dime class for global settings

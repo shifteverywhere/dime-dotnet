@@ -12,6 +12,8 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Linq;
+using DiME.Capability;
+using DiME.Crypto;
 
 namespace DiME;
 
@@ -31,39 +33,6 @@ public class Key: Item
     /// Returns the header of the DiME item.
     /// </summary>
     public override string Header => ItemHeader;
-    /// <summary>
-    /// Returns the type of the key. The type determines what the key may be used for, this since it is also
-    /// closely associated with the cryptographic algorithm the key is generated for.
-    /// </summary>
-    [Obsolete("This method is no longer used, use Key.Capability instead.")]
-    public KeyType Type { 
-        get
-        {
-            if (_type is not null) return (KeyType) _type;
-            if (IsLegacy)
-            {
-                var key = Claims().Get<string>(Claim.Key);
-                if (key is null)
-                {
-                    key = Claims().Get<string>(Claim.Pub);
-                    DecodeKey(key, Claim.Pub);
-                }
-                else
-                    DecodeKey(key, Claim.Key);
-            }
-            else
-            {
-                if (HasCapability(KeyCapability.Sign))
-                    _type = KeyType.Identity;
-                else if (HasCapability(KeyCapability.Exchange))
-                    _type = KeyType.Exchange;
-                else if (HasCapability(KeyCapability.Encrypt))
-                    _type = KeyType.Encryption;
-            }
-            Debug.Assert(_type != null, "Unexpected error, unable to get legacy type of key.");
-            return (KeyType) _type;
-        }
-    }
     /// <summary>
     /// The cryptographic suite used to generate they key.
     /// </summary>
@@ -161,32 +130,6 @@ public class Key: Item
     /// Empty constructor, not to be used. Required for Generics.
     /// </summary>
     public Key() { }
-
-    /// <summary>
-    /// Will generate a new Key with a specified type.
-    /// </summary>
-    /// <param name="type">The type of key to generate.</param>
-    /// <param name="context">The context to attach to the message, may be null.</param>
-    /// <returns>A newly generated key.</returns>
-    [Obsolete("Obsolete method, use Generate(List<KeyUse>, string) instead.")]
-    public static Key Generate(KeyType type, string context) {
-        return Generate(new List<KeyCapability>() { KeyCapabilityFromKeyType(type) }, Dime.NoExpiration, null, context);
-    }
-
-    /// <summary>
-    /// Will generate a new Key with a specified type.
-    /// </summary>
-    /// <param name="type">The type of key to generate.</param>
-    /// <param name="validFor">The number of seconds that the key should be valid for, from the time of issuing.</param>
-    /// <param name="issuerId">The identifier of the issuer (creator) of the key, may be null.</param>
-    /// <param name="context">The context to attach to the message, may be null.</param>
-    /// <returns>A newly generated key.</returns>
-    /// <exception cref="ArgumentException"></exception>
-    [Obsolete("Obsolete method, use Generate(List<KeyUse>, long, Guid?, string, string) instead.")]
-    public static Key Generate(KeyType type, long validFor = Dime.NoExpiration, Guid? issuerId = null, string context = null)
-    {
-        return Generate(new List<KeyCapability>() { KeyCapabilityFromKeyType(type) }, validFor, issuerId, context);
-    }
 
     /// <summary>
     /// Will generate a new Key for a specific cryptographic capability.
@@ -444,5 +387,39 @@ public class Key: Item
         }
     }
         
+    /// <summary>
+    /// Returns the type of the key. The type determines what the key may be used for, this since it is also
+    /// closely associated with the cryptographic algorithm the key is generated for.
+    /// </summary>
+    [Obsolete("This method is no longer used, use Key.Capability instead.")]
+    private KeyType Type { 
+        get
+        {
+            if (_type is not null) return (KeyType) _type;
+            if (IsLegacy)
+            {
+                var key = Claims().Get<string>(Claim.Key);
+                if (key is null)
+                {
+                    key = Claims().Get<string>(Claim.Pub);
+                    DecodeKey(key, Claim.Pub);
+                }
+                else
+                    DecodeKey(key, Claim.Key);
+            }
+            else
+            {
+                if (HasCapability(KeyCapability.Sign))
+                    _type = KeyType.Identity;
+                else if (HasCapability(KeyCapability.Exchange))
+                    _type = KeyType.Exchange;
+                else if (HasCapability(KeyCapability.Encrypt))
+                    _type = KeyType.Encryption;
+            }
+            Debug.Assert(_type != null, "Unexpected error, unable to get legacy type of key.");
+            return (KeyType) _type;
+        }
+    }
+    
     #endregion
 }

@@ -13,6 +13,7 @@ using System.Collections.Generic;
 using System.Text;
 using System.Linq;
 using DiME;
+using DiME.Capability;
 
 namespace DiME_test;
 

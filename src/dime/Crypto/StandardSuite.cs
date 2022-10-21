@@ -11,6 +11,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using ASodium;
+using DiME.Capability;
 using DiME.Exceptions;
 
 namespace DiME.Crypto;
@@ -71,10 +72,10 @@ internal class StandardSuite: ICryptoSuite
         return new [] { keypair.PrivateKey.ToArray(), keypair.PublicKey.ToArray() };
     }
 
-    public byte[] GenerateSharedSecret(byte[][] clientKey, byte[][] serverKey, List<KeyCapability> use)
+    public byte[] GenerateSharedSecret(byte[][] clientKey, byte[][] serverKey, List<KeyCapability> capabilities)
     {
-        if (!use.Contains(KeyCapability.Encrypt)) { throw new ArgumentNullException(nameof(use), "Unable to generate, key usage for shared secret must be Encrypt."); }
-        if (use.Count > 1) { throw new ArgumentNullException(nameof(use), "Unable to generate, key usage for shared secret may only be Encrypt."); }
+        if (!capabilities.Contains(KeyCapability.Encrypt)) { throw new ArgumentNullException(nameof(capabilities), "Unable to generate, key usage for shared secret must be Encrypt."); }
+        if (capabilities.Count > 1) { throw new ArgumentNullException(nameof(capabilities), "Unable to generate, key usage for shared secret may only be Encrypt."); }
         byte[] shared;
         if (clientKey[(int)KeyIndex.SecretKey] != null && clientKey.Length == 2) // has both private and public key 
         {
