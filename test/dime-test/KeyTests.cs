@@ -13,6 +13,7 @@ using System.Collections.Generic;
 using System.Text;
 using DiME;
 using DiME.Capability;
+using DiME.KeyRing;
 
 namespace DiME_test;
 
@@ -127,6 +128,74 @@ public class KeyTests
         Assert.IsNotNull(key.Public);
         Assert.IsNotNull(key.Secret);
     }
+    
+    [TestMethod]
+    public void KeyCapabilityTest1() 
+    {
+        var signKey = Key.Generate(KeyCapability.Sign);
+        Assert.AreEqual(Dime.Crypto.DefaultSuiteName, signKey.CryptoSuiteName);
+        Assert.IsNotNull(signKey.Secret);
+        Assert.IsNotNull(signKey.Public);
+        var caps = signKey.Capabilities;
+        Assert.IsNotNull(caps);
+        Assert.IsTrue(caps.Contains(KeyCapability.Sign));
+        Assert.AreEqual(1, caps.Count);
+        Assert.IsTrue(signKey.HasCapability(KeyCapability.Sign));
+        Assert.IsFalse(signKey.HasCapability(KeyCapability.Exchange));
+        Assert.IsFalse(signKey.HasCapability(KeyCapability.Encrypt));
+    }
+
+    [TestMethod]
+    public void KeyCapabilityTest2() 
+    {
+        var exchangeKey = Key.Generate(KeyCapability.Exchange);
+        Assert.AreEqual(Dime.Crypto.DefaultSuiteName, exchangeKey.CryptoSuiteName);
+        Assert.IsNotNull(exchangeKey.Secret);
+        Assert.IsNotNull(exchangeKey.Public);
+        var caps = exchangeKey.Capabilities;
+        Assert.IsNotNull(caps);
+        Assert.IsTrue(caps.Contains(KeyCapability.Exchange));
+        Assert.AreEqual(1, caps.Count);
+        Assert.IsFalse(exchangeKey.HasCapability(KeyCapability.Sign));
+        Assert.IsTrue(exchangeKey.HasCapability(KeyCapability.Exchange));
+        Assert.IsFalse(exchangeKey.HasCapability(KeyCapability.Encrypt));
+    }
+
+    [TestMethod]
+    public void KeyCapabilityTest3() 
+    {
+        var encryptionKey = Key.Generate(KeyCapability.Encrypt);
+        Assert.AreEqual(Dime.Crypto.DefaultSuiteName, encryptionKey.CryptoSuiteName);
+        Assert.IsNotNull(encryptionKey.Secret);
+        Assert.IsNull(encryptionKey.Public);
+        var caps = encryptionKey.Capabilities;
+        Assert.IsNotNull(caps);
+        Assert.IsTrue(caps.Contains(KeyCapability.Encrypt));
+        Assert.AreEqual(1, caps.Count);
+        Assert.IsFalse(encryptionKey.HasCapability(KeyCapability.Sign));
+        Assert.IsFalse(encryptionKey.HasCapability(KeyCapability.Exchange));
+        Assert.IsTrue(encryptionKey.HasCapability(KeyCapability.Encrypt));
+    }
+
+    [TestMethod]
+    public void KeyCapabilityTest4() 
+    {
+        var use = new List<KeyCapability>() { KeyCapability.Sign, KeyCapability.Exchange };
+        try {
+            Key.Generate(use, Dime.NoExpiration, null, null, Dime.Crypto.DefaultSuiteName);
+            Assert.IsTrue(false, "Exception not thrown.");
+        } catch (ArgumentException) { /* All is well good */ }
+    }
+
+    [TestMethod]
+    public void KeyCapabilityTest5() 
+    {
+        var key1 = Key.Generate(KeyCapability.Sign);
+        var exported1 = key1.Export();
+        var key2 = Item.Import<Key>(exported1);
+        Assert.IsNotNull(key2);
+        Assert.IsTrue(key2.HasCapability(KeyCapability.Sign));
+    }
 
     [TestMethod]
     public void ExportTest1()
@@ -199,6 +268,20 @@ public class KeyTests
             Key.Generate(new List<KeyCapability>() {KeyCapability.Sign}, context);
         } catch (ArgumentException) { return; } // All is well
         Assert.IsTrue(false, "Should not happen.");
+    }
+    
+    [TestMethod]
+    public void StripTest1() 
+    {
+        var key = Key.Generate(KeyCapability.Encrypt);
+        key.Sign(Commons.IssuerKey);
+        key.Sign(Commons.AudienceKey);
+        Assert.AreEqual(IntegrityState.Complete, key.Verify(Commons.IssuerKey));
+        Assert.AreEqual(IntegrityState.Complete, key.Verify(Commons.AudienceKey));
+        Assert.IsTrue(key.Strip(Commons.AudienceKey));
+        Assert.AreEqual(IntegrityState.Complete, key.Verify(Commons.IssuerKey));
+        Assert.AreEqual(IntegrityState.FailedKeyMismatch, key.Verify(Commons.AudienceKey));
+        Assert.IsFalse(key.Strip(Commons.AudienceKey));
     }
         
 }

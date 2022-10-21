@@ -74,17 +74,7 @@ public class IdentityIssuingRequest: Item
     /// Returns all principles provided in the IIR. These are key-value fields that further provide information
     /// about the entity. Using principles are optional.
     /// </summary>
-    public Dictionary<string, object>? Principles
-    {
-        get
-        {
-            if (_principles is null)
-            {
-                _principles = Claims()?.Get<Dictionary<string, object>>(Claim.Pri);
-            }
-            return _principles;
-        }
-    }
+    public Dictionary<string, object>? Principles => _principles ??= Claims()?.Get<Dictionary<string, object>>(Claim.Pri);
     private Dictionary<string, object>? _principles;
         
     /// <summary>
@@ -156,7 +146,7 @@ public class IdentityIssuingRequest: Item
     /// <param name="methods">A list of methods that will apply to the issued identity.</param>
     /// <returns>An Identity instance that may be sent back to the entity that proved the IIR.</returns>
     /// <exception cref="ArgumentNullException"></exception>
-    public Identity Issue(Guid subjectId, long validFor, Key issuerKey, Identity issuerIdentity, bool includeChain, List<IdentityCapability> allowedCapabilities, List<IdentityCapability>? requiredCapabilities = null, string? systemName = null, List<string>? ambit = null, List<string>? methods = null) 
+    public Identity Issue(Guid subjectId, long validFor, Key issuerKey, Identity? issuerIdentity, bool includeChain, List<IdentityCapability> allowedCapabilities, List<IdentityCapability>? requiredCapabilities = null, string? systemName = null, List<string>? ambit = null, List<string>? methods = null) 
     {    
         if (issuerIdentity == null) { throw new ArgumentNullException(nameof(issuerIdentity), "Issuer identity must not be null."); }
         var sys = !string.IsNullOrEmpty(systemName) ? systemName : issuerIdentity.GetClaim<string>(Claim.Sys);
@@ -197,16 +187,19 @@ public class IdentityIssuingRequest: Item
 
     # region -- PROTECTED --
 
+    /// <inheritdoc />
     protected override bool AllowedToSetClaimDirectly(Claim claim)
     {
         return AllowedClaims.Contains(claim);
     }
     
+    /// <inheritdoc />
     protected override void CustomDecoding(List<string> components)
     {
         IsSigned = true; // Identity issuing requests are always signed
     }
 
+    /// <inheritdoc />
     protected override int GetMinNbrOfComponents()
     {
         return MinimumNbrComponents;

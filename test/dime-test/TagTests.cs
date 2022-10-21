@@ -21,7 +21,7 @@ public class TagTests
 {
     
     [TestMethod]
-    public void GetItemIdentifierTest1() 
+    public void GetHeaderTest1() 
     {
         var tag = new Tag();
         Assert.AreEqual("TAG", tag.Header);
@@ -146,6 +146,18 @@ public class TagTests
         Assert.AreEqual(Commons.Context, tag.GetClaim<string>(Claim.Ctx));
         Assert.IsNotNull(tag.GetItemLinks);
         Assert.AreEqual(2, tag.GetItemLinks()!.Count);
+    }
+    
+    [TestMethod]
+    public void TagTest6() 
+    {
+        var items = new List<Item> { Key.Generate(KeyCapability.Sign), Key.Generate(KeyCapability.Exchange) };
+        var tag = new Tag(Commons.IssuerIdentity.GetClaim<Guid>(Claim.Sub), null, items);
+        Assert.AreEqual(Commons.IssuerIdentity.GetClaim<Guid>(Claim.Sub), tag.GetClaim<Guid>(Claim.Iss));
+        Assert.IsNull(tag.GetClaim<string>(Claim.Ctx));
+        var itemLinks = tag.GetItemLinks();
+        Assert.IsNotNull(itemLinks);
+        Assert.AreEqual(2, itemLinks.Count);
     }
 
     [TestMethod]

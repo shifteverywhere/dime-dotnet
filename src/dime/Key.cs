@@ -262,21 +262,13 @@ public class Key: Item
 
     # region -- PROTECTED --
 
-    /// <summary>
-    /// For internal use. Checks if the item supports a claim.
-    /// </summary>
-    /// <param name="claim">The claim to check.</param>
-    /// <returns>True if allowed, false otherwise.</returns>
+    /// <inheritdoc />
     protected override bool AllowedToSetClaimDirectly(Claim claim)
     {
         return AllowedClaims.Contains(claim);
     }
     
-    /// <summary>
-    /// Any additional decoding done by subclasses of Item.
-    /// </summary>
-    /// <param name="components">Components to decode.</param>
-    /// <exception cref="FormatException"></exception>
+    /// <inheritdoc />
     protected override void CustomDecoding(List<string> components)
     {
         if (components.Count > MinimumNbrComponents + 1)

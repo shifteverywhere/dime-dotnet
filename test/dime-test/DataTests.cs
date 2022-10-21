@@ -147,7 +147,7 @@ public class DataTests
     public void ExportTest1() 
     {
             Commons.InitializeKeyRing();
-            var data = new Data(Commons.IssuerIdentity.GetClaim<Guid>(Claim.Sub), 120L, Commons.Context);
+            var data = new Data(Commons.IssuerIdentity.GetClaim<Guid>(Claim.Sub), Dime.ValidFor1Minute, Commons.Context);
             data.SetPayload(Encoding.UTF8.GetBytes(Commons.Payload), Commons.Mimetype);
             var encoded = data.Export();
             Assert.IsNotNull(encoded);
@@ -171,23 +171,20 @@ public class DataTests
             Assert.AreEqual(encoded1, encoded2);
     }
 
-    /*
-     TODO: re-enable and update once Commons is re-generated.
     [TestMethod]
     public void ImportTest1() 
     {
-        const string exported = "Di:DAT.eyJjdHgiOiJ0ZXN0LWNvbnRleHQiLCJleHAiOiIyMDIyLTA4LTE4VDIwOjIwOjEwLjQ0ODM0M1oiLCJpYXQiOiIyMDIyLTA4LTE4VDIwOjE4OjEwLjQ0ODM0M1oiLCJpc3MiOiJiYjdhNzQ1OC0zZjVjLTQ4ZmItYWJmOC0zN2Y3Mzc4ZmEyMTkiLCJtaW0iOiJ0ZXh0L3BsYWluIiwidWlkIjoiNTZmOTJjOTAtNTg2OC00YzkyLTkxYzktNWY4N2FiNDhjNjQyIn0.UmFjZWNhciBpcyByYWNlY2FyIGJhY2t3YXJkcy4.YThlNGMxZWJlYWIyMDliZi42YjRjYzUxMzExNjk2OTRiMDBmMjllNDNiNmU5N2RkZjY4MDRkYjlkMGMwZGJlZjA5MWQwOTg1ZjViNGVjOThkZTkzNTk5YzQ1NmEzNzAwMDM3MzRkM2NmYzI1NmI2NjhmMTE4ZTVlYjBjNjdiNGNhYThiYjdmNTU4NTFjYTAwMA";
+        const string exported = "Di:DAT.eyJjdHgiOiJ0ZXN0LWNvbnRleHQiLCJleHAiOiIyMDIyLTEwLTIxVDE4OjQ0OjQ2LjIzNzQyOVoiLCJpYXQiOiIyMDIyLTEwLTIxVDE4OjQzOjQ2LjIzNzQyOVoiLCJpc3MiOiIzYjAxZDcyMi1lNjZiLTQ2ODMtYTViNi05M2RjNmU2MGUwMTciLCJtaW0iOiJ0ZXh0L3BsYWluIiwidWlkIjoiZWYxMDEzNjEtM2MwMC00MmYyLWI2MDUtZDk1ZTczMGQ5ZWExIn0.UmFjZWNhciBpcyByYWNlY2FyIGJhY2t3YXJkcy4";
         var data = Item.Import<Data>(exported);
         Assert.IsNotNull(data);
-        Assert.AreEqual(Guid.Parse("56f92c90-5868-4c92-91c9-5f87ab48c642"), data.GetClaim<Guid>(Claim.Uid));
-        Assert.AreEqual(Commons.IssuerIdentity.GetClaim<Guid>(Claim.Sub), data.IssuerId);
-        Assert.AreEqual(Commons.Mimetype, data.MimeType);
-        Assert.AreEqual(Commons.Context, data.Context);
+        Assert.AreEqual(Guid.Parse("ef101361-3c00-42f2-b605-d95e730d9ea1"), data.GetClaim<Guid>(Claim.Uid));
+        Assert.AreEqual(Commons.IssuerIdentity.GetClaim<Guid>(Claim.Sub), data.GetClaim<Guid>(Claim.Iss));
+        Assert.AreEqual(Commons.Mimetype, data.GetClaim<string>(Claim.Mim));
+        Assert.AreEqual(Commons.Context, data.GetClaim<string>(Claim.Ctx));
         Assert.AreEqual(Commons.Payload, Encoding.UTF8.GetString(data.GetPayload()));
-        Assert.AreEqual(DateTime.Parse("2022-08-18T20:18:10.448343Z").ToUniversalTime(), data.GetClaim<DateTime>(Claim.Iat));
-        Assert.AreEqual(DateTime.Parse("2022-08-18T20:20:10.448343Z").ToUniversalTime(), data.GetClaim<DateTime>(Claim.Exp));
+        Assert.AreEqual(DateTime.Parse("2022-10-21T18:43:46.237429Z").ToUniversalTime(), data.GetClaim<DateTime>(Claim.Iat));
+        Assert.AreEqual(DateTime.Parse("2022-10-21T18:44:46.237429Z").ToUniversalTime(), data.GetClaim<DateTime>(Claim.Exp));
     }
-    */
 
     [TestMethod]
     public void ImportTest2() 

@@ -145,7 +145,19 @@ public abstract class Item
         IsSigned = false;
         return true;
     }
-        
+    
+    /// <summary>
+    /// Will remove the signature created by the provided key, if one can be found.
+    /// </summary>
+    /// <param name="key">The key that created the signature to be removed.</param>
+    /// <returns>True if the item was stripped of a signature, false otherwise.</returns>
+    public bool Strip(Key key) {
+        if (IsLegacy || !IsSigned) return false;
+        var identifier = Dime.Crypto.GenerateKeyName(key);
+        var signature = Signature.Find(identifier, Signatures);
+        return signature != null && Signatures.Remove(signature);
+    }
+    
     /// <summary>
     /// Returns the thumbprint of the item. This may be used to easily identify an item or detect if an item has
     /// been changed. This is created by securely hashing the item and will be unique and change as soon as any
@@ -301,7 +313,6 @@ public abstract class Item
     /// </summary>
     public void RemoveLinkItems()
     {
-        if (Claims()?.Get<string>(Claim.Lnk) is null) return;
         ThrowIfSigned();
         Claims()?.Remove(Claim.Lnk);
         ItemLinks = null;
@@ -434,9 +445,7 @@ public abstract class Item
     /// Encodes an item and stores the result in Encoded. Abstract method that needs to be implemented in any
     /// subclass.
     /// </summary>
-    /// <returns></returns>
-    //protected abstract string Encode();
-
+    /// <returns>A DiME encoded version of the item.</returns>
     protected virtual string Encode(bool withSignature)
     {
         if (Encoded is null)

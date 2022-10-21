@@ -29,7 +29,7 @@ public class EnvelopeTests
         Assert.AreEqual("Di", Envelope.ItemHeader);
     }
 
-        [TestMethod]
+    [TestMethod]
     public void ClaimTest1() 
     {
         var envelope = new Envelope(Commons.IssuerIdentity.GetClaim<Guid>(Claim.Sub));
@@ -105,6 +105,70 @@ public class EnvelopeTests
         envelope.Strip();
         envelope.RemoveClaim(Claim.Iss);
         envelope.PutClaim(Claim.Iat, DateTime.UtcNow);
+    }
+    
+    [TestMethod]
+    public void GetItemTest1() 
+    {
+        var message = new Message(Guid.NewGuid(), Guid.NewGuid(), Dime.NoExpiration, Commons.Context);
+        var key = Key.Generate(new List<KeyCapability>() {KeyCapability.Sign}, Commons.SignKeyContext);
+        var envelope = new Envelope();
+        envelope.AddItem(message);
+        envelope.AddItem(key);
+        // Context
+        var item1 = envelope.GetItem(Commons.SignKeyContext);
+        Assert.IsNotNull(item1);
+        Assert.IsTrue(item1.GetType() == typeof(Key));
+        Assert.AreEqual(Commons.SignKeyContext, item1.GetClaim<string>(Claim.Ctx));
+        var item2 = envelope.GetItem(Commons.Context);
+        Assert.IsNotNull(item2);
+        Assert.IsTrue(item2.GetType() == typeof(Message));
+        Assert.AreEqual(Commons.Context, item2.GetClaim<string>(Claim.Ctx));
+        // Unique ID
+        var item3 = envelope.GetItem(key.GetClaim<Guid>(Claim.Uid));
+        Assert.IsNotNull(item3);
+        Assert.IsTrue(item3.GetType() == typeof(Key));
+        Assert.AreEqual(key.GetClaim<Guid>(Claim.Uid), item3.GetClaim<Guid>(Claim.Uid));
+        var item4 = envelope.GetItem(message.GetClaim<Guid>(Claim.Uid));
+        Assert.IsNotNull(item4);
+        Assert.IsTrue(item4.GetType() == typeof(Message));
+        Assert.AreEqual(message.GetClaim<Guid>(Claim.Uid), item4.GetClaim<Guid>(Claim.Uid));
+    }
+    
+    [TestMethod]
+    public void GetItemTest2() 
+    {
+        const string exported = "Di:MSG.eyJhdWQiOiJiMWZiMmVhOC1jNThiLTQ0MjktYjRjNC1lODgxMWI4YzIyM2UiLCJjdHgiOiJ0ZXN0LWNvbnRleHQiLCJpYXQiOiIyMDIyLTEwLTIxVDIwOjM5OjQ3LjEwMzE1M1oiLCJpc3MiOiI4NWFiYTMzYS1hYjJmLTQ5NDktOTNmOS0zNDBjNTI3YzdjZDQiLCJ1aWQiOiI4NjAwODNiNS0wZTIzLTQ4N2UtOTE5ZS01NTdjNWEyZTZjMmYifQ.UmFjZWNhciBpcyByYWNlY2FyIGJhY2t3YXJkcy4.MzFhMDYyN2JlZjk1NjNiZC5hZjY3ZDc5NWRiMzRjNTgzYzIxZjA2NjQ5OGVhZGJlYzQzMDQ3MzJjMTBhMzliZTFjNzM5MWE4YmMxYzM1ZDgxMGI0ZjRiNjU4ZTRjMDZlMjdlNmM2OTdiOTU3OWQ0NzZkYjFjMjc1MDRjZDMyYjhmOTE2YWNiYzRmNTk0MDQwZQ:KEY.eyJjYXAiOlsic2lnbiJdLCJjdHgiOiJpZC1rZXkiLCJpYXQiOiIyMDIyLTEwLTIxVDIwOjM5OjQ3LjE1MjM1NFoiLCJrZXkiOiJTVE4uZWhleU1ZaXFpZkNXcnNqVFdQNlpGYm9OZ0NiZENFbm9hbVlYcHZ1aW1MUkM5WVF1YTdVbnRnZDlKMXNrelFmOGpxUVM1M24yTFNndW83RGc3NlBRc1JyNXJUbVAiLCJwdWIiOiJTVE4uVUNTNlVZemNYWVozNjRXOE1FaVB0dFFuS0s3RzlwY0pRZ0ozMkZZd3RUaDN5N203VSIsInVpZCI6ImU1MTExOGNmLTdkYTktNDRhMi04ZGIxLWQ5YWM3ZTNlN2QxNSJ9";
+        var envelope = Envelope.Import(exported);
+        // Context
+        var item1 = envelope.GetItem(Commons.SignKeyContext);
+        Assert.IsNotNull(item1);
+        Assert.IsTrue(item1.GetType() == typeof(Key));
+        Assert.AreEqual(Commons.SignKeyContext, item1.GetClaim<string>(Claim.Ctx));
+        var item2 = envelope.GetItem(Commons.Context);
+        Assert.IsNotNull(item2);
+        Assert.IsTrue(item2.GetType() == typeof(Message));
+        Assert.AreEqual(Commons.Context, item2.GetClaim<string>(Claim.Ctx));
+        // Unique ID
+        var uid1 = Guid.Parse("e51118cf-7da9-44a2-8db1-d9ac7e3e7d15");
+        var item3 = envelope.GetItem(uid1);
+        Assert.IsTrue(item3 is Key);
+        Assert.AreEqual(uid1, item3.GetClaim<Guid>(Claim.Uid));
+        var uid2 = Guid.Parse("860083b5-0e23-487e-919e-557c5a2e6c2f");
+        var item4 = envelope.GetItem(uid2);
+        Assert.IsTrue(item4 is Message);
+        Assert.AreEqual(uid2, item4.GetClaim<Guid>(Claim.Uid));
+    }
+    
+    [TestMethod]
+    public void GetItemTest3() 
+    {
+        var envelope = new Envelope();
+        envelope.AddItem(Key.Generate(KeyCapability.Sign));
+        Assert.IsNull(envelope.GetItem(""));
+        Assert.IsNull(envelope.GetItem("invalid-context"));
+        Assert.IsNull(envelope.GetItem(Guid.NewGuid()));
+        Assert.IsNull(envelope.GetItem(default(Guid)));
     }
     
     [TestMethod]
@@ -326,6 +390,35 @@ public class EnvelopeTests
         Assert.AreEqual(1, envelope.Items.Count);
         Assert.AreEqual(typeof(Key), envelope.Items.ElementAt(0).GetType());
         envelope.Verify(Commons.IssuerKey);
+    }
+    
+    [TestMethod]
+    public void DataExportTest1() 
+    {
+        var envelope = new Envelope(Commons.IssuerIdentity.GetClaim<Guid>(Claim.Sub), Commons.Context);
+        var data = new Data(Commons.AudienceIdentity.GetClaim<Guid>(Claim.Sub),Dime.ValidFor1Minute);
+        data.SetPayload(Encoding.UTF8.GetBytes(Commons.Payload), Commons.Mimetype);
+        data.Sign(Commons.IssuerKey);
+        envelope.AddItem(data);
+        envelope.Sign(Commons.IssuerKey);
+        var exported = envelope.Export();
+        Assert.IsNotNull(exported);
+        Assert.IsTrue(exported.Length > 0);
+        Assert.IsTrue(exported.StartsWith(Envelope.ItemHeader));
+        Assert.AreEqual(3, exported.Split(':').Length);
+    }
+
+    [TestMethod]
+    public void DataImportTest1() 
+    {
+        const string exported = "Di.eyJjdHgiOiJ0ZXN0LWNvbnRleHQiLCJpYXQiOiIyMDIyLTEwLTIxVDE5OjMxOjUwLjkwNzQzOFoiLCJpc3MiOiIzYjAxZDcyMi1lNjZiLTQ2ODMtYTViNi05M2RjNmU2MGUwMTcifQ:DAT.eyJleHAiOiIyMDIyLTEwLTIxVDE5OjMyOjUwLjkwNzk4MVoiLCJpYXQiOiIyMDIyLTEwLTIxVDE5OjMxOjUwLjkwNzk4MVoiLCJpc3MiOiI4ZmRkYzI0Mi02NzBlLTRjNzMtODRiZS04Mjc2MWEzOTI3ZWYiLCJtaW0iOiJ0ZXh0L3BsYWluIiwidWlkIjoiOWY4NTU1ZTktZWJlOS00N2M3LTk0ZjgtOGVlMjZiYTg2ZTdhIn0.UmFjZWNhciBpcyByYWNlY2FyIGJhY2t3YXJkcy4.MzFhMDYyN2JlZjk1NjNiZC43NTQwZTc3MjQ0ZTM5NDlhMjVjM2YyNjI0ZWNjZWRjYjE2N2VkOGEwZjk5NWUwZWMwMTlmOWE2NzNiY2M5ZDMwOGNkNjY0NTg2ZjE5ZmZiYTRmZDM3OGRjMTYxMTJiMjY1NDI5NTJjZTNlNmU0NTFmNjIyZGYwNjI1YTRlMzkwOA:MzFhMDYyN2JlZjk1NjNiZC44MTQ1YjMxNGFlZGMyZGNjZWNjZjNjYzZjYmU2ZWU3NTZiMzU2MmE3NjEzY2QwNGZlZjU5MmViYzg0OTdjZjU4YTViMmQ4NWE3NTI4YzQ0NzQzZDU0NmNlMGI3Y2JiMDhmYTAxY2U5YTNiYWIyMGEwYTI1ZDM4YjEzZTA3MGEwNg";
+        var envelope = Envelope.Import(exported);
+        Assert.IsFalse(envelope.IsAnonymous);
+        Assert.AreEqual(Commons.IssuerIdentity.GetClaim<Guid>(Claim.Sub), envelope.GetClaim<Guid>(Claim.Iss));
+        Assert.AreEqual(DateTime.Parse("2022-10-21T19:31:50.907438Z").ToUniversalTime(), envelope.GetClaim<DateTime>(Claim.Iat));
+        Assert.AreEqual(Commons.Context, envelope.GetClaim<string>(Claim.Ctx));
+        Assert.AreEqual(1, envelope.Items.Count);
+        Assert.IsTrue(envelope.Items[0] is Data);
     }
 
     [TestMethod]

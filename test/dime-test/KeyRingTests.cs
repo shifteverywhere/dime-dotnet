@@ -29,7 +29,15 @@ public class KeyRingTests
     }
 
     [TestMethod]
-    public void NoKeyRingTest1()
+    public void NoKeyRingTest1() {
+        Commons.ClearKeyRing();
+        Assert.IsTrue(Dime.KeyRing.IsEmpty);
+        Commons.InitializeKeyRing();
+        Assert.IsFalse(Dime.KeyRing.IsEmpty);
+    }
+    
+    [TestMethod]
+    public void NoKeyRingTest2()
     {
         Assert.AreEqual(IntegrityState.FailedNoKeyRing, Commons.AudienceIdentity.Verify());
         Assert.IsTrue(Dime.KeyRing.IsEmpty);

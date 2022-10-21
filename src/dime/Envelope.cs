@@ -201,13 +201,16 @@ public class Envelope: Item
 
     #region -- PROTECTED --
 
+    /// <inheritdoc />
     protected override bool AllowedToSetClaimDirectly(Claim claim)
     {
         return AllowedClaims.Contains(claim);
     }
     
+    /// <inheritdoc />
     protected override void CustomDecoding(List<string> components) { /* ignored */}
 
+    /// <inheritdoc />
     protected override string Encode(bool withSignature)
     {
         if (Encoded is null)

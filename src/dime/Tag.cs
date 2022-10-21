@@ -71,30 +71,19 @@ public class Tag: Item
     
     #region -- PROTECTED --
     
-    /// <summary>
-    /// For internal use. Checks if the item supports a claim.
-    /// </summary>
-    /// <param name="claim">The claim to check.</param>
-    /// <returns>True if allowed, false otherwise.</returns>
+    /// <inheritdoc />
     protected override bool AllowedToSetClaimDirectly(Claim claim)
     {
         return AllowedClaims.Contains(claim);
     }
     
-    /// <summary>
-    /// Any additional decoding done by subclasses of Item.
-    /// </summary>
-    /// <param name="components">Components to decode.</param>
+    /// <inheritdoc />
     protected override void CustomDecoding(List<string> components)
     {
         IsSigned = true; // Tags are always signed
     }
 
-    /// <summary>
-    /// Internal use. Allows subclasses of item to return the minimum number of components that make up the encoded
-    /// DiME exported string for the item type.
-    /// </summary>
-    /// <returns>The minimum number of components.</returns>
+    /// <inheritdoc />
     protected override int GetMinNbrOfComponents()
     {
         return MinimumNbrComponents;

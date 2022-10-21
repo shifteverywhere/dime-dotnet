@@ -20,6 +20,41 @@ public class CryptoTests
 {
 
     [TestMethod]
+    public void HasCryptoSuiteTest1() 
+    {
+        Assert.IsTrue(Dime.Crypto.HasCryptoSuite("STN"));
+        Assert.IsFalse(Dime.Crypto.HasCryptoSuite("NSA"));
+    }
+
+    [TestMethod]
+    public void AllCryptoSuitesTest1() 
+    {
+        var suiteNames = Dime.Crypto.AllCryptoSuites();
+        Assert.IsNotNull(suiteNames);
+        Assert.AreEqual(1, suiteNames.Count);
+        Assert.AreEqual("STN", suiteNames[0]);
+    }
+
+    [TestMethod]
+    public void GenerateKeyNameTest1() 
+    {
+        var key = Key.Generate(KeyCapability.Sign);
+        var identifier = Dime.Crypto.GenerateKeyName(key);
+        Assert.IsNotNull(identifier);
+        Assert.AreEqual(16, identifier.Length);
+    }
+
+    [TestMethod]
+    public void GenerateKeyNameTest2() 
+    {
+        const string hex = "506f85299f6a2a4b";
+        const string encoded = "Di:KEY.eyJ1aWQiOiIyYTY5ZjJkMC1kNzQ2LTQxNzYtOTg5NS01MDcyNzRlNzJiYjkiLCJwdWIiOiJTVE4uMkI4VzZCNjRRTTlBeDRvdzNjb1Y0TlJrTW95MWNXUzR4N0FYYTRzdnd5dVJlQWtQNG8iLCJpYXQiOiIyMDIyLTA2LTExVDEwOjI3OjM0Ljk5NjIzOFoiLCJ1c2UiOlsic2lnbiJdLCJrZXkiOiJTVE4uQXhwZ3Z2N0FYS2lhalNEQlBCZ0ZCbndzSkoyUXpXSGFUaWpFY29LcEx6YUo5VVlpOGVKNGg0bkJFQnVSN2NldWtVQm5waWU1NkxZQW5EdHQ3Y2V3aVczd0FGTDdFIn0";
+        var key = Item.Import<Key>(encoded);
+        var identifier = Dime.Crypto.GenerateKeyName(key);
+        Assert.AreEqual(hex, identifier);
+    }
+    
+    [TestMethod]
     public void GenerateSignatureTest1()
     {
         var key = Key.Generate(new List<KeyCapability>() { KeyCapability.Sign }, null);
@@ -30,7 +65,7 @@ public class CryptoTests
     [TestMethod]
     public void GenerateSignatureTest2() 
     {
-        byte[] sig = Utility.FromBase64("Ey5hGXAXFq1WgVS0bhzmx4qfT6VdsTQtZDF4PSRTBAcWZmO/2jhFPmV2YEy5bIA8PHDwRHXtbdU5Psi3ln7cBA");
+        var sig = Utility.FromBase64("Ey5hGXAXFq1WgVS0bhzmx4qfT6VdsTQtZDF4PSRTBAcWZmO/2jhFPmV2YEy5bIA8PHDwRHXtbdU5Psi3ln7cBA");
         const string encoded = "Di:KEY.eyJ1aWQiOiJmNjYxMGUyNS1jYTA1LTQzMWItODhlZS1iYzczNmZiNWQxZmUiLCJwdWIiOiIyVERYZG9Odm9NZFd4VGh4Z2FxVG5McTl0aFdWYXZFeUFWaUx2ekNrc2VxMWtlRDNrOGJ4UkY2cVciLCJpYXQiOiIyMDIxLTEyLTAyVDIwOjQ4OjAxLjEyMDUxOFoiLCJrZXkiOiJTMjFUWlNMQmFjYXhURVVBVFExVG91dENIRkI1NFA2R25vTTNLU0hXMUpvNTgxZUZzalZYajZEWHBYMjdKTFRCSFVQaWNmbUVKZ2FxNnhaeEoxeVN3TldieTQ2cUdzQ3hrUmpCIn0";
         var key = Item.Import<Key>(encoded);
         Dime.Crypto.VerifySignature(Commons.Payload, sig, key);

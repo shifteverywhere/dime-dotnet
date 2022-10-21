@@ -98,6 +98,13 @@ public class Identity: Item
     /// </summary>
     public Identity() { }
 
+    /// <summary>
+    /// Verifies the integrity and over all validity and trust of the item. If a key is provided, then verification will
+    /// use that key. If verifyKey is omitted, then the local key ring will be used to verify signatures of the item.
+    /// </summary>
+    /// <param name="verifyKey">Key used to verify the item, may be null.</param>
+    /// <param name="linkedItems">A list of item where item links should be verified, may be null.</param>
+    /// <returns>The integrity state of the verification.</returns>
     public override IntegrityState Verify(Key? verifyKey = null, List<Item>? linkedItems = null)
     {
         if (TrustChain is null || verifyKey is not null) return base.Verify(verifyKey, linkedItems);
@@ -158,11 +165,13 @@ public class Identity: Item
 
     # region -- PROTECTED --
 
+    /// <inheritdoc />
     protected override bool AllowedToSetClaimDirectly(Claim claim)
     {
         return AllowedClaims.Contains(claim);
     }
-    
+
+    /// <inheritdoc />
     protected override void CustomDecoding(List<string> components)
     {
         if (components.Count <= MaximumNbrComponents)
@@ -179,6 +188,7 @@ public class Identity: Item
                 $"More components in item than expected, expected maximum {MaximumNbrComponents}, got {components.Count}.");
     }
 
+    /// <inheritdoc />
     protected override void CustomEncoding(StringBuilder builder)
     {
         base.CustomEncoding(builder);
@@ -187,6 +197,7 @@ public class Identity: Item
         builder.Append(Utility.ToBase64(TrustChain.ForExport()));
     }
 
+    /// <inheritdoc />
     protected override int GetMinNbrOfComponents()
     {
         return MinimumNbrComponents;

@@ -111,13 +111,6 @@ public class MessageTests
         message.RemoveClaim(Claim.Iss);
         message.PutClaim(Claim.Iat, DateTime.UtcNow);
     }
-    
-    [TestMethod]
-    public void GetTagTest1()
-    {
-        var message = new Message(Guid.NewGuid());
-        Assert.AreEqual("MSG", message.Header);
-    }
 
     [TestMethod]
     public void MessageTest1()
@@ -308,13 +301,12 @@ public class MessageTests
         try
         {
             _ = Item.Import<Message>(encoded);
+            Assert.IsTrue(false, "Exception not thrown.");
         }
         catch (FormatException)
         {
-            return;
-        } // All is well
-
-        Assert.IsTrue(false, "Should not happen.");
+            /* all is well */
+        }
     }
 
     [TestMethod]
@@ -347,6 +339,23 @@ public class MessageTests
         message.SetPayload(Encoding.UTF8.GetBytes(Commons.Payload));
         message.Sign(Commons.IssuerKey);
         try { message.SetPayload(Encoding.UTF8.GetBytes(Commons.Payload)); Assert.IsTrue(false, "Exception not thrown."); } catch (InvalidOperationException) { /* all is well */ }
+    }
+    
+    [TestMethod]
+    public void SignTest3() 
+    {
+        // Multiple signatures
+        var key1 = Key.Generate(KeyCapability.Sign);
+        var key2 = Key.Generate(KeyCapability.Sign);
+        var key3 = Key.Generate(KeyCapability.Sign);
+        var message = new Message(Commons.AudienceIdentity.GetClaim<Guid>(Claim.Sub), Commons.IssuerIdentity.GetClaim<Guid>(Claim.Sub), Dime.ValidFor1Minute);
+        message.SetPayload(Encoding.UTF8.GetBytes(Commons.Payload));
+        message.Sign(key1);
+        Assert.IsTrue(Dime.IsIntegrityStateValid(message.Verify(key1)));
+        message.Sign(key2);
+        Assert.IsTrue(Dime.IsIntegrityStateValid(message.Verify(key1)));
+        Assert.IsTrue(Dime.IsIntegrityStateValid(message.Verify(key2)));
+        Assert.IsFalse(Dime.IsIntegrityStateValid(message.Verify(key3)));
     }
 
     [TestMethod]
@@ -472,6 +481,19 @@ public class MessageTests
         } catch (InvalidOperationException) { return; } // All is well
         Assert.IsTrue(false, "Should not happen.");
     }
+    
+    [TestMethod]
+    public void LinkItemTest4() 
+    {
+        Commons.InitializeKeyRing();
+        var message = new Message(Commons.AudienceIdentity.GetClaim<Guid>(Claim.Sub), Commons.IssuerIdentity.GetClaim<Guid>(Claim.Sub), Dime.ValidFor1Minute);
+        message.SetItemLinks(new List<Item>() { Commons.AudienceIdentity, Commons.IssuerIdentity });
+        var itemLinks = message.GetItemLinks();
+        Assert.IsNotNull(itemLinks);
+        Assert.AreEqual(2, itemLinks.Count);
+        message.RemoveLinkItems();
+        Assert.IsNull(message.GetItemLinks());
+    }
 
     [TestMethod]
     public void ThumbprintTest1()
@@ -501,8 +523,20 @@ public class MessageTests
         issuerMessage2.Sign(Commons.IssuerKey);
         Assert.AreNotEqual(issuerMessage1.Thumbprint(), issuerMessage2.Thumbprint());
     }
- 
-
+    
+    [TestMethod]
+    public void ThumbprintTest3() 
+    {
+        try {
+            var message = new Message(Commons.AudienceIdentity.GetClaim<Guid>(Claim.Sub), Commons.IssuerIdentity.GetClaim<Guid>(Claim.Sub), Dime.ValidFor1Minute);
+            message.SetPayload(Encoding.UTF8.GetBytes(Commons.Payload));
+            message.Thumbprint();
+            Assert.IsTrue(false, "Exception not thrown.");
+        } catch (InvalidOperationException) {
+            /* All is well */
+        }
+    }
+    
     [TestMethod]
     public void ContextTest1() 
     {
@@ -533,6 +567,22 @@ public class MessageTests
             _ = new Message(Commons.IssuerIdentity.GetClaim<Guid>(Claim.Iss), Dime.NoExpiration, context);
         } catch (ArgumentException) { return; } // All is well
         Assert.IsTrue(false, "Should not happen.");
+    }
+    
+    [TestMethod]
+    public void StripTest1() 
+    {
+        var message = new Message(Commons.IssuerIdentity.GetClaim<Guid>(Claim.Sub));
+        message.SetPayload(Encoding.UTF8.GetBytes(Commons.Payload));
+        message.Sign(Commons.IssuerKey);
+        try {
+            message.PublicKey = Commons.IssuerKey.PublicCopy();
+            Assert.IsTrue(false, "Expected not thrown.");
+        } catch (InvalidOperationException) {
+            /* all is well */
+        }
+        message.Strip();
+        message.Sign(Commons.IssuerKey);
     }
  
 }

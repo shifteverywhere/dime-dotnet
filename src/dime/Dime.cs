@@ -125,9 +125,7 @@ public abstract class Dime
 
     #region -- PRIVATE --
 
-    private static readonly object TrustLock = new();
     private static readonly object TimeLock = new();
-    private static Identity _trustedIdentity;
     private static long _gracePeriod;
     private static long _timeModifier;
 

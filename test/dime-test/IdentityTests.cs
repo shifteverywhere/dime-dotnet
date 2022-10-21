@@ -10,12 +10,10 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.Collections.Generic;
-using System.Text;
 using System.Threading;
 using DiME;
 using DiME.Capability;
 using DiME.Exceptions;
-using DiME.KeyRing;
 
 namespace DiME_test;
 
@@ -169,7 +167,7 @@ public class IdentityTests
         Commons.InitializeKeyRing();
         var key = Key.Generate(new List<KeyCapability>() {KeyCapability.Sign}, null);
         var caps = new List<IdentityCapability> { IdentityCapability.Issue, IdentityCapability.Generic };
-        var identity = IdentityIssuingRequest.Generate(key, caps).Issue(Guid.NewGuid(), 100L, Commons.TrustedKey, Commons.TrustedIdentity, true, caps);
+        var identity = IdentityIssuingRequest.Generate(key, caps).Issue(Guid.NewGuid(), Dime.ValidFor1Minute, Commons.TrustedKey, Commons.TrustedIdentity, true, caps);
         Assert.IsTrue(identity.HasCapability(IdentityCapability.Issue));
         Assert.IsTrue(identity.HasCapability(IdentityCapability.Generic));
     }
@@ -179,10 +177,7 @@ public class IdentityTests
     {
         Commons.ClearKeyRing();
         var caps = new List<IdentityCapability> { IdentityCapability.Issue };
-        try {
-            _ = IdentityIssuingRequest.Generate(Key.Generate(new List<KeyCapability>() {KeyCapability.Sign}, null), caps).Issue(Guid.NewGuid(), 100L, Commons.TrustedKey, null, true, caps);
-        } catch (ArgumentNullException) { return; } // All is well
-        Assert.IsTrue(false, "Should not happen.");
+        try { _ = IdentityIssuingRequest.Generate(Key.Generate(KeyCapability.Sign), caps).Issue(Guid.NewGuid(), Dime.ValidFor1Minute, Commons.TrustedKey, null, true, caps);  Assert.IsTrue(false, "Exception not thrown."); } catch (ArgumentNullException) { /* all is well */ }
     }
 
     [TestMethod]
@@ -444,30 +439,5 @@ public class IdentityTests
         Assert.AreEqual(3, nbr.Count);
         Assert.AreEqual("three", nbr[2]);
     }
-
-    [TestMethod]
-    public void AlienImportTest1()
-    {
-        const string exported =
-            "Di:ID.eyJjYXAiOlsiZ2VuZXJpYyJdLCJleHAiOiIyMDIzLTA3LTAxVDEwOjAwOjEzLjYzNjk3NloiLCJpYXQiOiIyMDIyLTA3LTAxVDEwOjAwOjEzLjYzNjk3NloiLCJpc3MiOiIyY2JmZmRlMS05ZjNkLTRmMzgtOTM5Yi0yZTFmZTc0OGQ4ZGMiLCJwdWIiOiIyVERYZG9OdVFpQ0o4YWdLckJtRnFNWEF2ZUxBWWNLUVNrY0ZVUkpWSGhvVlB2UkR5M2dNS0xLdnQiLCJzdWIiOiJkMDEwOTZiMS05YzBiLTQ5Y2UtYmY5OC1mNDIwZjVhMGVkNjIiLCJzeXMiOiJpby5kaW1lZm9ybWF0LnJlZiIsInVpZCI6IjA4NDA2ZDBlLTdhZmEtNDRlZC1iZTU5LThhNGIwZDBkMzQ3NiJ9.SUQuZXlKallYQWlPbHNpWjJWdVpYSnBZeUlzSW1sa1pXNTBhV1o1SWl3aWFYTnpkV1VpWFN3aVpYaHdJam9pTWpBeU55MHdOaTB5T0ZReU1EbzFOam93Tnk0d09EZ3hOakZhSWl3aWFXRjBJam9pTWpBeU1pMHdOaTB5T1ZReU1EbzFOam93Tnk0d09EZ3hOakZhSWl3aWFYTnpJam9pTTJNek5tWTRZbVF0TWpsallTMDBObVV3TFRobU5EWXRZMkpqWXpnNFpqRm1NVEZrSWl3aWNIVmlJam9pUkZOVVRpNHlObVV6VUhkU1NIbElXbkJMYUdSYU5GWk1abG8zUmxGalJrMDBhMHg1UkUwMU9EWmlUbWxWYjFSVE4yNXJXalJIY3lJc0luTjFZaUk2SWpKalltWm1aR1V4TFRsbU0yUXROR1l6T0MwNU16bGlMVEpsTVdabE56UTRaRGhrWXlJc0luTjVjeUk2SW1sdkxtUnBiV1ZtYjNKdFlYUXVjbVZtSWl3aWRXbGtJam9pT1Rnd09HSmtZelV0Wm1JM05pMDBNelZsTFdJMU1EVXRNelZqTnpaaVpUYzROemsxSW4wLk5UY3hPRFE1T0RSak1EZzJZbUUxTXk1bVpUazNZMlF4TnpNeE9EZzJOakEwT1RRMk9ETTROekV6T1dObVlUVXlZV000TWpCa01qbGlZekJtWVRsbU1EazNOR05sWVRSbU9UUm1OMll6WkRFNE5qSTJObU13WmpnMFlqRTROR1poTnpZMk9EaGlaVEV3TURjNE5USmxZV1poWldNek5qQTRNek5pWVRCaU9UYzNZekl6T1dabU56YzBNV0pqWlRrd05R.OTk1NzQ5NzUxNGI2NGI0Ny41ZmI3ZjNiOWQyYTMxMmJkNjE1MTVlZWVlNDJhYWE1Y2Y4MzI2OGM3MDAzYjVlMzBkMmZhMWRjNmVhYTRhZWQ5NzBjMmJhNDJmYzA0ZGY5MWZjNDQ4NzgzNWRhNzg5NDQ2NDQxZDQ2NDQ4ZjMyOTQxNmFkMmFjNjliYmEwMzMwNg";
-        var identity = Item.Import<Identity>(exported);
-        Assert.IsNotNull(identity);
-        Assert.AreEqual(Commons.SystemName, identity.GetClaim<string>(Claim.Sys));
-        Assert.AreEqual(new Guid("08406d0e-7afa-44ed-be59-8a4b0d0d3476"), identity.GetClaim<Guid>(Claim.Uid));
-        Assert.AreEqual(new Guid("d01096b1-9c0b-49ce-bf98-f420f5a0ed62"), identity.GetClaim<Guid>(Claim.Sub));
-        Assert.AreEqual(DateTime.Parse("2022-07-01T10:00:13.636976Z").ToUniversalTime(), identity.GetClaim<DateTime>(Claim.Iat));
-        Assert.AreEqual(DateTime.Parse("2023-07-01T10:00:13.636976Z").ToUniversalTime(), identity.GetClaim<DateTime>(Claim.Exp));
-        Assert.AreEqual(new Guid("2cbffde1-9f3d-4f38-939b-2e1fe748d8dc"), identity.GetClaim<Guid>(Claim.Iss));
-        Assert.IsNotNull(identity.PublicKey);
-        Assert.AreEqual("2TDXdoNuQiCJ8agKrBmFqMXAveLAYcKQSkcFURJVHhoVPvRDy3gMKLKvt", identity.PublicKey.Public);
-        Assert.IsTrue(identity.HasCapability(IdentityCapability.Generic));
-        Assert.IsNotNull(identity.TrustChain);
-        var key = Item.Import<Key>(
-            "Di:KEY.eyJ1aWQiOiJjZTE3YzNhNC0xNjk2LTRjYjktOTNjNy1iZjYwY2NjYjE4Y2QiLCJpYXQiOiIyMDIyLTA3LTAxVDA5OjU4OjU5LjAwNDY2WiIsImtleSI6IlMyMVRaU0xOeEU1elFERWpidkR5QmpLUjZEV3BIQnhnTTdKMmJrS0o5OHEyQ3V3VG00ZzgxQzg5VmphQURNWUI1M0tGYkRLZ0hKdWF5M2VDa0JUZWc2ZEtoS0dodGRCTFduQTMiLCJwdWIiOiIyVERYZG9OdVFpQ0o4YWdLckJtRnFNWEF2ZUxBWWNLUVNrY0ZVUkpWSGhvVlB2UkR5M2dNS0xLdnQifQ");
-        var message = new Message(Guid.NewGuid());
-        message.SetPayload(Encoding.UTF8.GetBytes(Commons.Payload));
-        message.Sign(key);
-        Assert.AreEqual(IntegrityState.Complete, message.Verify(identity.PublicKey));
-    }
-
+    
 }
