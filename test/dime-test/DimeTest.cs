@@ -31,7 +31,7 @@ public class DimeTest
     [TestMethod]
     public void VersionTest1() 
     {
-        Assert.AreEqual(1, Dime.Version);
+        Assert.AreEqual("1.001", Dime.Version);
     }
     
     [TestMethod]
