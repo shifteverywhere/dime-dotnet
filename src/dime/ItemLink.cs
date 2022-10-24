@@ -7,6 +7,8 @@
 //  Released under the MIT licence, see LICENSE for more information.
 //  Copyright © 2022 Shift Everywhere AB. All rights reserved.
 //
+
+#nullable enable
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -27,26 +29,30 @@ public sealed class ItemLink
     /// The item identifier, this is used to determine the Dime item type, i.e. "ID", "MSG", etc.
     /// </summary>
     public string ItemIdentifier { get; private set; }
-    
     /// <summary>
     /// The thumbprint of the linked item. Used to determine if an item is the linked item.
     /// </summary>
     public string Thumbprint { get; private set; }
-    
     /// <summary>
     /// The unique ID of the linked item.
     /// </summary>
     public Guid UniqueId { get; private set; }
+    /// <summary>
+    /// The cryptographic suite used to generate the item link.
+    /// </summary>
+    public string CryptoSuiteName { get; private set; }
 
     /// <summary>
     /// Creates an item link from the provided Dime item.
     /// </summary>
     /// <param name="item">The Dime item to create the item link from.</param>
-    public ItemLink(Item item)
+    /// <param name="cryptoSuiteName">The name of the cryptographic suite to use, may be null.</param>
+    public ItemLink(Item item, string? cryptoSuiteName = null)
     {
         ItemIdentifier = item.Header;
-        Thumbprint = item.GenerateThumbprint();
+        Thumbprint = item.GenerateThumbprint(cryptoSuiteName);
         UniqueId = item.GetClaim<Guid>(Claim.Uid);
+        CryptoSuiteName = cryptoSuiteName ?? Dime.Crypto.DefaultSuiteName;
     }
 
     /// <summary>
@@ -55,16 +61,20 @@ public sealed class ItemLink
     /// <param name="itemIdentifier">The Dime item identifier of the item, e.g. "ID", "MSG", etc.</param>
     /// <param name="thumbprint">The thumbprint of the item to which the link should be created.</param>
     /// <param name="uniqueId">The unique ID of the item to which the link should be created.</param>
+    /// /// <param name="cryptoSuiteName">The name of the cryptographic suite used.</param>
     /// <exception cref="ArgumentException"></exception>
-    public ItemLink(string itemIdentifier, string thumbprint, Guid uniqueId)
+    public ItemLink(string itemIdentifier, string thumbprint, Guid uniqueId, string cryptoSuiteName)
     {
         if (string.IsNullOrEmpty(itemIdentifier))
-            throw new ArgumentException("Provided item identifier must not be null or empty.", nameof(itemIdentifier));
+            throw new ArgumentException("Provided item identifier must not be empty.", nameof(itemIdentifier));
         if (string.IsNullOrEmpty(thumbprint))
-            throw new ArgumentException("Provided thumbprint must not be null or empty.", nameof(thumbprint));
+            throw new ArgumentException("Provided thumbprint must not be empty.", nameof(thumbprint));
+        if (string.IsNullOrEmpty(cryptoSuiteName))
+            throw new ArgumentException("Provided cryptographic suite must not be empty.", nameof(thumbprint));
         ItemIdentifier = itemIdentifier;
         Thumbprint = thumbprint;
         UniqueId = uniqueId;
+        CryptoSuiteName = cryptoSuiteName;
     }
 
     /// <summary>
@@ -79,8 +89,9 @@ public sealed class ItemLink
         if (string.IsNullOrEmpty(encoded))
             throw new ArgumentException("Encoded item link must not be null or empty.", nameof(encoded));
         var components = encoded.Split(new[] { Dime.ComponentDelimiter });
-        if (components.Length != 3) throw new FormatException("Invalid item link format.");
-        return new ItemLink(components[0], components[2], Guid.Parse(components[1]));
+        if (components.Length < 3) throw new FormatException("Invalid item link format.");
+        var suiteName = components.Length == 4 ? components[3] : "STN";
+        return new ItemLink(components[0], components[2], Guid.Parse(components[1]), suiteName);
     }
 
     /// <summary>
@@ -106,7 +117,7 @@ public sealed class ItemLink
     {
         return UniqueId.Equals(item.GetClaim<Guid>(Claim.Uid)) 
                && ItemIdentifier.Equals(item.Header)
-               && Thumbprint.Equals(item.GenerateThumbprint());
+               && Thumbprint.Equals(item.GenerateThumbprint(CryptoSuiteName));
     }
 
     /// <summary>
@@ -123,7 +134,7 @@ public sealed class ItemLink
             foreach (var link in links.Where(link => link.UniqueId.Equals(item.GetClaim<Guid>(Claim.Uid))))
             {
                 matchFound = true;
-                if (!link.ItemIdentifier.Equals(item.Header) || !link.Thumbprint.Equals(item.GenerateThumbprint()))
+                if (!link.ItemIdentifier.Equals(item.Header) || !link.Thumbprint.Equals(item.GenerateThumbprint(link.CryptoSuiteName)))
                     return IntegrityState.FailedLinkedItemFault;
             }
             if (!matchFound)
@@ -138,7 +149,16 @@ public sealed class ItemLink
     /// <returns>An encoded string.</returns>
     public string ToEncoded()
     {
-        return $"{ItemIdentifier}{Dime.ComponentDelimiter}{UniqueId.ToString()}{Dime.ComponentDelimiter}{Thumbprint}";
+        var builder = new StringBuilder();
+        builder.Append(ItemIdentifier)
+            .Append(Dime.ComponentDelimiter)
+            .Append(UniqueId.ToString())
+            .Append(Dime.ComponentDelimiter)
+            .Append(Thumbprint);
+        if (!CryptoSuiteName.Equals("STN"))
+            builder.Append(Dime.ComponentDelimiter)
+                .Append(CryptoSuiteName);
+        return builder.ToString();
     }
 
     /// <summary>
@@ -146,7 +166,7 @@ public sealed class ItemLink
     /// </summary>
     /// <param name="links">A list of ItemLink instances that should be encoded.</param>
     /// <returns>An encoded string.</returns>
-    public static string ToEncoded(List<ItemLink> links)
+    public static string? ToEncoded(List<ItemLink> links)
     {
         if (links.Count == 0) return null;
         var stringBuilder = new StringBuilder();

@@ -22,7 +22,7 @@ public class ItemLinkTest
     [TestMethod]
     public void ItemLinkTest1() {
         var key = Key.Generate(new List<KeyCapability>() {KeyCapability.Sign}, null);
-        var link = new ItemLink(key);
+        var link = new ItemLink(key, Dime.Crypto.DefaultSuiteName);
         Assert.IsNotNull(link);
         Assert.AreEqual(key.Header, link.ItemIdentifier);
         Assert.AreEqual(key.GenerateThumbprint(), link.Thumbprint);
@@ -34,22 +34,27 @@ public class ItemLinkTest
     [TestMethod]
     public void ItemLinkTest3() {
         var key = Key.Generate(new List<KeyCapability>() {KeyCapability.Sign}, null);
-        var link = new ItemLink(Key.ItemHeader, key.GenerateThumbprint(), key.GetClaim<Guid>(Claim.Uid));
+        var link = new ItemLink(Key.ItemHeader, key.GenerateThumbprint(), key.GetClaim<Guid>(Claim.Uid), Dime.Crypto.DefaultSuiteName);
         Assert.IsNotNull(link);
         Assert.AreEqual(Key.ItemHeader, link.ItemIdentifier);
         Assert.AreEqual(key.GenerateThumbprint(), link.Thumbprint);
         Assert.AreEqual(key.GetClaim<Guid>(Claim.Uid), link.UniqueId);
+        Assert.AreEqual("DSC", link.CryptoSuiteName);
     }
 
     [TestMethod]
     public void ItemLinkTest4() {
         var key = Key.Generate(new List<KeyCapability>() {KeyCapability.Sign}, null);
         try {
-            _ = new ItemLink("", key.GenerateThumbprint(), key.GetClaim<Guid>(Claim.Uid));
+            _ = new ItemLink("", key.GenerateThumbprint(), key.GetClaim<Guid>(Claim.Uid), Dime.Crypto.DefaultSuiteName);
             Assert.IsTrue(false, "Exception not thrown.");
         } catch (ArgumentException) { /* All is well, carry on. */ }
         try {
-            _ = new ItemLink(Key.ItemHeader, "", key.GetClaim<Guid>(Claim.Uid));
+            _ = new ItemLink(Key.ItemHeader, "", key.GetClaim<Guid>(Claim.Uid), Dime.Crypto.DefaultSuiteName);
+            Assert.IsTrue(false, "Exception not thrown.");
+        } catch (ArgumentException) { /* All is well, carry on. */ }
+        try {
+            _ = new ItemLink(Key.ItemHeader, key.GenerateThumbprint(), key.GetClaim<Guid>(Claim.Uid), "");
             Assert.IsTrue(false, "Exception not thrown.");
         } catch (ArgumentException) { /* All is well, carry on. */ }
     }
@@ -60,9 +65,31 @@ public class ItemLinkTest
         var link = new ItemLink(key);
         var encoded = link.ToEncoded();
         Assert.IsNotNull(encoded);
-        var compare = $"{key.Header}.{key.GetClaim<Guid>(Claim.Uid).ToString()}.{key.GenerateThumbprint()}";
+        var compare = $"{key.Header}.{key.GetClaim<Guid>(Claim.Uid).ToString()}.{key.GenerateThumbprint()}.{Dime.Crypto.DefaultSuiteName}";
         Assert.AreEqual(compare, encoded);
         Assert.AreNotEqual(Commons.AudienceKey.GenerateThumbprint(), link.Thumbprint);
+    }
+    
+    [TestMethod]
+    public void ToEncodedTest2() {
+        var key = Commons.AudienceKey.PublicCopy();
+        var link = new ItemLink(key.Header, key.GenerateThumbprint(), key.GetClaim<Guid>(Claim.Uid), Dime.Crypto.DefaultSuiteName);
+        var encoded = link.ToEncoded();
+        Assert.IsNotNull(encoded);
+        var compare = $"{key.Header}.{key.GetClaim<Guid>(Claim.Uid).ToString()}.{key.GenerateThumbprint()}.{Dime.Crypto.DefaultSuiteName}";
+        Assert.AreEqual(compare, encoded);
+        Assert.AreNotEqual(Commons.AudienceKey.GenerateThumbprint(), link.Thumbprint);
+    }
+    
+    [TestMethod]
+    public void ToEncodedTest3() {
+        var key = Key.Generate(KeyCapability.Sign);
+        var link = new ItemLink(key, "STN");
+        var encoded = link.ToEncoded();
+        Assert.IsNotNull(encoded);
+        var compare = $"{key.Header}.{key.GetClaim<Guid>(Claim.Uid).ToString()}.{key.GenerateThumbprint()}";
+        Assert.AreEqual(compare, encoded);
+        Assert.AreEqual("STN", link.CryptoSuiteName);
     }
 
     [TestMethod]
@@ -71,6 +98,16 @@ public class ItemLinkTest
         Assert.IsTrue(link.Verify(Commons.AudienceKey));
         Assert.IsFalse(link.Verify(Commons.IssuerKey));
         Assert.IsFalse(link.Verify(Commons.AudienceKey.PublicCopy()));
+    }
+    
+    [TestMethod]
+    public void VerifyTest2() 
+    {
+        var key = Key.Generate(KeyCapability.Sign);
+        Assert.AreEqual("DSC", key.CryptoSuiteName);
+        var link = new ItemLink(key, "STN");
+        Assert.IsTrue(link.Verify(key));
+        Assert.AreEqual("STN", link.CryptoSuiteName);
     }
 
     [TestMethod]
@@ -91,17 +128,6 @@ public class ItemLinkTest
         Assert.IsTrue(Dime.IsIntegrityStateValid(ItemLink.Verify(new List<Item> { Commons.AudienceKey }, links)));
         Assert.IsFalse(Dime.IsIntegrityStateValid(ItemLink.Verify(new List<Item>(), links)));
         Assert.IsFalse(Dime.IsIntegrityStateValid(ItemLink.Verify(items, new List<ItemLink>())));
-    }
-
-    [TestMethod]
-    public void ToEncodedTest2() {
-        var key = Commons.AudienceKey.PublicCopy();
-        var link = new ItemLink(key.Header, key.GenerateThumbprint(), key.GetClaim<Guid>(Claim.Uid));
-        var encoded = link.ToEncoded();
-        Assert.IsNotNull(encoded);
-        var compare = $"{key.Header}.{key.GetClaim<Guid>(Claim.Uid).ToString()}.{key.GenerateThumbprint()}";
-        Assert.AreEqual(compare, encoded);
-        Assert.AreNotEqual(Commons.AudienceKey.GenerateThumbprint(), link.Thumbprint);
     }
 
     [TestMethod]
@@ -138,10 +164,22 @@ public class ItemLinkTest
         Assert.AreEqual("KEY", link.ItemIdentifier);
         Assert.AreEqual(Guid.Parse("c89b08d7-f472-4703-b5d3-3d23fd39e10d"), link.UniqueId);
         Assert.AreEqual("68cd898db0b2535c912f6aa5f565306991ba74760b2955e7fb8dc91fd45276bc", link.Thumbprint);
+        Assert.AreEqual("STN", link.CryptoSuiteName);
     }
 
     [TestMethod]
     public void FromEncodedTest2() {
+        const string encoded = "KEY.c89b08d7-f472-4703-b5d3-3d23fd39e10d.68cd898db0b2535c912f6aa5f565306991ba74760b2955e7fb8dc91fd45276bc.DSC";
+        var link = ItemLink.FromEncoded(encoded);
+        Assert.IsNotNull(link);
+        Assert.AreEqual("KEY", link.ItemIdentifier);
+        Assert.AreEqual(Guid.Parse("c89b08d7-f472-4703-b5d3-3d23fd39e10d"), link.UniqueId);
+        Assert.AreEqual("68cd898db0b2535c912f6aa5f565306991ba74760b2955e7fb8dc91fd45276bc", link.Thumbprint);
+        Assert.AreEqual("DSC", link.CryptoSuiteName);
+    }
+    
+    [TestMethod]
+    public void FromEncodedTest3() {
         try
         {
             ItemLink.FromEncoded(Commons.Payload);
