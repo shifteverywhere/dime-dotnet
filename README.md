@@ -132,13 +132,13 @@ Generating a thumbprint from a DiME identity that has been imported:
 
 ```
 var identity = Item.Import<Identity>(exportedIdentity);
-var thumbprint = identity.Thumbprint()
+var thumbprint = identity.GenerateThumbprint()
 ```
 
 Generating a thumbprint from a DiME envelope (exported DiME item):
 
 ```
-var thumbprint = Envelope.Thumbprint(exportedIdentity));
+var thumbprint = Item.Thumbprint(exportedIdentity));
 ```
 
 Thumbprints can be used to quickly verify if the DiME item has changed, or if it is the item that was expected. A thumbprint is a cryptographic hash of the whole DiME item.
