@@ -281,14 +281,14 @@ public class MessageTests
     {
         Commons.InitializeKeyRing();
         const string exported =
-            "Di:MSG.eyJhdWQiOiI4ZmRkYzI0Mi02NzBlLTRjNzMtODRiZS04Mjc2MWEzOTI3ZWYiLCJleHAiOiIyMDIyLTEwLTE3VDE5OjA0OjMyLjExODI3MloiLCJpYXQiOiIyMDIyLTEwLTE3VDE5OjA0OjIyLjExODI3MloiLCJpc3MiOiIzYjAxZDcyMi1lNjZiLTQ2ODMtYTViNi05M2RjNmU2MGUwMTciLCJ1aWQiOiIxNzlhMzU4OC0wNGZjLTQ4MWUtODdlOS0xY2NmNjNlMGM5NDAifQ.UmFjZWNhciBpcyByYWNlY2FyIGJhY2t3YXJkcy4.MzFhMDYyN2JlZjk1NjNiZC4wM2E1ZmYxYjZjMzE3NWJkNTcwODgxZjZjYzczZGUwZTQ3MzhlNTEwNGI5YTQyYmM4YzhkYTJjMzFhNjQ5N2FlZGZhMGE2YjQzOGRlYjU5Yzg3YjIzODNiYjU5NDcyMzMxZWVjM2YyMzg2ZWY3ZTI2YmRmNGRkZDJmNmM2NTUwMQ";
+            "Di:MSG.eyJhdWQiOiI5ZDBjNmMwMy01ZTVmLTQ0Y2ItYjFlZi1iMzA0MDNlNTA2ZjAiLCJleHAiOiIyMDIyLTEwLTI0VDIyOjQ5OjMyLjA4NzIxMloiLCJpYXQiOiIyMDIyLTEwLTI0VDIyOjQ5OjIyLjA4NzIxMloiLCJpc3MiOiIxMDMwNTcyZi02YjgyLTQzNmQtOWQ1MS03OTAyMGU2MmY4NTMiLCJ1aWQiOiJhODk1YTM3NS0yZmI0LTQ2NDItODUxMi04NzM3MmE1OWU0ZmYifQ.UmFjZWNhciBpcyByYWNlY2FyIGJhY2t3YXJkcy4.YzFmMjczMDUzZDhmZDQ4YS44YjIyY2U2OTdmZmM2NTc0MWM4YjFmYjBmNTc3ODNkNmE0ZTJhZDM2ZjY4YjE1YjFkNjkzNmRhMTM0MDIyNzE5MTVhNDc0ZmRjYjk3NGYzMmE3MDNlMzVlZGUzMDI3ODViZDQzNTk2ODA1ZDYyYTE3NzljYWQxYmY1ZDFmMzAwMg";
         var message = Item.Import<Message>(exported);
-        Assert.AreEqual(new Guid("179a3588-04fc-481e-87e9-1ccf63e0c940"), message.GetClaim<Guid>(Claim.Uid));
+        Assert.AreEqual(new Guid("a895a375-2fb4-4642-8512-87372a59e4ff"), message.GetClaim<Guid>(Claim.Uid));
         Assert.AreEqual(Commons.AudienceIdentity.GetClaim<Guid>(Claim.Sub), message.GetClaim<Guid>(Claim.Aud));
         Assert.AreEqual(Commons.IssuerIdentity.GetClaim<Guid>(Claim.Sub), message.GetClaim<Guid>(Claim.Iss));
         Assert.AreEqual(Commons.Payload, Encoding.UTF8.GetString(message.GetPayload()));
-        Assert.AreEqual(DateTime.Parse("2022-10-17T19:04:22.118272Z").ToUniversalTime(), message.GetClaim<DateTime>(Claim.Iat));
-        Assert.AreEqual(DateTime.Parse("2022-10-17T19:04:32.118272Z").ToUniversalTime(), message.GetClaim<DateTime>(Claim.Exp));
+        Assert.AreEqual(DateTime.Parse("2022-10-24T22:49:22.087212Z").ToUniversalTime(), message.GetClaim<DateTime>(Claim.Iat));
+        Assert.AreEqual(DateTime.Parse("2022-10-24T22:49:32.087212Z").ToUniversalTime(), message.GetClaim<DateTime>(Claim.Exp));
         Assert.AreEqual(message.GetClaim<Guid>(Claim.Iss), Commons.IssuerIdentity.GetClaim<Guid>(Claim.Sub));
     }
 

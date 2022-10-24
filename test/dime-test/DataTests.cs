@@ -174,16 +174,16 @@ public class DataTests
     [TestMethod]
     public void ImportTest1() 
     {
-        const string exported = "Di:DAT.eyJjdHgiOiJ0ZXN0LWNvbnRleHQiLCJleHAiOiIyMDIyLTEwLTIxVDE4OjQ0OjQ2LjIzNzQyOVoiLCJpYXQiOiIyMDIyLTEwLTIxVDE4OjQzOjQ2LjIzNzQyOVoiLCJpc3MiOiIzYjAxZDcyMi1lNjZiLTQ2ODMtYTViNi05M2RjNmU2MGUwMTciLCJtaW0iOiJ0ZXh0L3BsYWluIiwidWlkIjoiZWYxMDEzNjEtM2MwMC00MmYyLWI2MDUtZDk1ZTczMGQ5ZWExIn0.UmFjZWNhciBpcyByYWNlY2FyIGJhY2t3YXJkcy4";
+        const string exported = "Di:DAT.eyJjdHgiOiJ0ZXN0LWNvbnRleHQiLCJleHAiOiIyMDIyLTEwLTI0VDIyOjM5OjI4LjQwMDM5WiIsImlhdCI6IjIwMjItMTAtMjRUMjI6Mzg6MjguNDAwMzlaIiwiaXNzIjoiMTAzMDU3MmYtNmI4Mi00MzZkLTlkNTEtNzkwMjBlNjJmODUzIiwibWltIjoidGV4dC9wbGFpbiIsInVpZCI6IjA1MTlkOWIwLTljNzItNDY2OS1iNjBjLWVkNWNhYTMzMjk3YiJ9.UmFjZWNhciBpcyByYWNlY2FyIGJhY2t3YXJkcy4";
         var data = Item.Import<Data>(exported);
         Assert.IsNotNull(data);
-        Assert.AreEqual(Guid.Parse("ef101361-3c00-42f2-b605-d95e730d9ea1"), data.GetClaim<Guid>(Claim.Uid));
+        Assert.AreEqual(Guid.Parse("0519d9b0-9c72-4669-b60c-ed5caa33297b"), data.GetClaim<Guid>(Claim.Uid));
         Assert.AreEqual(Commons.IssuerIdentity.GetClaim<Guid>(Claim.Sub), data.GetClaim<Guid>(Claim.Iss));
         Assert.AreEqual(Commons.Mimetype, data.GetClaim<string>(Claim.Mim));
         Assert.AreEqual(Commons.Context, data.GetClaim<string>(Claim.Ctx));
         Assert.AreEqual(Commons.Payload, Encoding.UTF8.GetString(data.GetPayload()));
-        Assert.AreEqual(DateTime.Parse("2022-10-21T18:43:46.237429Z").ToUniversalTime(), data.GetClaim<DateTime>(Claim.Iat));
-        Assert.AreEqual(DateTime.Parse("2022-10-21T18:44:46.237429Z").ToUniversalTime(), data.GetClaim<DateTime>(Claim.Exp));
+        Assert.AreEqual(DateTime.Parse("2022-10-24T22:38:28.40039Z").ToUniversalTime(), data.GetClaim<DateTime>(Claim.Iat));
+        Assert.AreEqual(DateTime.Parse("2022-10-24T22:39:28.40039Z").ToUniversalTime(), data.GetClaim<DateTime>(Claim.Exp));
     }
 
     [TestMethod]

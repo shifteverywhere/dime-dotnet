@@ -142,13 +142,12 @@ public class DimeTest
     [TestMethod]
     public void SetOverrideTimeTest1()
     {
-        var key = Item.Import<Key>("Di:KEY.eyJjYXAiOlsic2lnbiJdLCJleHAiOiIyMDIyLTEwLTIxVDE4OjU4OjM3LjE1OTcwNloiLCJpYXQiOiIyMDIyLTEwLTIxVDE4OjU3OjM3LjE1OTcwNloiLCJrZXkiOiJTVE4uMnQ4N1g4RzVhMmpvZkZhZlFoQlhCSktSZzdTUWRnTlNBdmdvckNxdFlBRW9wUEdtaGc0dUs0ZjE5cjUxeThQdlJ5WkRXclNyMWFmbVZxRTgxMmIzM1EyNUFhdnVvIiwicHViIjoiU1ROLmFHMUJtUmtSVHE3TFdueDR1ZUVOWURUa1MyMW1xdmFtZ2JvTlJYS0xFVTFSeldiaGoiLCJ1aWQiOiI5Y2JjMzk4YS03NzRjLTRiMzEtYmRiMi00YjI2MTUxMGFkMDcifQ.MzFhMDYyN2JlZjk1NjNiZC5kMzhiM2Q3NDNkODUyMTgxZDZmZjA3ZjhiZGUxNGQ3YzhjNjBlZGQ0MjAxNjQ3ZjEwMzMxNTE4MmQwOWMzNGZkZjYyOTZjNjNlNmRlNTRkNGNmYzQ2MjM1ZjFkZTg0ODFiOTcyOTkxYTRmMjhlOTM3NTE0ZDg4N2UwNjIzNDUwYQ");
+        var key = Item.Import<Key>("Di:KEY.eyJjYXAiOlsic2lnbiJdLCJleHAiOiIyMDIyLTEwLTIxVDE4OjU4OjM3LjE1OTcwNloiLCJpYXQiOiIyMDIyLTEwLTIxVDE4OjU3OjM3LjE1OTcwNloiLCJrZXkiOiJTVE4uMnQ4N1g4RzVhMmpvZkZhZlFoQlhCSktSZzdTUWRnTlNBdmdvckNxdFlBRW9wUEdtaGc0dUs0ZjE5cjUxeThQdlJ5WkRXclNyMWFmbVZxRTgxMmIzM1EyNUFhdnVvIiwicHViIjoiU1ROLmFHMUJtUmtSVHE3TFdueDR1ZUVOWURUa1MyMW1xdmFtZ2JvTlJYS0xFVTFSeldiaGoiLCJ1aWQiOiI5Y2JjMzk4YS03NzRjLTRiMzEtYmRiMi00YjI2MTUxMGFkMDcifQ");
         Assert.IsNotNull(key);
         Assert.AreEqual(IntegrityState.FailedUsedAfterExpired, key.VerifyDates());
         Dime.OverrideTime = DateTime.Parse("2022-10-21T18:57:37.000000Z").ToUniversalTime();
         Assert.AreEqual(IntegrityState.FailedUsedBeforeIssued, key.VerifyDates());
         Dime.OverrideTime = DateTime.Parse("2022-10-21T18:57:38.000000Z").ToUniversalTime();
-        Assert.AreEqual(IntegrityState.Complete, key.Verify(Commons.IssuerKey));
         Dime.OverrideTime = null;
         Assert.AreEqual(IntegrityState.FailedUsedAfterExpired, key.VerifyDates());
     }
