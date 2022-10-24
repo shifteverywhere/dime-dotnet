@@ -7,9 +7,11 @@
 //  Released under the MIT licence, see LICENSE for more information.
 //  Copyright © 2022 Shift Everywhere AB. All rights reserved.
 //
+
 using System.Collections.Generic;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.Text;
+using System.Text.Json;
 using DiME;
 using DiME.Capability;
 
@@ -37,7 +39,7 @@ public class CryptoTests
     }
 
     [TestMethod]
-    public void GenerateKeyNameTest1() 
+    public void GenerateNameTest1() 
     {
         var key = Key.Generate(KeyCapability.Sign);
         var identifier = Dime.Crypto.GenerateKeyName(key);
@@ -46,7 +48,7 @@ public class CryptoTests
     }
 
     [TestMethod]
-    public void GenerateKeyNameTest2() 
+    public void GenerateNameTest2() 
     {
         const string hex = "506f85299f6a2a4b";
         const string encoded = "Di:KEY.eyJ1aWQiOiIyYTY5ZjJkMC1kNzQ2LTQxNzYtOTg5NS01MDcyNzRlNzJiYjkiLCJwdWIiOiJTVE4uMkI4VzZCNjRRTTlBeDRvdzNjb1Y0TlJrTW95MWNXUzR4N0FYYTRzdnd5dVJlQWtQNG8iLCJpYXQiOiIyMDIyLTA2LTExVDEwOjI3OjM0Ljk5NjIzOFoiLCJ1c2UiOlsic2lnbiJdLCJrZXkiOiJTVE4uQXhwZ3Z2N0FYS2lhalNEQlBCZ0ZCbndzSkoyUXpXSGFUaWpFY29LcEx6YUo5VVlpOGVKNGg0bkJFQnVSN2NldWtVQm5waWU1NkxZQW5EdHQ3Y2V3aVczd0FGTDdFIn0";
@@ -152,16 +154,41 @@ public class CryptoTests
     }
 
     [TestMethod]
-    public void CryptoPlatformExchangeTest1()
+    public void SuiteTest1() 
     {
-        var clientKey = Item.Import<Key>("Di:KEY.eyJ1aWQiOiIzOWYxMzkzMC0yYTJhLTQzOWEtYjBkNC1lMzJkMzc4ZDgyYzciLCJwdWIiOiIyREJWdG5NWlVjb0dZdHd3dmtjYnZBSzZ0Um1zOUZwNGJ4dHBlcWdha041akRVYkxvOXdueWRCUG8iLCJpYXQiOiIyMDIyLTA2LTAzVDEwOjUzOjM0LjQ0NDA0MVoiLCJrZXkiOiIyREJWdDhWOEF4UWR4UFZVRkJKOWdScFA1WDQzNnhMbVBrWW9RNzE1cTFRd2ZFVml1NFM3RExza20ifQ");
-        var serverKey = Item.Import<Key>("Di:KEY.eyJ1aWQiOiJjY2U1ZDU1Yi01NDI4LTRhMDUtOTZmYi1jZmU4ZTE4YmM3NWIiLCJwdWIiOiIyREJWdG5NYTZrcjNWbWNOcXNMSmRQMW90ZGtUMXlIMTZlMjV0QlJiY3pNaDFlc3J3a2hqYTdaWlEiLCJpYXQiOiIyMDIyLTA2LTAzVDEwOjUzOjM0Ljg0NjEyMVoiLCJrZXkiOiIyREJWdDhWOTV5N2lvb1A0bmRDajd6d3dqNW1MVExydVhaaGg0RTJuMUE0SHoxQkIycHB5WXY1blIifQ");
-        var shared1 = Dime.Crypto.GenerateSharedSecret(clientKey, serverKey.PublicCopy(), new List<KeyCapability>() {KeyCapability.Encrypt});
-        var shared2 = Dime.Crypto.GenerateSharedSecret(clientKey.PublicCopy(), serverKey, new List<KeyCapability>() {KeyCapability.Encrypt});
-        var hash1 = Utility.ToHex(shared1);
-        var hash2 = Utility.ToHex(shared2);
-        Assert.AreEqual("8c0c2c98d5839bc59a61fa0bea987aea6f058c08c214ab65d1a87e2a7913cea9", hash1);
-        Assert.AreEqual(hash1, hash2);
+        var dscKey = Key.Generate(KeyCapability.Sign);
+        Assert.IsNotNull(dscKey);
+        Assert.AreEqual("DSC", dscKey.CryptoSuiteName);
+        Utility.FromBase64(dscKey.Secret[4..]);
+        Utility.FromBase64(dscKey.Public[4..]);
+        var exported = dscKey.Export();
+        Assert.IsNotNull(exported);
+        var claims = exported.Split('.')[1];
+        var json = JsonSerializer.Deserialize<Dictionary<string, object>>(Encoding.UTF8.GetString(Utility.FromBase64(claims)));
+        Assert.IsNotNull(json);
+        Assert.IsTrue(json.ContainsKey("key"));
+        Assert.IsTrue(json.ContainsKey("pub"));
+        Assert.IsTrue(json["key"].ToString()!.StartsWith("DSC."));
+        Assert.IsTrue(json["pub"].ToString()!.StartsWith("DSC."));
+    }
+
+    [TestMethod]
+    public void SuiteTest2() 
+    {
+        var stnKey = Key.Generate(new List<KeyCapability>() {KeyCapability.Sign}, Dime.NoExpiration, null, null, "STN");
+        Assert.IsNotNull(stnKey);
+        Assert.AreEqual("STN", stnKey.CryptoSuiteName);
+        Base58.Decode(stnKey.Secret[4..]);
+        Base58.Decode(stnKey.Public[4..]);
+        var exported = stnKey.Export();
+        Assert.IsNotNull(exported);
+        var claims = exported.Split('.')[1];
+        var json = JsonSerializer.Deserialize<Dictionary<string, object>>(Encoding.UTF8.GetString(Utility.FromBase64(claims)));
+        Assert.IsNotNull(json);
+        Assert.IsTrue(json.ContainsKey("key"));
+        Assert.IsTrue(json.ContainsKey("pub"));
+        Assert.IsTrue(json["key"].ToString()!.StartsWith("STN."));
+        Assert.IsTrue(json["pub"].ToString()!.StartsWith("STN."));
     }
 
 }
