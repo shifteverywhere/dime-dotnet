@@ -238,7 +238,7 @@ public class EnvelopeTests
     {
         var envelope = new Envelope();
         envelope.AddItem(Commons.IssuerKey);
-        Assert.IsNotNull(envelope.Thumbprint());
+        Assert.IsNotNull(envelope.GenerateThumbprint());
     }
 
     [TestMethod]
@@ -247,7 +247,7 @@ public class EnvelopeTests
         var envelope = new Envelope(Commons.IssuerIdentity.GetClaim<Guid>(Claim.Sub));
         envelope.AddItem(Commons.IssuerKey);
         envelope.Sign(Commons.IssuerKey);
-        Assert.IsNotNull(envelope.Thumbprint());
+        Assert.IsNotNull(envelope.GenerateThumbprint());
     }
 
     [TestMethod]
@@ -257,7 +257,7 @@ public class EnvelopeTests
         envelope1.AddItem(Commons.IssuerKey);
         var exported = envelope1.Export();
         var envelope2 = Envelope.Import(exported);
-        Assert.AreEqual(envelope1.Thumbprint(), envelope2.Thumbprint());
+        Assert.AreEqual(envelope1.GenerateThumbprint(), envelope2.GenerateThumbprint());
     }
 
     [TestMethod]
@@ -268,7 +268,7 @@ public class EnvelopeTests
         envelope1.Sign(Commons.IssuerKey);
         var exported = envelope1.Export();
         var envelope2 = Envelope.Import(exported);
-        Assert.AreEqual(envelope1.Thumbprint(), envelope2.Thumbprint());
+        Assert.AreEqual(envelope1.GenerateThumbprint(), envelope2.GenerateThumbprint());
     }
 
     [TestMethod]
@@ -277,7 +277,7 @@ public class EnvelopeTests
         var envelope = new Envelope();
         envelope.AddItem(Commons.IssuerKey);
         var exported = envelope.Export();
-        Assert.AreEqual(envelope.Thumbprint(), Item.Thumbprint(exported));
+        Assert.AreEqual(envelope.GenerateThumbprint(), Item.Thumbprint(exported));
     }
 
     [TestMethod]
@@ -287,7 +287,7 @@ public class EnvelopeTests
         envelope.AddItem(Commons.IssuerKey);
         envelope.Sign(Commons.IssuerKey);
         var exported = envelope.Export();
-        Assert.AreEqual(envelope.Thumbprint(), Item.Thumbprint(exported));
+        Assert.AreEqual(envelope.GenerateThumbprint(), Item.Thumbprint(exported));
     }
 
     [TestMethod]

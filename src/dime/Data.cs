@@ -102,18 +102,13 @@ public class Data: Item
             throw new InvalidOperationException("Unable to verify message, no payload added.");
         return base.Verify(key, linkedItems);
     }
-    
-    /// <summary>
-    /// Returns the thumbprint of the item. This may be used to easily identify an item or detect if an item has
-    /// been changed. This is created by securely hashing the item and will be unique and change as soon as any
-    /// content changes.
-    /// </summary>
-    /// <returns>The hash of the item as a hex string.</returns>
-    public override string Thumbprint()
+
+    /// <inheritdoc />
+    public override string GenerateThumbprint(string? suitName = null)
     {
         if (Payload == null) 
             throw new InvalidOperationException("Unable to generate thumbprint, no payload added.");
-        return base.Thumbprint();
+        return base.GenerateThumbprint(suitName);
     }
     
     #endregion

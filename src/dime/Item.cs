@@ -157,29 +157,30 @@ public abstract class Item
         var signature = Signature.Find(identifier, Signatures);
         return signature != null && Signatures.Remove(signature);
     }
-    
+
     /// <summary>
     /// Returns the thumbprint of the item. This may be used to easily identify an item or detect if an item has
     /// been changed. This is created by securely hashing the item and will be unique and change as soon as any
     /// content changes.
     /// </summary>
-    /// <returns>The hash of the item as a hex string.</returns>
-    public virtual string Thumbprint()
+    /// <param name="suiteName">The name of the cryptographic suite to use, may be null.</param>
+    /// <returns>The hash of the item as an encoded string.</returns>
+    public virtual string GenerateThumbprint(string? suiteName = null)
     {
-        return Thumbprint(Encode(true));
+        return Thumbprint(Encode(true), suiteName);
     }
 
     /// <summary>
-    /// Returns the thumbprint of a Di:ME encoded item string. This may be used to easily identify an item or detect
+    /// Returns the thumbprint of a DiME encoded item string. This may be used to easily identify an item or detect
     /// if an item has been changed. This is created by securely hashing the item and will be unique and change as
     /// soon as any content changes. This will generate the same value as the instance method thumbprint for the
-    /// same (and unchanged) item.
-    /// </summary>
-    /// <param name="encoded">The Di:ME encoded item string.</param>
-    /// <returns>The hash of the item as a hex string.</returns>
-    public static string Thumbprint(string encoded)
+    /// same (and unchanged) item.    /// </summary>
+    /// <param name="encoded">The DiME encoded item string.</param>
+    /// <param name="suiteName">The name of the cryptographic suite to use, may be null.</param>
+    /// <returns>The hash of the item as an encoded string.</returns>
+    public static string Thumbprint(string encoded, string? suiteName = null)
     {
-        return Dime.Crypto.GenerateHash(Encoding.UTF8.GetBytes(encoded));
+        return Dime.Crypto.GenerateHash(Encoding.UTF8.GetBytes(encoded), suiteName ?? Dime.Crypto.DefaultSuiteName);
     }
 
     /// <summary>

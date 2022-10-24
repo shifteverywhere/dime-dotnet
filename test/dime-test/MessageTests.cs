@@ -502,10 +502,10 @@ public class MessageTests
         var message1 = new Message(Commons.AudienceIdentity.GetClaim<Guid>(Claim.Sub), Commons.IssuerIdentity.GetClaim<Guid>(Claim.Sub), Dime.ValidFor1Minute);
         message1.SetPayload(Encoding.UTF8.GetBytes(Commons.Payload));
         message1.Sign(Commons.IssuerKey);
-        var thumbprint1 = message1.Thumbprint();
+        var thumbprint1 = message1.GenerateThumbprint();
         var encoded = message1.Export();
         var message2 = Item.Import<Message>(encoded);
-        var thumbprint2 = message2.Thumbprint();
+        var thumbprint2 = message2.GenerateThumbprint();
         Assert.AreEqual(thumbprint1, thumbprint2);
     }
 
@@ -521,7 +521,7 @@ public class MessageTests
         var issuerMessage2 = new Message(receiver.GetClaim<Guid>(Claim.Sub), issuer.GetClaim<Guid>(Claim.Sub), Dime.ValidFor1Minute);
         issuerMessage2.SetPayload(Encoding.UTF8.GetBytes(Commons.Payload));
         issuerMessage2.Sign(Commons.IssuerKey);
-        Assert.AreNotEqual(issuerMessage1.Thumbprint(), issuerMessage2.Thumbprint());
+        Assert.AreNotEqual(issuerMessage1.GenerateThumbprint(), issuerMessage2.GenerateThumbprint());
     }
     
     [TestMethod]
@@ -530,7 +530,7 @@ public class MessageTests
         try {
             var message = new Message(Commons.AudienceIdentity.GetClaim<Guid>(Claim.Sub), Commons.IssuerIdentity.GetClaim<Guid>(Claim.Sub), Dime.ValidFor1Minute);
             message.SetPayload(Encoding.UTF8.GetBytes(Commons.Payload));
-            message.Thumbprint();
+            message.GenerateThumbprint();
             Assert.IsTrue(false, "Exception not thrown.");
         } catch (InvalidOperationException) {
             /* All is well */

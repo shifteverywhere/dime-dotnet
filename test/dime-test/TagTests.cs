@@ -221,19 +221,19 @@ public class TagTests
         var link0 = links[0];
         Assert.AreEqual(Commons.TrustedIdentity.Header, link0.ItemIdentifier);
         Assert.AreEqual(Commons.TrustedIdentity.GetClaim<Guid>(Claim.Uid), link0.UniqueId);
-        Assert.AreEqual(Commons.TrustedIdentity.Thumbprint(), link0.Thumbprint);
+        Assert.AreEqual(Commons.TrustedIdentity.GenerateThumbprint(), link0.Thumbprint);
         var link1 = links[1];
         Assert.AreEqual(Commons.IntermediateIdentity.Header, link1.ItemIdentifier);
         Assert.AreEqual(Commons.IntermediateIdentity.GetClaim<Guid>(Claim.Uid), link1.UniqueId);
-        Assert.AreEqual(Commons.IntermediateIdentity.Thumbprint(), link1.Thumbprint);
+        Assert.AreEqual(Commons.IntermediateIdentity.GenerateThumbprint(), link1.Thumbprint);
         var link2 = links[2];
         Assert.AreEqual(Commons.IssuerIdentity.Header, link2.ItemIdentifier);
         Assert.AreEqual(Commons.IssuerIdentity.GetClaim<Guid>(Claim.Uid), link2.UniqueId);
-        Assert.AreEqual(Commons.IssuerIdentity.Thumbprint(), link2.Thumbprint);
+        Assert.AreEqual(Commons.IssuerIdentity.GenerateThumbprint(), link2.Thumbprint);
         var link3 = links[3];
         Assert.AreEqual(Commons.AudienceKey.Header, link3.ItemIdentifier);
         Assert.AreEqual(Commons.AudienceKey.GetClaim<Guid>(Claim.Uid), link3.UniqueId);
-        Assert.AreEqual(Commons.AudienceKey.Thumbprint(), link3.Thumbprint);
+        Assert.AreEqual(Commons.AudienceKey.GenerateThumbprint(), link3.Thumbprint);
     }
 
     [TestMethod]

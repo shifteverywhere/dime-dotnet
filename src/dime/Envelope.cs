@@ -188,15 +188,10 @@ public class Envelope: Item
         return Encode(IsSigned);
     }
 
-    /// <summary>
-    /// Returns the thumbprint of the envelope. This may be used to easily identify an envelope or detect if an
-    /// envelope has been changed. This is created by securely hashing the envelope and will be unique and change as
-    /// soon as any content changes.
-    /// </summary>
-    /// <returns>The hash of the envelope as a hex string.</returns>
-    public override string Thumbprint()
+    /// <inheritdoc />
+    public override string GenerateThumbprint(string? suitName = null)
     {
-        return Thumbprint(Encode(!IsAnonymous));
+        return Thumbprint(Encode(!IsAnonymous), suitName);
     }
 
     #region -- PROTECTED --

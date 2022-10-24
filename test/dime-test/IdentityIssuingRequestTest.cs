@@ -187,10 +187,10 @@ public class IdentityIssuingRequestTests
     public void ThumbprintTest1()
     {
         var iir = IdentityIssuingRequest.Generate(Key.Generate(new List<KeyCapability>() {KeyCapability.Sign}, null));
-        var thumbprint = iir.Thumbprint();
+        var thumbprint = iir.GenerateThumbprint();
         Assert.IsNotNull(thumbprint);
         Assert.IsTrue(thumbprint.Length > 0, "Thumbprint should not be empty string");
-        Assert.IsTrue(thumbprint == iir.Thumbprint(), "Different thumbprints produced from same claim");
+        Assert.IsTrue(thumbprint == iir.GenerateThumbprint(), "Different thumbprints produced from same claim");
     }
 
     [TestMethod]
@@ -198,7 +198,7 @@ public class IdentityIssuingRequestTests
     {
         var iir1 = IdentityIssuingRequest.Generate(Key.Generate(new List<KeyCapability>() {KeyCapability.Sign}, null));
         var iir2 = IdentityIssuingRequest.Generate(Key.Generate(new List<KeyCapability>() {KeyCapability.Sign}, null));
-        Assert.IsFalse(iir1.Thumbprint() == iir2.Thumbprint(),
+        Assert.IsFalse(iir1.GenerateThumbprint() == iir2.GenerateThumbprint(),
             "Thumbprints of different iirs should not be the same");
     }
 

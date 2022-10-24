@@ -45,7 +45,7 @@ public sealed class ItemLink
     public ItemLink(Item item)
     {
         ItemIdentifier = item.Header;
-        Thumbprint = item.Thumbprint();
+        Thumbprint = item.GenerateThumbprint();
         UniqueId = item.GetClaim<Guid>(Claim.Uid);
     }
 
@@ -106,7 +106,7 @@ public sealed class ItemLink
     {
         return UniqueId.Equals(item.GetClaim<Guid>(Claim.Uid)) 
                && ItemIdentifier.Equals(item.Header)
-               && Thumbprint.Equals(item.Thumbprint());
+               && Thumbprint.Equals(item.GenerateThumbprint());
     }
 
     /// <summary>
@@ -123,7 +123,7 @@ public sealed class ItemLink
             foreach (var link in links.Where(link => link.UniqueId.Equals(item.GetClaim<Guid>(Claim.Uid))))
             {
                 matchFound = true;
-                if (!link.ItemIdentifier.Equals(item.Header) || !link.Thumbprint.Equals(item.Thumbprint()))
+                if (!link.ItemIdentifier.Equals(item.Header) || !link.Thumbprint.Equals(item.GenerateThumbprint()))
                     return IntegrityState.FailedLinkedItemFault;
             }
             if (!matchFound)

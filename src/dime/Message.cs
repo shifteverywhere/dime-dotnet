@@ -131,16 +131,11 @@ public class Message: Data
         return Dime.Crypto.Decrypt(GetPayload(), sharedKey);
     }
 
-    /// <summary>
-    /// Returns the thumbprint of the item. This may be used to easily identify an item or detect if an item has
-    /// been changed. This is created by securely hashing the item and will be unique and change as soon as any
-    /// content changes.
-    /// </summary>
-    /// <returns>The hash of the item as a hex string.</returns>
-    public override string Thumbprint()
+    /// <inheritdoc />
+    public override string GenerateThumbprint(string? suiteName = null)
     {
         if (!IsSigned) throw new InvalidOperationException("Unable to generate thumbprint, message not signed.");
-        return base.Thumbprint();
+        return base.GenerateThumbprint(suiteName);
     }
 
     #endregion
