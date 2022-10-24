@@ -22,7 +22,7 @@ public class CryptoTests
     [TestMethod]
     public void HasCryptoSuiteTest1() 
     {
-        Assert.IsTrue(Dime.Crypto.HasCryptoSuite("STN"));
+        Assert.IsTrue(Dime.Crypto.HasCryptoSuite("DSC"));
         Assert.IsFalse(Dime.Crypto.HasCryptoSuite("NSA"));
     }
 
@@ -31,8 +31,9 @@ public class CryptoTests
     {
         var suiteNames = Dime.Crypto.AllCryptoSuites();
         Assert.IsNotNull(suiteNames);
-        Assert.AreEqual(1, suiteNames.Count);
-        Assert.AreEqual("STN", suiteNames[0]);
+        Assert.AreEqual(2, suiteNames.Count);
+        Assert.IsTrue(suiteNames.Contains("DSC"));
+        Assert.IsTrue(suiteNames.Contains("STN"));
     }
 
     [TestMethod]
@@ -147,8 +148,7 @@ public class CryptoTests
         var data = Encoding.UTF8.GetBytes(Commons.Payload);
         var hash = Dime.Crypto.GenerateHash(data);
         Assert.IsNotNull(hash);
-        var hex = Utility.ToHex(hash);
-        Assert.AreEqual(expected, hex);
+        Assert.AreEqual(expected, hash);
     }
 
     [TestMethod]

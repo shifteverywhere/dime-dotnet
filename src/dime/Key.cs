@@ -236,9 +236,9 @@ public class Key: Item
         claims?.Put(Claim.Uid, id);
         claims?.Put(Claim.Iat, Utility.CreateDateTime());
         if (key is not null)
-            claims?.Put(Claim.Key, EncodedKey(_suiteName, key));
+            claims?.Put(Claim.Key, PackageKey(_suiteName, Dime.Crypto.EncodeKey(key, _suiteName)));
         if (pub is not null)
-            claims?.Put(Claim.Pub, EncodedKey(_suiteName, pub));
+            claims?.Put(Claim.Pub, PackageKey(_suiteName, Dime.Crypto.EncodeKey(pub, _suiteName)));
     }
 
     internal Key(List<KeyCapability> capabilities, string key, string pub, string suiteName)
@@ -309,9 +309,9 @@ public class Key: Item
         }
     }
         
-    private static string EncodedKey(string suiteName, byte[] rawKey)
+    private static string PackageKey(string suiteName, string encodedKey)
     {
-        return $"{suiteName}{Dime.ComponentDelimiter}{Base58.Encode(rawKey)}";
+        return $"{suiteName}{Dime.ComponentDelimiter}{encodedKey}";
     }
         
     private void DecodeKey(string encoded, Claim claim)
@@ -325,7 +325,7 @@ public class Key: Item
         else
         {
             // This will be treated as legacy
-            suiteName = Dime.Crypto.DefaultSuiteName;
+            suiteName = "STN";
             legacyKey = true;
         }
         if (_suiteName is null)
@@ -334,10 +334,11 @@ public class Key: Item
             throw new InvalidOperationException($"Unable to decode key, public and secret keys generated using different cryptographic suites: {_suiteName} and {suiteName}.");
         byte[] rawKey;
         if (!legacyKey)
-            rawKey = Base58.Decode(components[EncodedKeyIndex]);
+            rawKey = Dime.Crypto.DecodeKey(components[EncodedKeyIndex], suiteName);
         else
         {
-            var decoded = Base58.Decode(encoded);
+            // This is a legacy key
+            var decoded = Dime.Crypto.DecodeKey(encoded, suiteName);
             rawKey = Utility.SubArray(decoded, LegacyKeyHeaderSize);
             _type = GetKeyType(decoded);
         }
@@ -411,8 +412,9 @@ public class Key: Item
         var key = item.Claims()?.Get<string>(claim);
         if (key is null) { return; }
         var header = new byte[] { 0x01, 0x00, 0x00, 0x00, 0x00, 0x00 };
-        var b58 = key[(key.IndexOf(Dime.ComponentDelimiter) + 1)..];
-        var rawKey = Base58.Decode(b58);
+        var components = key.Split(Dime.ComponentDelimiter);
+        if (components.Length == 1) return; // This is already a legacy key
+        var rawKey = Dime.Crypto.DecodeKey(components[1], components[0]);
         var legacyKey = Utility.Combine(header, rawKey);
         legacyKey[1] = capability == KeyCapability.Encrypt ? (byte) 0x10 : capability == KeyCapability.Exchange ? (byte) 0x40 : (byte) 0x80;
         legacyKey[2] = capability == KeyCapability.Exchange ? (byte) 0x02 : (byte) 0x01;

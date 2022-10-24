@@ -87,8 +87,22 @@ public interface ICryptoSuite
     /// <summary>
     /// Generates a secure hash digest of the provided data.
     /// </summary>
-    /// <param name="data">The data that should be hashed.</param>
+    /// <param name="data">The hash digest of the provided data, encoded as a string.</param>
     /// <returns>The hash digest of the provided data.</returns>
-    byte[] GenerateHash(byte[] data);
-    
+    string GenerateHash(byte[] data);
+
+    /// <summary>
+    /// Encodes a key from a byte array to a string.
+    /// </summary>
+    /// <param name="key">The key to encode.</param>
+    /// <returns>The encoded key.</returns>
+    string EncodeKey(byte[] key);
+
+    /// <summary>
+    /// Decodes an encoded key to a byte array.
+    /// </summary>
+    /// <param name="encodedKey">The encoded key.</param>
+    /// <returns>The decoded key.</returns>
+    byte[] DecodeKey(string encodedKey);
+
 }

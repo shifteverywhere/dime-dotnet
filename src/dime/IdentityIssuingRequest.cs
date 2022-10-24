@@ -236,7 +236,7 @@ public class IdentityIssuingRequest: Item
             methods);
         if (issuerIdentity is not null)
         {
-            if (!Dime.KeyRing.Contains(issuerIdentity) && includeChain)
+            if (includeChain && !Dime.KeyRing.Contains(issuerIdentity))
             {
                 // The chain will only be set if the issuer identity is not a trusted identity in the key ring
                 state = issuerIdentity.Verify();

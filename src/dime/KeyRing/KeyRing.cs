@@ -190,7 +190,7 @@ public class KeyRing
     /// <returns>The integrity state of the verification.</returns>
     public IntegrityState Verify(Item item)
     {
-        if (Size == 0) {  return IntegrityState.FailedNoKeyRing; }
+        if (Size == 0) { return IntegrityState.FailedNoKeyRing; }
         var state = IntegrityState.FailedNotTrusted;
         foreach (var trustedItem in Items()!) // Size() above checks null state
         {
@@ -199,7 +199,7 @@ public class KeyRing
             var trustedKey = GetKey(trustedItem);
             if (trustedKey is null) return IntegrityState.FailedInternalFault;
             state = item.VerifySignature(trustedKey);
-            if (state != IntegrityState.FailedKeyMismatch || item.IsLegacy)
+            if (state != IntegrityState.FailedKeyMismatch)
                 return state;
         }
         return state;

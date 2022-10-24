@@ -20,20 +20,24 @@ namespace DiME.Crypto;
 /// </summary>
 internal class StandardSuite: ICryptoSuite
 {
-    private const string SuiteName = "STN";
+    internal static readonly string StandardName = "DSC";
+    internal static readonly string Base58Name = "STN"; // This is legacy base58 encoding
 
+    public StandardSuite(string name)
+    {
+        _suiteName = name;
+    }
+    
     public string Name()
     {
-        return SuiteName;
+        return _suiteName;
     }
 
     public byte[] GenerateKeyName(byte[][] key)
     {
         // This only supports key identifier for public keys, may be different for other crypto suites
         var bytes = key[(int)KeyIndex.PublicKey];
-        if (bytes is not {Length: > 0}) return null;
-        var hash = GenerateHash(bytes);
-        return Utility.SubArray(hash, 0, 8); // First 8 bytes are used as an identifier
+        return bytes is not {Length: > 0} ? null : Utility.SubArray(Hash(bytes), 0, 8); // First 8 bytes are used as an identifier
     }
 
     public byte[] GenerateSignature(byte[] data, byte[] key)
@@ -109,9 +113,19 @@ internal class StandardSuite: ICryptoSuite
         return SodiumSecretBox.Open(cipherText, nonce, key);
     }
 
-    public byte[] GenerateHash(byte[] data)
+    public string GenerateHash(byte[] data)
     {
-        return SodiumGenericHash.ComputeHash(NbrHashBytes, data);
+        return Utility.ToHex(Hash(data));
+    }
+
+    public string EncodeKey(byte[] key)
+    {
+        return _suiteName.Equals(Base58Name) ? Base58.Encode(key) : Utility.ToBase64(key);
+    }
+
+    public byte[] DecodeKey(string encodedKey)
+    {
+        return _suiteName.Equals(Base58Name) ? Base58.Decode(encodedKey) : Utility.FromBase64(encodedKey);
     }
 
     #region --- PRIVATE ---
@@ -119,6 +133,12 @@ internal class StandardSuite: ICryptoSuite
     private const int NbrSKeyBytes = 32;
     private const int NbrHashBytes = 32;
     private const int NbrNonceBytes = 24;
+    private string _suiteName;
 
+    private static byte[] Hash(byte[] data)
+    {
+        return SodiumGenericHash.ComputeHash(NbrHashBytes, data);
+    }
+    
     #endregion
 }

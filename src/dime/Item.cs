@@ -179,20 +179,21 @@ public abstract class Item
     /// <returns>The hash of the item as a hex string.</returns>
     public static string Thumbprint(string encoded)
     {
-        return Utility.ToHex(Dime.Crypto.GenerateHash(Encoding.UTF8.GetBytes(encoded)));
+        return Dime.Crypto.GenerateHash(Encoding.UTF8.GetBytes(encoded));
     }
 
     /// <summary>
     /// Verifies the integrity and over all validity and trust of the item. The verification will be made using the
-    /// public key in the provided identity.
+    /// public key in the provided identity. The verification will also check if the item has been issued by the
+    /// provided identity, if the "iss" claim has been set.
     /// </summary>
-    /// <param name="verifyIdentity">The identity to use when verifying.</param>
+    /// <param name="issuingIdentity">The issuing identity to use when verifying.</param>
     /// <param name="linkedItems">A list of item where item links should be verified, may be null.</param>
     /// <returns>The integrity state of the verification.</returns>
-    public IntegrityState Verify(Identity verifyIdentity, List<Item>? linkedItems = null)
+    public IntegrityState Verify(Identity issuingIdentity, List<Item>? linkedItems = null)
     {
         // TODO: check issue here
-        return Verify(verifyIdentity.PublicKey, linkedItems);
+        return Verify(issuingIdentity.PublicKey, linkedItems);
     }
     
     /// <summary>

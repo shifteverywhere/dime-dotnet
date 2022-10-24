@@ -30,9 +30,9 @@ public class Crypto
     /// </summary>
     public Crypto()
     {
-        var impl = new StandardSuite();
-        RegisterCryptoSuite(impl);
-        _defaultSuiteName = impl.Name();
+        RegisterCryptoSuite(new StandardSuite(StandardSuite.StandardName));
+        RegisterCryptoSuite(new StandardSuite(StandardSuite.Base58Name));
+        _defaultSuiteName = StandardSuite.StandardName;
     }
 
     /// <summary>
@@ -172,8 +172,8 @@ public class Crypto
     /// Generates a secure hash of a byte array. This will use the cryptographic suite that is set as the default.
     /// </summary>
     /// <param name="data">The data that should be hashed.</param>
-    /// <returns>The generated secure hash.</returns>
-    public byte[] GenerateHash(byte[] data)
+    /// <returns>The generated secure hash, encoded as a string</returns>
+    public string GenerateHash(byte[] data)
     {
         return GenerateHash(data, DefaultSuiteName);
     }
@@ -183,13 +183,38 @@ public class Crypto
     /// </summary>
     /// <param name="data">The data that should be hashed.</param>
     /// <param name="suiteName">The cryptographic suite that should be used to generate the hash.</param>
-    /// <returns>The generated secure hash.</returns>
-    public byte[] GenerateHash(byte[] data, string suiteName)
+    /// <returns>The generated secure hash, encoded as a string</returns>
+    public string GenerateHash(byte[] data, string suiteName)
     {
-        ICryptoSuite impl = CryptoSuite(suiteName);
+        var impl = CryptoSuite(suiteName);
         return impl.GenerateHash(data);
     }
-    
+
+    /// <summary>
+    /// Encodes a key from a byte array to a string. The encoding format is determined by the cryptographic suite
+    /// specified.
+    /// </summary>
+    /// <param name="key">The key to encode.</param>
+    /// <param name="suiteName">The cryptographic suite to use.</param>
+    /// <returns>The encoded key.</returns>
+    public string EncodeKey(byte[] key, string suiteName)
+    {
+        var impl = CryptoSuite(suiteName);
+        return impl.EncodeKey(key);
+    }
+
+    /// <summary>
+    /// Decodes an encoded key to a byte array. The encoded format must match the cryptographic suite specified to be
+    /// successful.
+    /// </summary>
+    /// <param name="encodedKey">The encoded key.</param>
+    /// <param name="suiteName">The cryptographic suite to use.</param>
+    /// <returns>The decoded key.</returns>
+    public byte[] DecodeKey(string encodedKey, string suiteName)
+    {
+        var impl = CryptoSuite(suiteName);
+        return impl.DecodeKey(encodedKey);
+    }
     
     /// <summary>
     /// Registers a cryptographic suite. If a cryptographic suite is already register with the same name as the
