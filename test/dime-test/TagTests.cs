@@ -144,7 +144,7 @@ public class TagTests
         var tag = new Tag(Commons.IssuerIdentity.GetClaim<Guid>(Claim.Sub), Commons.Context, items);
         Assert.AreEqual(Commons.IssuerIdentity.GetClaim<Guid>(Claim.Sub), tag.GetClaim<Guid>(Claim.Iss));
         Assert.AreEqual(Commons.Context, tag.GetClaim<string>(Claim.Ctx));
-        Assert.IsNotNull(tag.GetItemLinks);
+        Assert.IsNotNull(tag.GetItemLinks());
         Assert.AreEqual(2, tag.GetItemLinks()!.Count);
     }
     
@@ -165,7 +165,7 @@ public class TagTests
     {
         var tag = new Tag(Commons.IssuerIdentity.GetClaim<Guid>(Claim.Sub));
         tag.AddItemLink(Key.Generate(new List<KeyCapability>() {KeyCapability.Sign}, null));
-        Assert.IsNotNull(tag.GetItemLinks);
+        Assert.IsNotNull(tag.GetItemLinks());
         Assert.AreEqual(1, tag.GetItemLinks()!.Count);
         Assert.AreEqual(Key.ItemHeader, tag.GetItemLinks()![0].ItemIdentifier);
     }
@@ -175,7 +175,7 @@ public class TagTests
     {
         var tag = new Tag(Commons.IssuerIdentity.GetClaim<Guid>(Claim.Sub));
         tag.AddItemLink(Commons.IssuerIdentity);
-        Assert.IsNotNull(tag.GetItemLinks);
+        Assert.IsNotNull(tag.GetItemLinks());
         Assert.AreEqual(1, tag.GetItemLinks()!.Count);
         Assert.AreEqual(Identity.ItemHeader, tag.GetItemLinks()![0].ItemIdentifier);
     }
@@ -188,7 +188,7 @@ public class TagTests
         message.SetPayload(Encoding.UTF8.GetBytes(Commons.Payload));
         message.Sign(Commons.IssuerKey);
         tag.AddItemLink(message);
-        Assert.IsNotNull(tag.GetItemLinks);
+        Assert.IsNotNull(tag.GetItemLinks());
         Assert.AreEqual(1, tag.GetItemLinks()!.Count);
         Assert.AreEqual(Message.ItemHeader, tag.GetItemLinks()![0].ItemIdentifier);
     }

@@ -1,6 +1,12 @@
 # CHANGE LOG
 
-## Version 1.2.1 - 2022-10-25
+## Version 1.2.2 - 2022-10-25
+- Repackaging with JSON Canonicalizer dependencies
+- Minor correction to unit tests
+
+** NOTE** *Upgrading to version 1.2.2 will result in build errors, refer to changes in previous versions and README.md*
+
+## Version 1.2.1 - 2022-10-24
 - Conforms to DiME data format version 1.001
 - Cryptographic suite changed to 'DSC'
   - Key encoded changes to Base64 (from Base58), massive performance gain
