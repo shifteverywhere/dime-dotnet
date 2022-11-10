@@ -9,6 +9,7 @@
 //
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Text;
 using DiME;
 using DiME.Capability;
@@ -320,6 +321,42 @@ public class DimeTest
         Assert.IsTrue(identity.IsLegacy);
         Assert.IsNotNull(identity.PublicKey);
         Assert.IsTrue(identity.PublicKey.Public.StartsWith("2TD"));
+    }
+    
+    [TestMethod]
+    public void LegacyItemLinkTest1() 
+    {
+        var data = new Data(Commons.IssuerIdentity.GetClaim<Guid>(Claim.Sub));
+        data.SetPayload(Encoding.UTF8.GetBytes(Commons.Payload), Commons.Mimetype);
+        data.AddItemLink(Commons.IssuerKey);
+        data.Sign(Commons.IssuerKey);
+
+        var links = data.GetItemLinks();
+        Assert.IsNotNull(links);
+        Assert.AreEqual(1, links.Count);
+        var link1 = links[0];
+        Assert.IsNotNull(link1);
+        var encoded1 = link1.ToEncoded();
+        Assert.IsNotNull(encoded1);
+        Assert.IsTrue(encoded1.StartsWith($"{Key.ItemHeader}."));
+        Assert.IsTrue(encoded1.Contains(Commons.IssuerKey.GetClaim<Guid>(Claim.Uid).ToString()));
+        Assert.IsTrue(encoded1.EndsWith($".{Dime.Crypto.DefaultSuiteName}"));
+
+        data.ConvertToLegacy();
+        Assert.IsFalse(data.IsSigned);
+        data.Sign(Commons.IssuerKey);
+
+        links = data.GetItemLinks();
+        Assert.IsNotNull(links);
+        Assert.AreEqual(1, links.Count);
+        var link2 = links[0];        
+        Assert.IsNotNull(link2);
+        var encoded2 = link1.ToEncoded();
+        Assert.IsNotNull(encoded2);
+        Assert.IsTrue(encoded2.StartsWith($"{Key.ItemHeader}."));
+        Assert.IsTrue(encoded2.Contains(Commons.IssuerKey.GetClaim<Guid>(Claim.Uid).ToString()));
+        Assert.IsFalse(encoded2.EndsWith($".{Dime.Crypto.DefaultSuiteName}"));
+
     }
     
 }

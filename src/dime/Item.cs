@@ -292,7 +292,8 @@ public abstract class Item
     {
         ThrowIfSigned();
         ItemLinks ??= new List<ItemLink>();
-        ItemLinks.Add(new ItemLink(item));
+        var cryptoSuite = !IsLegacy ? Dime.Crypto.DefaultSuiteName : null;
+        ItemLinks.Add(new ItemLink(item, cryptoSuite));
     }
 
     /// <summary>
@@ -303,8 +304,9 @@ public abstract class Item
     {
         ThrowIfSigned();
         ItemLinks = new List<ItemLink>();
+        var cryptoSuite = !IsLegacy ? Dime.Crypto.DefaultSuiteName : null;
         foreach (var item in items)
-            ItemLinks.Add(new ItemLink(item));
+            ItemLinks.Add(new ItemLink(item, cryptoSuite));
     }
         
     /// <summary>
@@ -334,6 +336,11 @@ public abstract class Item
     public virtual void ConvertToLegacy()
     { 
         Strip();
+        var links = GetItemLinks(); 
+        if (links is {Count: > 0})
+            foreach (var item in links)
+                item.CryptoSuiteName = null;
+
         IsLegacy = true;
     }
 

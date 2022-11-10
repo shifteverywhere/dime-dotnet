@@ -40,7 +40,7 @@ public sealed class ItemLink
     /// <summary>
     /// The cryptographic suite used to generate the item link.
     /// </summary>
-    public string CryptoSuiteName { get; private set; }
+    public string? CryptoSuiteName { get; internal set; }
 
     /// <summary>
     /// Creates an item link from the provided Dime item.
@@ -155,7 +155,7 @@ public sealed class ItemLink
             .Append(UniqueId.ToString())
             .Append(Dime.ComponentDelimiter)
             .Append(Thumbprint);
-        if (!CryptoSuiteName.Equals("STN"))
+        if (CryptoSuiteName != null && !CryptoSuiteName.Equals("STN"))
             builder.Append(Dime.ComponentDelimiter)
                 .Append(CryptoSuiteName);
         return builder.ToString();
