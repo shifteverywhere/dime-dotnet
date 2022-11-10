@@ -193,8 +193,11 @@ public abstract class Item
     /// <returns>The integrity state of the verification.</returns>
     public IntegrityState Verify(Identity issuingIdentity, List<Item>? linkedItems = null)
     {
-        // TODO: check issue here
-        return Verify(issuingIdentity.PublicKey, linkedItems);
+        var issuerId = GetClaim<Guid>(Claim.Iss);
+        if (!issuerId.Equals(default) && !issuerId.Equals(issuingIdentity.GetClaim<Guid>(Claim.Sub)))
+            return IntegrityState.FailedIssuerMismatch;
+        var state = issuingIdentity.VerifyDates();
+        return !Dime.IsIntegrityStateValid(state) ? state : Verify(issuingIdentity.PublicKey, linkedItems);
     }
     
     /// <summary>
@@ -206,17 +209,22 @@ public abstract class Item
     /// <returns>The integrity state of the verification.</returns>
     public virtual IntegrityState Verify(Key? verifyKey = null, List<Item>? linkedItems = null)
     {
-        var state = VerifySignature(verifyKey);
+        var state = VerifyDates();
         if (!Dime.IsIntegrityStateValid(state)) 
             return state;
+        var partiallyIntact = false;
         if (linkedItems != null)
         {
             state = VerifyLinkedItems(linkedItems);
             if (!Dime.IsIntegrityStateValid(state)) 
                 return state;
+            partiallyIntact = state == IntegrityState.PartiallyValidItemLinks;
         }
-        state = VerifyDates();
-        return !Dime.IsIntegrityStateValid(state) ? state : IntegrityState.Complete;
+        state = VerifySignature(verifyKey);
+        return !Dime.IsIntegrityStateValid(state) ? state :
+            partiallyIntact ? IntegrityState.Intact :
+            linkedItems == null && GetClaim<List<ItemLink>?>(Claim.Lnk) != null ? IntegrityState.PartiallyComplete :
+            IntegrityState.Complete;
     }
 
     /// <summary>

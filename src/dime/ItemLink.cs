@@ -140,7 +140,7 @@ public sealed class ItemLink
             if (!matchFound)
                 return IntegrityState.FailedLinkedItemMismatch;
         }
-        return IntegrityState.ValidItemLinks;
+        return items.Count == links.Count ? IntegrityState.ValidItemLinks : IntegrityState.PartiallyValidItemLinks;
     }
 
     /// <summary>

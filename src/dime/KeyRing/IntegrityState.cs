@@ -14,33 +14,39 @@ namespace DiME.KeyRing;
 /// </summary>
 public enum IntegrityState
 {
-    /// <summary>The integrity of the item was verified successfully, item can be trusted.</summary>
+    /// <summary>All parts of the DiME item was successfully verified and the item may be trusted.</summary>
     Complete,
-    /// <summary>Signature validated is correct and item is intact (data integrity).</summary>
+    /// <summary>All parts of the DiME item was successfully verified. However, not all linked items where verified, although, those that where was successful.</summary>
+    PartiallyComplete,
+    /// <summary> All verified parts of the DiME item was successful. However, some parts where skipped, like linked items as no list of items where provided. </summary>
+    Intact,
+    /// <summary>The signature of the DiME item was verified successfully. No other parts where verified.</summary>
     ValidSignature,
-    /// <summary>Dates validated are correct and item within its validity period.</summary>
+    /// <summary>The dates (issued at and/or expires at) in the DiME item were verified successfully. No other parts where verified.</summary>
     ValidDates,
-    /// <summary>Item links validated are correct.</summary>
+    /// <summary>Any linked items where verified successfully against a provided item list. No items where skipped or missing. No other parts where verified.</summary>
     ValidItemLinks,
-    /// <summary>Signature is missing from the item being verified.</summary>
+    /// <summary>All linked items where verified successfully against a provided item list. Any list, linked items or provided items, may contain items not in the other list. No other parts where verified.</summary>
+    PartiallyValidItemLinks,
+    /// <summary>Unable to verify the digital signature, as the DiME item did not contain a signature.</summary>
     FailedNoSignature,
-    /// <summary>The item could not be verified to be trusted.</summary>
+    /// <summary>The digital signature could not be successfully verified, and, thus the DiME item must not be trusted.</summary>
     FailedNotTrusted,
-    /// <summary>The key or keys used to verify the item does not match any signatures in that item.</summary>
+    /// <summary>The public key used to verify the DiME item does not match the key pair used to generate the digital signature.</summary>
     FailedKeyMismatch,
-    /// <summary>The issuer id of the item does not match the subject id of the identity used for verification.</summary>
+    /// <summary>The issuer ID ("iss") in the DiME identity used when verifying does not match issuer ID ("iss") set in the item verified.</summary>
     FailedIssuerMismatch,
-    /// <summary>The item verified has passed its own expiration date and should not be used or trusted.</summary>
+    /// <summary>The expiration date ("exp") set in the DiME item verified has passed, and the item should no longer be used.</summary>
     FailedUsedAfterExpired,
-    /// <summary>The item verified has not yet passed its issued at date and should not yet be used.</summary>
+    /// <summary>The issued at date ("iat") set in the DiME item has not yet passed, and the item should not be used yet.</summary>
     FailedUsedBeforeIssued,
-    /// <summary>There is a mismatch in the expires at and issued at dates in the item. Item should not be used or trusted.</summary>
+    /// <summary>The dates set in the DiME item verified are incorrect, where the issued at date ("iat") is after the expiration date ("exp").</summary>
     FailedDateMismatch,
-    /// <summary>Any or all linked items could not be verified successfully. Full integrity of the item could not be verified, should not be trusted.</summary>
+    /// <summary>One, or several, linked items could not be verified successfully.</summary>
     FailedLinkedItemFault,
-    /// <summary>There is a mismatch in item links and provided items.</summary>
+    /// <summary>Provided item list to verify linked items contains additional, non-linked, items.</summary>
     FailedLinkedItemMismatch,
-    /// <summary>No linked items found, so verification could not be completed.</summary>
+    /// <summary>No linked items found when verifying with a provided item list.</summary>
     FailedLinkedItemMissing,
     /// <summary>An invalid item was encountered in the key ring, so verification could not be completed.</summary>
     FailedInvalidKeyRingItem,

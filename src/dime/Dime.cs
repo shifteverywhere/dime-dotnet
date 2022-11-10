@@ -111,7 +111,12 @@ public abstract class Dime
     public static bool IsIntegrityStateValid(IntegrityState state)
     {
         return state is IntegrityState.Complete 
-            or IntegrityState.ValidSignature or IntegrityState.ValidDates or IntegrityState.ValidItemLinks;
+            or IntegrityState.PartiallyComplete
+            or IntegrityState.Intact
+            or IntegrityState.ValidSignature 
+            or IntegrityState.ValidDates 
+            or IntegrityState.ValidItemLinks
+            or IntegrityState.PartiallyValidItemLinks;
     }
     
     #endregion
