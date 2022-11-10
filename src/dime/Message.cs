@@ -10,6 +10,7 @@
 #nullable enable
 using System;
 using System.Collections.Generic;
+using System.Security.Cryptography;
 using DiME.Capability;
 
 namespace DiME;
@@ -48,6 +49,8 @@ public class Message: Data
         {
             ThrowIfSigned();
             _publicKey = value;
+            if (value != null)
+                SetClaimValue(Claim.Pub, value.Public);
         }
     }
     private Key? _publicKey;
@@ -97,45 +100,114 @@ public class Message: Data
         
     #region -- PUBLIC INTERFACE --
 
-    /// <summary>
-    /// Will encrypt and attach a payload using a shared encryption key between the issuer and audience of a message.
-    /// </summary>
-    /// <param name="payload">The payload to encrypt and attach to the message, must not be null and of length >= 1.</param>
-    /// <param name="issuerKey">This is the key of the issuer of the message, must be of type EXCHANGE, must not be null.</param>
-    /// <param name="audienceKey">This is the key of the audience of the message, must be of type EXCHANGE, must not be null.</param>
-    /// <exception cref="ArgumentNullException"></exception>
-    /// <exception cref="ArgumentException"></exception>
-    public void SetPayload(byte[] payload, Key issuerKey, Key audienceKey)
-    {
-        ThrowIfSigned();
-        if (payload == null || payload.Length == 0) { throw new ArgumentException("Unable to set payload, payload must not be null or empty."); }
-        if (issuerKey == null) { throw new ArgumentNullException(nameof(issuerKey), "Unable to encrypt, issuer key must not be null."); }
-        if (audienceKey == null) { throw new ArgumentNullException(nameof(audienceKey), "Unable to encrypt, audience key may not be null."); }
-        var sharedKey = issuerKey.GenerateSharedSecret(audienceKey, new List<KeyCapability>() { KeyCapability.Encrypt });
-        SetPayload(Dime.Crypto.Encrypt(payload, sharedKey));
-    }
-
-    /// <summary>
-    /// Returns the decrypted message payload, if it is able to decrypt it.
-    /// </summary>
-    /// <param name="issuerKey">This is the key of the issuer of the message, must be of type EXCHANGE, must not be null.</param>
-    /// <param name="audienceKey">This is the key of the audience of the message, must be of type EXCHANGE, must not be null.</param>
-    /// <returns>The message payload.</returns>
-    /// <exception cref="ArgumentNullException"></exception>
-    /// <exception cref="ArgumentException"></exception>
-    public byte[] GetPayload(Key issuerKey, Key audienceKey)
-    {
-        if (issuerKey == null) { throw new ArgumentNullException(nameof(issuerKey), "Unable to decrypt, issuer key may not be null."); }
-        if (audienceKey == null) { throw new ArgumentNullException(nameof(audienceKey), "Unable to decrypt, audience key may not be null."); }
-        var sharedKey = issuerKey.GenerateSharedSecret(audienceKey, new List<KeyCapability>() { KeyCapability.Encrypt });
-        return Dime.Crypto.Decrypt(GetPayload(), sharedKey);
-    }
-
     /// <inheritdoc />
     public override string GenerateThumbprint(string? suiteName = null)
     {
         if (!IsSigned) throw new InvalidOperationException("Unable to generate thumbprint, message not signed.");
         return base.GenerateThumbprint(suiteName);
+    }
+    
+    /// <summary>
+    /// Will encrypt and attach a payload using a shared encryption key between the issuer and audience of a message.
+    /// The two keys provided must not be null and only one must contain a secret (private) key, the order does not matter.
+    /// </summary>
+    /// <param name="payload">The payload to encrypt and attach to the message, must not be null and of length 1 or longer.</param>
+    /// <param name="firstKey">The first key to use, must have capability EXCHANGE, must not be null.</param>
+    /// <param name="secondKey">The second key to use, must have capability EXCHANGE, must not be null.</param>
+    /// <exception cref="ArgumentNullException"></exception>
+    /// <exception cref="ArgumentException"></exception>
+    public void SetPayload(byte[] payload, Key firstKey, Key secondKey)
+    {
+        ThrowIfSigned();
+        if (payload == null || payload.Length == 0) { throw new ArgumentException("Unable to set payload, payload must not be null or empty."); }
+        if (firstKey == null) { throw new ArgumentNullException(nameof(firstKey), "Unable to set payload, both keys must be of a non-null value."); }
+        if (secondKey == null) { throw new ArgumentNullException(nameof(secondKey), "Unable to set payload, both keys must be of a non-null value."); }
+        if (firstKey.Secret != null && secondKey.Secret != null) { throw new InvalidOperationException("Unable to set payload, both keys must not contain a secret (private) key."); }
+        var primaryKey = firstKey.Secret != null ? firstKey : secondKey;
+        var secondaryKey = secondKey.Secret == null ? secondKey : firstKey;
+        var sharedKey = primaryKey.GenerateSharedSecret(secondaryKey, new List<KeyCapability>() { KeyCapability.Encrypt });
+        SetPayload(Dime.Crypto.Encrypt(payload, sharedKey));
+    }
+
+    /// <summary>
+    /// Will encrypt and attach a payload using the private key. The provided key may either have the capability
+    /// Exchange or Encrypt. If Exchange is used, then a second key will be generated and then used to generate a shared
+    /// encryption key with the provided key. The public key of the generated EXCHANGE key will be set in the "pub"
+    /// claim, but also returned. If a key with capability ENCRYPT is used, then the payload will be encrypted with this
+    /// key. This key will then be returned. The unique id of the encryption key will be set in the key id ("kid") claim.
+    /// </summary>
+    /// <param name="payload"></param>
+    /// <param name="key"></param>
+    /// <returns></returns>
+    /// <exception cref="ArgumentNullException"></exception>
+    /// <exception cref="ArgumentException"></exception>
+    /// <exception cref="InvalidOperationException"></exception>
+    public Key SetPayload(byte[] payload, Key key)
+    {
+        if (key == null) { throw new ArgumentNullException(nameof(key), "Unable to set payload, key must not be null."); }
+        if (key.HasCapability(KeyCapability.Exchange))
+        {
+            if (key.Secret != null) { throw new ArgumentException("Unable to set payload, key should not contain a secret (private) key.", nameof(key)); }
+            var firstKey = Key.Generate(KeyCapability.Exchange);
+            SetPayload(payload, firstKey, key);
+            PublicKey = firstKey.PublicCopy();
+            return firstKey;
+        }
+        if (!key.HasCapability(KeyCapability.Encrypt)) throw new InvalidOperationException("Unable to set payload, key must have the capability Exchange or Encrypt.");
+        SetPayload(Dime.Crypto.Encrypt(payload, key));
+        PutClaim(Claim.Kid, key.GetClaim<Guid>(Claim.Uid));
+        return key;
+    }
+
+    /// <summary>
+    /// Returns the decrypted message payload, if it is able to decrypt it. Two keys must be provided, where only one of
+    /// the keys may contain a secret (private), the order does not matter. The keys provided must be the same as when
+    /// used SetPayload(byte[], Key, Key) or equivalent, although it may be the opposite pair of public and
+    /// public/secret.
+    /// </summary>
+    /// <param name="firstKey">The first key to use, must be of type Exchange, must not be null.</param>
+    /// <param name="secondKey">The second key to use, must be of type Exchange, must not be null.</param>
+    /// <returns>The message payload.</returns>
+    /// <exception cref="ArgumentNullException"></exception>
+    /// <exception cref="ArgumentException"></exception>
+    public byte[] GetPayload(Key firstKey, Key secondKey)
+    {
+        if (firstKey == null) { throw new ArgumentNullException(nameof(firstKey), "Unable to get payload, both keys must be of a non-null value."); }
+        if (secondKey == null) { throw new ArgumentNullException(nameof(secondKey), "Unable to get payload, both keys must be of a non-null value."); }
+        if (firstKey.Secret != null && secondKey.Secret != null) { throw new InvalidOperationException("Unable to get payload, both keys must not contain a secret (private) key."); }
+        var primaryKey = firstKey.Secret != null ? firstKey : secondKey;
+        var secondaryKey = secondKey.Secret == null ? secondKey : firstKey;
+        try
+        {
+            var sharedKey =
+                secondaryKey.GenerateSharedSecret(primaryKey, new List<KeyCapability>() {KeyCapability.Encrypt});
+            return Dime.Crypto.Decrypt(GetPayload(), sharedKey);
+        }
+        catch (CryptographicException) { /* ignored */ }
+        var newSharedKey = primaryKey.GenerateSharedSecret(secondaryKey, new List<KeyCapability>() { KeyCapability.Encrypt });
+        return Dime.Crypto.Decrypt(GetPayload(), newSharedKey);
+    }
+
+    /// <summary>
+    /// Returns the decrypted message payload, if it is able to decrypt it. The provided key may either have the
+    /// capability Exchange or Encrypt. If Exchange is used, then the "pub" claim will be used as a source for the
+    /// second exchange key to use when generating a shared encryption key. If the key has capability Encrypt, then the
+    /// payload will be decrypted using the provided key directly.
+    /// </summary>
+    /// <param name="key">A key to either use for generating a shared key (Exchange) or decrypting the message directly (Encrypt).</param>
+    /// <returns>The decrypted message payload.</returns>
+    /// <exception cref="ArgumentNullException"></exception>
+    /// <exception cref="InvalidOperationException"></exception>
+    public byte[] GetPayload(Key key)
+    {
+        if (key == null) { throw new ArgumentNullException(nameof(key), "Unable to get payload, key must not be null."); }
+        if (key.HasCapability(KeyCapability.Exchange))
+        {
+            if (GetClaim<string>(Claim.Pub) == null || PublicKey == null) throw new InvalidOperationException("Unable to get payload, no public key attached to message.");
+            return GetPayload(PublicKey, key);
+        }
+        if (!key.HasCapability(KeyCapability.Encrypt)) throw new InvalidOperationException("Unable to get payload, key must have the capability Exchange or Encrypt.");
+        return Dime.Crypto.Decrypt(GetPayload(), key);
     }
 
     #endregion

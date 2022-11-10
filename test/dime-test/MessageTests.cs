@@ -10,6 +10,7 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.Collections.Generic;
+using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
 using DiME;
@@ -433,10 +434,48 @@ public class MessageTests
         var message = new Message(Commons.AudienceIdentity.GetClaim<Guid>(Claim.Sub), Commons.IssuerIdentity.GetClaim<Guid>(Claim.Sub), Dime.ValidFor1Minute);
         try {
             message.SetPayload(Encoding.UTF8.GetBytes(Commons.Payload), key, key);
-        } catch (ArgumentException) { return; } // All is well
-        Assert.IsTrue(false, "Should not happen.");
+            Assert.IsTrue(false, "Exception not thrown.");
+        } catch (InvalidOperationException) { /* all is well */ }
     }
 
+    [TestMethod]
+    public void SetPayloadTest7() 
+    {
+        var key1 = Key.Generate(KeyCapability.Exchange);
+        var message = new Message();
+        var key2 = message.SetPayload(Encoding.UTF8.GetBytes(Commons.Payload), key1.PublicCopy());
+        message.SetPayload(Encoding.UTF8.GetBytes(Commons.Payload), key1.PublicCopy(), key2);
+        Assert.AreEqual(Commons.Payload, Encoding.UTF8.GetString(message.GetPayload(key1)));
+        Assert.AreEqual(Commons.Payload, Encoding.UTF8.GetString(message.GetPayload(key1, key2.PublicCopy())));
+        Assert.AreEqual(Commons.Payload, Encoding.UTF8.GetString(message.GetPayload(key2.PublicCopy(), key1)));
+        Assert.AreEqual(Commons.Payload, Encoding.UTF8.GetString(message.GetPayload(key1.PublicCopy(), key2)));
+        Assert.AreEqual(Commons.Payload, Encoding.UTF8.GetString(message.GetPayload(key2, key1.PublicCopy())));
+        try { message.GetPayload(key2); Assert.IsTrue(false, "Exception not thrown."); } catch (CryptographicException) { /* all is well */ }
+    }
+
+    [TestMethod]
+    public void SetPayloadTest8() 
+    {
+        var message = new Message();
+        var keyExchange = Key.Generate(KeyCapability.Exchange);
+        var keySign = Key.Generate(KeyCapability.Sign);
+        // setPayload
+        try { message.SetPayload(Encoding.UTF8.GetBytes(Commons.Payload), keyExchange); Assert.IsTrue(false, "Exception not thrown."); } catch (ArgumentException) { /* all is well */ }
+        try { message.SetPayload(Encoding.UTF8.GetBytes(Commons.Payload), keySign); Assert.IsTrue(false, "Exception not thrown."); } catch (InvalidOperationException) { /* all is well */ }
+        // getPayload
+        try { message.GetPayload(keyExchange); Assert.IsTrue(false, "Exception not thrown."); } catch (InvalidOperationException) { /* all is well */ }
+        try { message.GetPayload(keySign); Assert.IsTrue(false, "Exception not thrown."); } catch (InvalidOperationException) { /* all is well */ }
+    }
+
+    [TestMethod]
+    public void SetPayloadTest9() 
+    {
+        var key = Key.Generate(KeyCapability.Encrypt);
+        var message = new Message();
+        message.SetPayload(Encoding.UTF8.GetBytes(Commons.Payload), key);
+        Assert.AreEqual(Commons.Payload, Encoding.UTF8.GetString(message.GetPayload(key)));
+    }
+    
     [TestMethod]
     public void LinkItemTest1()
     {
