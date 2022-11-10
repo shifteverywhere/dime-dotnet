@@ -342,6 +342,29 @@ public class IdentityIssuingRequestTests
 
         Assert.IsTrue(false, "Should not happen.");
     }
+    
+    [TestMethod]
+    public void CapabilityTest7() 
+    {
+        var allCapabilities = new List<IdentityCapability> {
+            IdentityCapability.Generic,
+            IdentityCapability.Identify,
+            IdentityCapability.Issue,
+            IdentityCapability.Prove,
+            IdentityCapability.Seal,
+            IdentityCapability.Seal,
+            IdentityCapability.Timestamp
+        };
+        var key = Key.Generate(KeyCapability.Sign);
+        var identity = IdentityIssuingRequest.Generate(key, allCapabilities).SelfIssue(Guid.NewGuid(), Dime.ValidFor1Minute, key, Commons.SystemName);
+        Assert.IsTrue(identity.HasCapability(IdentityCapability.Generic));
+        Assert.IsTrue(identity.HasCapability(IdentityCapability.Identify));
+        Assert.IsTrue(identity.HasCapability(IdentityCapability.Issue));
+        Assert.IsTrue(identity.HasCapability(IdentityCapability.Prove));
+        Assert.IsTrue(identity.HasCapability(IdentityCapability.Seal));
+        Assert.IsTrue(identity.HasCapability(IdentityCapability.Seal));
+        Assert.IsTrue(identity.HasCapability(IdentityCapability.Timestamp));
+    }
 
     [TestMethod]
     public void PrinciplesTest1()
