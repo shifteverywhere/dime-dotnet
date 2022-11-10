@@ -201,7 +201,7 @@ public class Identity: Item
 
     #region -- PRIVATE --
 
-    private static readonly List<Claim> AllowedClaims = new() { Claim.Amb, Claim.Aud, Claim.Ctx, Claim.Exp, Claim.Iat, Claim.Iss, Claim.Kid, Claim.Mtd, Claim.Pri, Claim.Sub, Claim.Sys, Claim.Uid };
+    private static readonly List<Claim> AllowedClaims = new() { Claim.Amb, Claim.Aud, Claim.Ctx, Claim.Exp, Claim.Iat, Claim.Iss, Claim.Isu, Claim.Kid, Claim.Mtd, Claim.Pri, Claim.Sub, Claim.Sys, Claim.Uid };
     private new const int MinimumNbrComponents = 3;
     private const int MaximumNbrComponents = MinimumNbrComponents + 1;
     private const int ComponentsChainIndex = 2;

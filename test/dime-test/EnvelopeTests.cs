@@ -65,6 +65,8 @@ public class EnvelopeTests
         envelope.PutClaim(Claim.Iss, Guid.NewGuid());
         Assert.IsNotNull(envelope.GetClaim<Guid>(Claim.Iss));
         Assert.AreNotEqual(default, envelope.GetClaim<Guid>(Claim.Iss));
+        envelope.PutClaim(Claim.Isu, Commons.IssuerUrl);
+        Assert.IsNotNull(envelope.GetClaim<string>(Claim.Isu));
         envelope.PutClaim(Claim.Kid, Guid.NewGuid());
         Assert.IsNotNull(envelope.GetClaim<Guid>(Claim.Kid));
         Assert.AreNotEqual(default, envelope.GetClaim<Guid>(Claim.Kid));

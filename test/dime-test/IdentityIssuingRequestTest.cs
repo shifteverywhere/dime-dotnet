@@ -57,6 +57,8 @@ public class IdentityIssuingRequestTests
         iir.PutClaim(Claim.Iss, Guid.NewGuid());
         Assert.IsNotNull(iir.GetClaim<Guid>(Claim.Iss));
         Assert.AreNotEqual(default, iir.GetClaim<Guid>(Claim.Iss));
+        iir.PutClaim(Claim.Isu, Commons.IssuerUrl);
+        Assert.IsNotNull(iir.GetClaim<string>(Claim.Isu));
         iir.PutClaim(Claim.Kid, Guid.NewGuid());
         Assert.IsNotNull(iir.GetClaim<Guid>(Claim.Kid));
         Assert.AreNotEqual(default, iir.GetClaim<Guid>(Claim.Kid));

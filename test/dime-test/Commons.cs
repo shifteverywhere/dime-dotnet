@@ -25,6 +25,7 @@ public class Commons
     public const string Mimetype = "text/plain";
     public const string Context = "test-context";
     public const string SignKeyContext = "id-key";
+    public const string IssuerUrl = "https://example.dimeformat.io";
         
     public static string FullHeaderFor(string itemIdentifier) {
         return $"{Envelope.ItemHeader}:{itemIdentifier}";

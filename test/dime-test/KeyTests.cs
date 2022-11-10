@@ -67,6 +67,8 @@ public class KeyTests
         key.PutClaim(Claim.Iss, Guid.NewGuid());
         Assert.IsNotNull(key.GetClaim<Guid>(Claim.Iss));
         Assert.AreNotEqual(default, key.GetClaim<Guid>(Claim.Iss));
+        key.PutClaim(Claim.Isu, Commons.IssuerUrl);
+        Assert.IsNotNull(key.GetClaim<string>(Claim.Isu));
         key.PutClaim(Claim.Kid, Guid.NewGuid());
         Assert.IsNotNull(key.GetClaim<Guid>(Claim.Kid));
         Assert.AreNotEqual(default, key.GetClaim<Guid>(Claim.Kid));

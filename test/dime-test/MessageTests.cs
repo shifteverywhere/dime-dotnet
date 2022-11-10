@@ -70,6 +70,8 @@ public class MessageTests
         message.PutClaim(Claim.Iss, Guid.NewGuid());
         Assert.IsNotNull(message.GetClaim<Guid>(Claim.Iss));
         Assert.AreNotEqual(default, message.GetClaim<Guid>(Claim.Iss));
+        message.PutClaim(Claim.Isu, Commons.IssuerUrl);
+        Assert.IsNotNull(message.GetClaim<string>(Claim.Isu));
         message.PutClaim(Claim.Kid, Guid.NewGuid());
         Assert.IsNotNull(message.GetClaim<Guid>(Claim.Kid));
         Assert.AreNotEqual(default, message.GetClaim<Guid>(Claim.Kid));

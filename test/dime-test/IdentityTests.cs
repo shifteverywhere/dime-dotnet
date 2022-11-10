@@ -60,6 +60,8 @@ public class IdentityTests
         identity.PutClaim(Claim.Iss, Guid.NewGuid());
         Assert.IsNotNull(identity.GetClaim<Guid>(Claim.Iss));
         Assert.AreNotEqual(default, identity.GetClaim<Guid>(Claim.Iss));
+        identity.PutClaim(Claim.Isu, Commons.IssuerUrl);
+        Assert.IsNotNull(identity.GetClaim<string>(Claim.Isu));
         identity.PutClaim(Claim.Kid, Guid.NewGuid());
         Assert.IsNotNull(identity.GetClaim<Guid>(Claim.Kid));
         Assert.AreNotEqual(default, identity.GetClaim<Guid>(Claim.Kid));

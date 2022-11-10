@@ -100,6 +100,8 @@ public class DataTests
         data.PutClaim(Claim.Iss, Guid.NewGuid());
         Assert.IsNotNull(data.GetClaim<Guid>(Claim.Iss));
         Assert.AreNotEqual(default, data.GetClaim<Guid>(Claim.Iss));
+        data.PutClaim(Claim.Isu, Commons.IssuerUrl);
+        Assert.IsNotNull(data.GetClaim<string>(Claim.Isu));
         data.PutClaim(Claim.Kid, Guid.NewGuid());
         Assert.IsNotNull(data.GetClaim<Guid>(Claim.Kid));
         Assert.AreNotEqual(default, data.GetClaim<Guid>(Claim.Kid));

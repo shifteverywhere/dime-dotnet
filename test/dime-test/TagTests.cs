@@ -66,6 +66,8 @@ public class TagTests
         tag.PutClaim(Claim.Iss, Guid.NewGuid());
         Assert.IsNotNull(tag.GetClaim<Guid>(Claim.Iss));
         Assert.AreNotEqual(default, tag.GetClaim<Guid>(Claim.Iss));
+        tag.PutClaim(Claim.Isu, Commons.IssuerUrl);
+        Assert.IsNotNull(tag.GetClaim<string>(Claim.Isu));
         tag.PutClaim(Claim.Kid, Guid.NewGuid());
         Assert.IsNotNull(tag.GetClaim<Guid>(Claim.Kid));
         Assert.AreNotEqual(default, tag.GetClaim<Guid>(Claim.Kid));
