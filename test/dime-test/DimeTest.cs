@@ -9,7 +9,6 @@
 //
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Text;
 using DiME;
 using DiME.Capability;
@@ -32,7 +31,7 @@ public class DimeTest
     [TestMethod]
     public void VersionTest1() 
     {
-        Assert.AreEqual("1.001", Dime.Version);
+        Assert.AreEqual("1.002", Dime.Version);
     }
     
     [TestMethod]

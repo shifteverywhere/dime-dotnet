@@ -1,5 +1,13 @@
 # CHANGE LOG
 
+## Version 1.2.3 - 2022-11-10
+- Conforms to DiME data format version 1.002
+- Improves working the encrypted message payloads and allows encryption with symmetric key
+- Internal verification order changed according to DiME 1.002
+- Adds Issuer URL claim ("isu")
+- Adds identity capabilities Seal and Timestamp
+- Fixes an issue with converting items containing item links to legacy
+
 ## Version 1.2.2 - 2022-10-25
 - Repackaging with JSON Canonicalizer dependencies
 - Minor correction to unit tests

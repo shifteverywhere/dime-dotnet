@@ -36,7 +36,7 @@ public abstract class Dime
     /// <summary>
     /// The current version of the implemented Di:ME specification.
     /// </summary>
-    public const string Version = "1.001";
+    public const string Version = "1.002";
     /// <summary>
     /// A convenience constant for no expiration date.
     /// </summary>
