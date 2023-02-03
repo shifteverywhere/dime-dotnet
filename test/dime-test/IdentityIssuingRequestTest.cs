@@ -13,6 +13,7 @@ using System.Collections.Generic;
 using DiME;
 using DiME.Capability;
 using DiME.Exceptions;
+using DiME.KeyRing;
 
 namespace DiME_test;
 
@@ -137,16 +138,9 @@ public class IdentityIssuingRequestTests
         var key2 = Key.Generate(new List<KeyCapability>() {KeyCapability.Sign}, null);
         var modified = original.Replace(key1.Public, key2.Public);
         var iir2 = Item.Import<IdentityIssuingRequest>(components[0] + "." + Utility.ToBase64(modified) + "." + components[2]);
-        try
-        {
-            iir2.Issue(Guid.NewGuid(), 100L, Commons.IntermediateKey, Commons.IntermediateIdentity, true, caps,
-                caps);
-            Assert.IsTrue(false, "Exception not thrown.");
-        }
-        catch (IntegrityStateException)
-        {
-            /* all is well */
-        }
+        Assert.IsNotNull(iir2);
+        Assert.AreEqual(IntegrityState.FailedNotTrusted, iir2.Verify(key1));
+        Assert.AreEqual(IntegrityState.FailedKeyMismatch, iir2.Verify(key2));
     }
 
     [TestMethod]

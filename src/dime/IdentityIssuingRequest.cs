@@ -214,9 +214,6 @@ public class IdentityIssuingRequest: Item
         
     private Identity IssueNewIdentity(string? systemName, Guid subjectId, long validFor, Key issuerKey, Identity? issuerIdentity, bool includeChain, List<IdentityCapability>? allowedCapabilities, IReadOnlyCollection<IdentityCapability>? requiredCapabilities = null, List<string>? ambit = null, List<string>? methods = null)
     {
-        var state = Verify(PublicKey);
-        if (!Dime.IsIntegrityStateValid(state))
-            throw new IntegrityStateException(state, "Unable to verify Identity issuing request.");
         var isSelfSign = PublicKey.Public.Equals(issuerKey.Public);
         if (isSelfSign && issuerIdentity != null)
             throw new ArgumentException(
@@ -239,7 +236,7 @@ public class IdentityIssuingRequest: Item
             methods);
         if (issuerIdentity is not null)
         {
-            state = issuerIdentity.VerifyDates();
+            var state = issuerIdentity.VerifyDates();
             if (!Dime.IsIntegrityStateValid(state))
                 throw new InvalidOperationException("Unable to issue new identity, issuer identity has invalid dates.");
             if (includeChain && !Dime.KeyRing.Contains(issuerIdentity))
