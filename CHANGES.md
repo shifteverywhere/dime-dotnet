@@ -1,5 +1,13 @@
 # CHANGE LOG
 
+## Version 1.2.4 - 2023-02-03
+- Adds support to verify identities using an arbitrary identity from the trust chain
+- Removes verification of identity issuing requests when issuing new identity, if required, verify manually first
+- Removes verification of issuer when issuing new identity, if required, issuers need to be verified manually first
+- Fixes an issue with issuing an identity with the same key as the issuing identity
+- Fixes an issue when requesting SELF capability for an identity that is not self-issued
+- Fixes an issue with legacy keys and creating a public copy
+
 ## Version 1.2.3 - 2022-11-10
 - Conforms to DiME data format version 1.002
 - Improves working the encrypted message payloads and allows encryption with symmetric key
@@ -59,6 +67,7 @@
 
 **NOTE:** *Version 1.0.5 is most likely one of last version that will support .NET 5, this since end-of-support is reached for .NET 5. Future versions of Dime will at some point support .NET 6 instead. *
 
+
 ## Version 1.0.4 - 2022-05-04
 - Minor fix to prepare for an upcoming change that allows for more than one item to be linked to a Message item.
 
@@ -76,8 +85,7 @@
 
 **NOTE:** *Version 1.0.1 includes changes that will break 1.0.0. These are only code-breaking changes, so all previously issued identities and other created Di:ME items will continue to work.*
 
-
 ## Version 1.0.0 - 2022-02-19
 - Official version 1.0.0 (**Hurray!**)
 
-**Copyright © 2022 Shift Everywhere AB. All rights reserved.**
+**Copyright © 2023 Shift Everywhere AB. All rights reserved.**
