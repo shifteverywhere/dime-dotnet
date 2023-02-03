@@ -217,7 +217,10 @@ public class IdentityIssuingRequest: Item
         var state = Verify(PublicKey);
         if (!Dime.IsIntegrityStateValid(state))
             throw new IntegrityStateException(state, "Unable to verify Identity issuing request.");
-        var isSelfSign = issuerIdentity == null || PublicKey!.Public.Equals(issuerKey.Public);
+        var isSelfSign = PublicKey.Public.Equals(issuerKey.Public);
+        if (isSelfSign && issuerIdentity != null)
+            throw new ArgumentException(
+                "Unable to issue new identity since both issuing public key and issued public key is the same.");
         CompleteCapabilities(allowedCapabilities, requiredCapabilities, isSelfSign);
         if (!isSelfSign && issuerIdentity != null && !issuerIdentity.HasCapability(IdentityCapability.Issue))
             throw new CapabilityException("Issuing identity missing 'issue' capability.");

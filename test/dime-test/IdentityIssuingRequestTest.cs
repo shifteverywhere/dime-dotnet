@@ -433,4 +433,19 @@ public class IdentityIssuingRequestTests
         Assert.IsNotNull(identity);
     }
 
+    [TestMethod]
+    public void KeyMismatchIssuingTest1()
+    {
+        // Test to check so that it is not possible to issue an identity with the same public key as the issuing identity
+        Commons.InitializeKeyRing();
+        var caps = new List<IdentityCapability> { IdentityCapability.Issue };
+        var iir = IdentityIssuingRequest.Generate(Commons.IntermediateKey, caps);
+        try 
+        { 
+            iir.Issue(Guid.NewGuid(), Dime.ValidFor1Minute, Commons.IntermediateKey, Commons.IntermediateIdentity, true,
+            caps); 
+            Assert.IsTrue(false, "Exception not thrown."); 
+        } catch (ArgumentException) { /* all is well */ }
+    }
+    
 }
