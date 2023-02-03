@@ -98,6 +98,43 @@ public class Identity: Item
     /// </summary>
     public Identity() { }
     
+    /// <summary>
+    /// Verifies the integrity and over all validity and trust of the item. The verification will be made using the
+    /// public key in the provided identity. The verification will also check if the item has been issued by the
+    /// provided identity, if the "iss" claim has been set. If the identity has a trust chain, then this will be taken
+    /// into consideration while verifying.
+    /// </summary>
+    /// <param name="trustedIdentity">A trusted identity to use when verifying.</param>
+    /// <param name="linkedItems">A list of item where item links should be verified, may be null.</param>
+    /// <returns>The integrity state of the verification.</returns>
+    public IntegrityState Verify(Identity trustedIdentity, List<Item>? linkedItems = null)
+    {
+        IntegrityState state;
+        var trustChain = TrustChain;
+        if (trustChain != null)
+        {
+            state = base.Verify(trustChain, null); // linkedItems is not sent to trust chain verification
+            if (Dime.IsIntegrityStateValid(state))
+            {
+                if (!TrustChain.GetClaim<Guid>(Claim.Sub).Equals(trustedIdentity.GetClaim<Guid>(Claim.Sub)))
+                    state = trustChain.Verify(trustedIdentity, null);
+                else
+                {
+                    if (trustedIdentity.IsSelfSigned) // If this is the end of the trust chain, then verify the final identity
+                        return trustedIdentity.Verify(trustedIdentity.PublicKey);
+                    // If this is a truncated trust chain, then verify only the dates
+                    state = trustedIdentity.VerifyDates();
+                    return !Dime.IsIntegrityStateValid(state) ? state : IntegrityState.Intact;
+                }
+            }
+            if (Dime.IsIntegrityStateValid(state) && linkedItems != null)
+                state = VerifyLinkedItems(linkedItems);
+        }
+        else
+            state = base.Verify(trustedIdentity, linkedItems);
+        return state;
+    }
+    
     /// <inheritdoc />
     public override IntegrityState Verify(Key? verifyKey = null, List<Item>? linkedItems = null)
     {

@@ -13,6 +13,7 @@ using System.Collections.Generic;
 using DiME;
 using DiME.Capability;
 using DiME.Exceptions;
+using DiME.KeyRing;
 
 namespace DiME_test;
 
@@ -137,16 +138,9 @@ public class IdentityIssuingRequestTests
         var key2 = Key.Generate(new List<KeyCapability>() {KeyCapability.Sign}, null);
         var modified = original.Replace(key1.Public, key2.Public);
         var iir2 = Item.Import<IdentityIssuingRequest>(components[0] + "." + Utility.ToBase64(modified) + "." + components[2]);
-        try
-        {
-            iir2.Issue(Guid.NewGuid(), 100L, Commons.IntermediateKey, Commons.IntermediateIdentity, true, caps,
-                caps);
-            Assert.IsTrue(false, "Exception not thrown.");
-        }
-        catch (IntegrityStateException)
-        {
-            /* all is well */
-        }
+        Assert.IsNotNull(iir2);
+        Assert.AreEqual(IntegrityState.FailedNotTrusted, iir2.Verify(key1));
+        Assert.AreEqual(IntegrityState.FailedKeyMismatch, iir2.Verify(key2));
     }
 
     [TestMethod]
@@ -433,4 +427,35 @@ public class IdentityIssuingRequestTests
         Assert.IsNotNull(identity);
     }
 
+    [TestMethod]
+    public void KeyMismatchIssuingTest1()
+    {
+        // Test to check so that it is not possible to issue an identity with the same public key as the issuing identity
+        Commons.InitializeKeyRing();
+        var caps = new List<IdentityCapability> { IdentityCapability.Issue };
+        var iir = IdentityIssuingRequest.Generate(Commons.IntermediateKey, caps);
+        try 
+        { 
+            iir.Issue(Guid.NewGuid(), Dime.ValidFor1Minute, Commons.IntermediateKey, Commons.IntermediateIdentity, true,
+            caps); 
+            Assert.IsTrue(false, "Exception not thrown."); 
+        } catch (ArgumentException) { /* all is well */ }
+    }
+    
+    [TestMethod]
+    public void CapabilityMismatchIssuingTest1()
+    {
+        // Test to check so that it is not possible to issue an identity with SELF capability if it is not self-issued
+        Commons.InitializeKeyRing();
+        var caps = new List<IdentityCapability> { IdentityCapability.Self };
+        var key = Key.Generate(KeyCapability.Sign);
+        var iir = IdentityIssuingRequest.Generate(key, caps);
+        try 
+        { 
+            iir.Issue(Guid.NewGuid(), Dime.ValidFor1Minute, Commons.IntermediateKey, Commons.IntermediateIdentity, true,
+                caps); 
+            Assert.IsTrue(false, "Exception not thrown."); 
+        } catch (ArgumentException) { /* all is well */ }
+    }
+    
 }

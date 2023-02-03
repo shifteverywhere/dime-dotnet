@@ -212,7 +212,7 @@ public class DimeTest
         Assert.IsTrue(identity.HasCapability(IdentityCapability.Generic));
         Assert.IsTrue(identity.HasCapability(IdentityCapability.Identify));
         Assert.IsNotNull(identity.TrustChain);
-        Assert.AreEqual(IntegrityState.Complete, identity.Verify());
+        Assert.AreEqual(IntegrityState.FailedUsedAfterExpired, identity.Verify());
     }
 
     [TestMethod]
@@ -226,6 +226,17 @@ public class DimeTest
         Assert.AreEqual(DateTime.Parse("2021-11-18T08:48:25.137918Z").ToUniversalTime(), key.GetClaim<DateTime>(Claim.Iat));
         Assert.AreEqual("S21Tkgozxhzk5ttFgHhgey6t1419WCMUUM98ZhniVAjfT4iniUknfUrNqfPqdLua2SvxFf8SXkHS1PTBCrdkYXN6qTEm7Mwa2LRd", key.Secret);
         Assert.AreEqual("S21TZSL1uvF5mTWKiomQKNhmkcYPw5XZ1VBfbSPqmyqG5GaNCUGB7Pj19WShuJuLkhREEJ4kLThehqRkadJLSTAkL9DtyhmLxGfn", key.Public);
+    }
+
+    [TestMethod]
+    public void LegacyKey1()
+    {
+        var key = Key.Generate(KeyCapability.Exchange);
+        key.ConvertToLegacy();
+        var publicKey = key.PublicCopy();
+        Assert.IsTrue(publicKey.IsLegacy);
+        Assert.IsNull(publicKey.KeyBytes(Claim.Key));
+        Assert.IsNotNull(publicKey.KeyBytes(Claim.Pub));
     }
 
     [TestMethod] 
