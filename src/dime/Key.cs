@@ -331,7 +331,11 @@ public class Key: Item
         if (_suiteName is null)
             _suiteName = suiteName;
         else if (!_suiteName.Equals(suiteName))
-            throw new InvalidOperationException($"Unable to decode key, public and secret keys generated using different cryptographic suites: {_suiteName} and {suiteName}.");
+        {
+            var otherKeyPart = claim == Claim.Key ? GetClaim<string>(Claim.Pub) : GetClaim<string>(Claim.Key);
+            if (otherKeyPart != null)
+                throw new InvalidOperationException($"Unable to decode key, public and secret keys generated using different cryptographic suites: {_suiteName} and {suiteName}.");
+        }
         byte[] rawKey;
         if (!legacyKey)
             rawKey = Dime.Crypto.DecodeKey(components[EncodedKeyIndex], suiteName);
