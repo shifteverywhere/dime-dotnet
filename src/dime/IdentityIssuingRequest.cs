@@ -239,20 +239,12 @@ public class IdentityIssuingRequest: Item
             methods);
         if (issuerIdentity is not null)
         {
+            state = issuerIdentity.VerifyDates();
+            if (!Dime.IsIntegrityStateValid(state))
+                throw new InvalidOperationException("Unable to issue new identity, issuer identity has invalid dates.");
             if (includeChain && !Dime.KeyRing.Contains(issuerIdentity))
-            {
                 // The chain will only be set if the issuer identity is not a trusted identity in the key ring
-                state = issuerIdentity.Verify();
-                if (!Dime.IsIntegrityStateValid(state))
-                    throw new IntegrityStateException(state, "Unable to verify issuer identity.");
                 identity.TrustChain = issuerIdentity;
-            }
-            else
-            {
-                state = issuerIdentity.VerifyDates();
-                if (!Dime.IsIntegrityStateValid(state))
-                    throw new IntegrityStateException(state, "Unable to verify valid dates of issuer identity.");
-            }
         }
         identity.IsLegacy = IsLegacy;
         identity.Sign(issuerKey);
