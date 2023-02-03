@@ -268,11 +268,14 @@ public class IdentityIssuingRequest: Item
             if (!WantsCapability(IdentityCapability.Self))
                 caps.Add(IdentityCapability.Self);
         }
-        else 
+        else
         {
-            if (allowedCapabilities is null || allowedCapabilities.Count == 0) { throw new ArgumentException("Allowed capabilities must be defined to issue identity.", nameof(allowedCapabilities)); }
-            if (caps.Except(allowedCapabilities).Any()) { throw new CapabilityException("IIR contains one or more disallowed capabilities."); }
-            if (requiredCapabilities is not null && requiredCapabilities.Except(caps).Any()) { throw new CapabilityException("IIR is missing one or more required capabilities."); }
+            if (WantsCapability(IdentityCapability.Self))
+                throw new ArgumentException(
+                    "Unable to issue identity, only self-issued identities may request Self capability.");
+            if (allowedCapabilities is null || allowedCapabilities.Count == 0) { throw new ArgumentException("Unable to issue identity, allowed capabilities must be defined to issue identity.", nameof(allowedCapabilities)); }
+            if (caps.Except(allowedCapabilities).Any()) { throw new CapabilityException("Unable to issue identity, IIR contains one or more disallowed capabilities."); }
+            if (requiredCapabilities is not null && requiredCapabilities.Except(caps).Any()) { throw new CapabilityException("Unable to issue identity, IIR is missing one or more required capabilities."); }
         }
         Claims()?.Put(Claim.Cap, caps.ConvertAll(obj => obj.ToString().ToLower()));
         _capabilities = null;

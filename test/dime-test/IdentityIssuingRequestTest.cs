@@ -448,4 +448,20 @@ public class IdentityIssuingRequestTests
         } catch (ArgumentException) { /* all is well */ }
     }
     
+    [TestMethod]
+    public void CapabilityMismatchIssuingTest1()
+    {
+        // Test to check so that it is not possible to issue an identity with SELF capability if it is not self-issued
+        Commons.InitializeKeyRing();
+        var caps = new List<IdentityCapability> { IdentityCapability.Self };
+        var key = Key.Generate(KeyCapability.Sign);
+        var iir = IdentityIssuingRequest.Generate(key, caps);
+        try 
+        { 
+            iir.Issue(Guid.NewGuid(), Dime.ValidFor1Minute, Commons.IntermediateKey, Commons.IntermediateIdentity, true,
+                caps); 
+            Assert.IsTrue(false, "Exception not thrown."); 
+        } catch (ArgumentException) { /* all is well */ }
+    }
+    
 }
