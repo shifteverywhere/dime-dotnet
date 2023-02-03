@@ -14,6 +14,7 @@ using System.Threading;
 using DiME;
 using DiME.Capability;
 using DiME.Exceptions;
+using DiME.KeyRing;
 
 namespace DiME_test;
 
@@ -271,10 +272,12 @@ public class IdentityTests
         var node3 = IdentityIssuingRequest.Generate(key3, nodeCaps).Issue(Guid.NewGuid(), 100L, key2, node2, true, nodeCaps, nodeCaps);
         var leafCaps = new List<IdentityCapability> { IdentityCapability.Generic };
         var leaf = IdentityIssuingRequest.Generate(Key.Generate(new List<KeyCapability>() {KeyCapability.Sign}, null), leafCaps).Issue(Guid.NewGuid(), 100L, key3, node3, true, leafCaps, leafCaps);
-        Assert.IsTrue(Dime.IsIntegrityStateValid(leaf.Verify()));
-        Assert.IsFalse(Dime.IsIntegrityStateValid(leaf.Verify(node1)));
-        Assert.IsFalse(Dime.IsIntegrityStateValid(leaf.Verify(node2)));
-        Assert.IsTrue(Dime.IsIntegrityStateValid(leaf.Verify(node3)));
+        Assert.AreEqual(IntegrityState.Complete, leaf.Verify());
+        Commons.ClearKeyRing();
+        Assert.IsFalse(Dime.IsIntegrityStateValid(leaf.Verify()));
+        Assert.AreEqual(IntegrityState.Intact, leaf.Verify(node1));
+        Assert.AreEqual(IntegrityState.Intact, leaf.Verify(node2));
+        Assert.AreEqual(IntegrityState.Intact, leaf.Verify(node3));
         Assert.IsFalse(Dime.IsIntegrityStateValid(leaf.Verify(Commons.IntermediateIdentity)));
     }
         
