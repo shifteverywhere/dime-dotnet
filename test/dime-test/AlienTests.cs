@@ -147,9 +147,9 @@ public class AlienTests
         var envelope = Envelope.Import(alienEnvelope);
         Assert.IsNotNull(envelope);
         Assert.AreEqual(2, envelope.Items.Count);
-        var alienExchangeKey = (Key) envelope.GetItem(Guid.Parse("a4ffe4f5-5d7f-4fc4-9c5d-7fafa628d80e"));
+        var alienExchangeKey = (Key) envelope.GetItem(Claim.Uid, Guid.Parse("a4ffe4f5-5d7f-4fc4-9c5d-7fafa628d80e"));
         Assert.IsNotNull(alienExchangeKey);
-        var message = (Message) envelope.GetItem(Guid.Parse("6203c6c1-900f-408c-aa3e-be50840c7ed0"));
+        var message = (Message) envelope.GetItem(Claim.Uid, Guid.Parse("6203c6c1-900f-408c-aa3e-be50840c7ed0"));
         Assert.IsNotNull(message);
         var exchangeKey = Item.Import<Key>(localExchangeKey);
         Assert.IsNotNull(exchangeKey);

@@ -50,9 +50,7 @@ public abstract class Item
     {
         var envelope = Envelope.Import(exported);
         if (envelope.Items is {Count: > 1})
-        {
             throw new FormatException("Multiple items found, import as 'Envelope' instead.");
-        }
         return (T) envelope.Items.First();
     }
 
@@ -352,7 +350,7 @@ public abstract class Item
     {
         var index = encoded.IndexOf(Dime.ComponentDelimiter);
         if (index == -1) return null;
-        var t = TypeFromTag(encoded[..index]);
+        var t = TypeFromItemHeader(encoded[..index]);
         if (t == null) return null;
         var item = (Item) Activator.CreateInstance(t)!;
         item.Decode(encoded);
@@ -525,9 +523,9 @@ public abstract class Item
     private ClaimsMap? _claims;
     private List<Signature>? _signatures;
         
-    private static Type? TypeFromTag(string tag)
+    private static Type? TypeFromItemHeader(string header)
     {
-        return tag switch
+        return header switch
         {
             Identity.ItemHeader => typeof(Identity),
             IdentityIssuingRequest.ItemHeader => typeof(IdentityIssuingRequest),

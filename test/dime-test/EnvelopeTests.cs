@@ -118,20 +118,20 @@ public class EnvelopeTests
         envelope.AddItem(message);
         envelope.AddItem(key);
         // Context
-        var item1 = envelope.GetItem(Commons.SignKeyContext);
+        var item1 = envelope.GetItem(Claim.Ctx, Commons.SignKeyContext);
         Assert.IsNotNull(item1);
         Assert.IsTrue(item1.GetType() == typeof(Key));
         Assert.AreEqual(Commons.SignKeyContext, item1.GetClaim<string>(Claim.Ctx));
-        var item2 = envelope.GetItem(Commons.Context);
+        var item2 = envelope.GetItem(Claim.Ctx, Commons.Context);
         Assert.IsNotNull(item2);
         Assert.IsTrue(item2.GetType() == typeof(Message));
         Assert.AreEqual(Commons.Context, item2.GetClaim<string>(Claim.Ctx));
         // Unique ID
-        var item3 = envelope.GetItem(key.GetClaim<Guid>(Claim.Uid));
+        var item3 = envelope.GetItem(Claim.Uid, key.GetClaim<Guid>(Claim.Uid));
         Assert.IsNotNull(item3);
         Assert.IsTrue(item3.GetType() == typeof(Key));
         Assert.AreEqual(key.GetClaim<Guid>(Claim.Uid), item3.GetClaim<Guid>(Claim.Uid));
-        var item4 = envelope.GetItem(message.GetClaim<Guid>(Claim.Uid));
+        var item4 = envelope.GetItem(Claim.Uid, message.GetClaim<Guid>(Claim.Uid));
         Assert.IsNotNull(item4);
         Assert.IsTrue(item4.GetType() == typeof(Message));
         Assert.AreEqual(message.GetClaim<Guid>(Claim.Uid), item4.GetClaim<Guid>(Claim.Uid));
@@ -143,21 +143,21 @@ public class EnvelopeTests
         const string exported = "Di:MSG.eyJhdWQiOiJiMWZiMmVhOC1jNThiLTQ0MjktYjRjNC1lODgxMWI4YzIyM2UiLCJjdHgiOiJ0ZXN0LWNvbnRleHQiLCJpYXQiOiIyMDIyLTEwLTIxVDIwOjM5OjQ3LjEwMzE1M1oiLCJpc3MiOiI4NWFiYTMzYS1hYjJmLTQ5NDktOTNmOS0zNDBjNTI3YzdjZDQiLCJ1aWQiOiI4NjAwODNiNS0wZTIzLTQ4N2UtOTE5ZS01NTdjNWEyZTZjMmYifQ.UmFjZWNhciBpcyByYWNlY2FyIGJhY2t3YXJkcy4.MzFhMDYyN2JlZjk1NjNiZC5hZjY3ZDc5NWRiMzRjNTgzYzIxZjA2NjQ5OGVhZGJlYzQzMDQ3MzJjMTBhMzliZTFjNzM5MWE4YmMxYzM1ZDgxMGI0ZjRiNjU4ZTRjMDZlMjdlNmM2OTdiOTU3OWQ0NzZkYjFjMjc1MDRjZDMyYjhmOTE2YWNiYzRmNTk0MDQwZQ:KEY.eyJjYXAiOlsic2lnbiJdLCJjdHgiOiJpZC1rZXkiLCJpYXQiOiIyMDIyLTEwLTIxVDIwOjM5OjQ3LjE1MjM1NFoiLCJrZXkiOiJTVE4uZWhleU1ZaXFpZkNXcnNqVFdQNlpGYm9OZ0NiZENFbm9hbVlYcHZ1aW1MUkM5WVF1YTdVbnRnZDlKMXNrelFmOGpxUVM1M24yTFNndW83RGc3NlBRc1JyNXJUbVAiLCJwdWIiOiJTVE4uVUNTNlVZemNYWVozNjRXOE1FaVB0dFFuS0s3RzlwY0pRZ0ozMkZZd3RUaDN5N203VSIsInVpZCI6ImU1MTExOGNmLTdkYTktNDRhMi04ZGIxLWQ5YWM3ZTNlN2QxNSJ9";
         var envelope = Envelope.Import(exported);
         // Context
-        var item1 = envelope.GetItem(Commons.SignKeyContext);
+        var item1 = envelope.GetItem(Claim.Ctx, Commons.SignKeyContext);
         Assert.IsNotNull(item1);
         Assert.IsTrue(item1.GetType() == typeof(Key));
         Assert.AreEqual(Commons.SignKeyContext, item1.GetClaim<string>(Claim.Ctx));
-        var item2 = envelope.GetItem(Commons.Context);
+        var item2 = envelope.GetItem(Claim.Ctx, Commons.Context);
         Assert.IsNotNull(item2);
         Assert.IsTrue(item2.GetType() == typeof(Message));
         Assert.AreEqual(Commons.Context, item2.GetClaim<string>(Claim.Ctx));
         // Unique ID
         var uid1 = Guid.Parse("e51118cf-7da9-44a2-8db1-d9ac7e3e7d15");
-        var item3 = envelope.GetItem(uid1);
+        var item3 = envelope.GetItem(Claim.Uid, uid1);
         Assert.IsTrue(item3 is Key);
         Assert.AreEqual(uid1, item3.GetClaim<Guid>(Claim.Uid));
         var uid2 = Guid.Parse("860083b5-0e23-487e-919e-557c5a2e6c2f");
-        var item4 = envelope.GetItem(uid2);
+        var item4 = envelope.GetItem(Claim.Uid, uid2);
         Assert.IsTrue(item4 is Message);
         Assert.AreEqual(uid2, item4.GetClaim<Guid>(Claim.Uid));
     }
@@ -167,10 +167,35 @@ public class EnvelopeTests
     {
         var envelope = new Envelope();
         envelope.AddItem(Key.Generate(KeyCapability.Sign));
-        Assert.IsNull(envelope.GetItem(""));
-        Assert.IsNull(envelope.GetItem("invalid-context"));
-        Assert.IsNull(envelope.GetItem(Guid.NewGuid()));
-        Assert.IsNull(envelope.GetItem(default(Guid)));
+        Assert.IsNull(envelope.GetItem(Claim.Ctx, ""));
+        Assert.IsNull(envelope.GetItem(Claim.Ctx, "invalid-context"));
+        Assert.IsNull(envelope.GetItem(Claim.Uid, Guid.NewGuid()));
+        Assert.IsNull(envelope.GetItem(Claim.Uid, default(Guid)));
+    }
+
+    [TestMethod]
+    public void SetItemsTest1()
+    {
+        var envelope = new Envelope();
+        Assert.AreEqual(0, envelope.Items.Count);
+        envelope.SetItems(new List<Item>
+            { Commons.IssuerIdentity, Commons.IssuerKey, Commons.AudienceIdentity, Commons.AudienceKey });
+        Assert.AreEqual(4, envelope.Items.Count);
+        envelope.SetItems(new List<Item>
+            { Commons.TrustedIdentity, Commons.IntermediateIdentity });
+        Assert.AreEqual(2, envelope.Items.Count);
+    }
+    
+    [TestMethod]
+    public void SetItemsTest2()
+    {
+        var envelope = new Envelope();
+        envelope.SetItems(new List<Item>
+            { Commons.IssuerIdentity, Commons.IssuerKey, Commons.AudienceIdentity, Commons.AudienceKey });
+        envelope.Sign(Commons.IssuerKey);
+        try {
+            envelope.SetItems(new List<Item> { Commons.TrustedIdentity, Commons.IntermediateIdentity });
+        } catch (InvalidOperationException) { return; } // All is well
     }
     
     [TestMethod]

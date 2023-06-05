@@ -16,7 +16,7 @@ using System.Linq;
 namespace DiME;
 
 /// <summary>
-/// An encapsulating object that can carry one or more Di:ME items. This is usually the format that is exported and
+/// An encapsulating object that can carry one or more Dime items. This is usually the format that is exported and
 /// stored or transmitted. It will start with the header 'Di'. Envelopes may be either anonymous or signed. An
 /// anonymous envelope, most frequently used, is not cryptographically sealed, although the items inside normally
 /// are. A signed envelope can contain one or more items and is itself also signed, it also has a small number of
@@ -114,28 +114,50 @@ public class Envelope: Item
     }
 
     /// <summary>
-    /// Adds a Di:ME item (of type Item or any subclass thereof) to the envelope. For signed envelopes, this needs
+    /// Adds a Dime item (of type Item or any subclass thereof) to the envelope. For signed envelopes, this needs to be
+    /// done before signing the envelope. It is not possible to add an item twice to an envelope. It is also not
+    /// possible to add another envelope to the envelope.
     /// to be done before signing the envelope.
     /// </summary>
-    /// <param name="item">The Di:ME item to add.</param>
-    /// <exception cref="InvalidOperationException"></exception>
+    /// <param name="item">The Dime item to add.</param>
+    /// <exception cref="InvalidOperationException">If envelope is already signed, or item already in envelope.</exception>
     public void AddItem(Item item)
     {
         if (IsSigned) { throw new InvalidOperationException("Unable to add item, envelope is already signed."); }
         if (item is Envelope) { throw new ArgumentException("Not allowed to add an envelope to another envelope.", nameof(item)); }
-        _items.Add(item);
+        var uid = item.GetClaim<Guid>(Claim.Uid);
+        if (uid != null && GetItem<Guid>(Claim.Uid, uid) == null)
+            _items.Add(item);
+        else
+            throw new InvalidOperationException($"Unable to add item, item with uid: {uid.ToString()}, is already added.");
     }
 
     /// <summary>
-    /// Adds a list of Di:ME items (of type Item or any subclass thereof) to the envelope. For signed envelopes,
-    /// this needs to be done before signing the envelope.
+    /// Adds a list of Dime items (of type Item or any subclass thereof) to the envelope. For signed envelopes, this
+    /// needs to be done before signing the envelope. It is not possible to add an item twice to an envelope. It is also
+    /// not possible to add another envelope to the envelope.
     /// </summary>
     /// <param name="items">The Di:ME items to add.</param>
     /// <exception cref="InvalidOperationException"></exception>
     public void SetItems(IEnumerable<Item> items)
     {
         if (IsSigned) { throw new InvalidOperationException("Unable to set items, envelope is already signed."); }
-        _items = items.ToList();
+        _items = new List<Item>();
+        foreach (var item in items)
+            AddItem(item);
+    }
+    
+    /// <summary>
+    /// Returns any item in the envelope that matches a specified claim and value. If no item could be found, then this
+    /// will return null. Provided claim value must not be null.
+    /// </summary>
+    /// <param name="claim">The claim for which the provided value should be compared with.</param>
+    /// <param name="value">The value of the claim that should be searched for.</param>
+    /// <typeparam name="T">The expected type of the claim.</typeparam>
+    /// <returns>The found item, or null if none could be found.</returns>
+    public Item? GetItem<T>(Claim claim, T value)
+    {
+        return (from item in _items let compareValue = item.GetClaim<T>(claim) where compareValue != null && value.Equals(compareValue) select item).FirstOrDefault();
     }
 
     /// <summary>
@@ -143,10 +165,10 @@ public class Envelope: Item
     /// </summary>
     /// <param name="context">The context to look for.</param>
     /// <returns>The found item, or null if none was found.</returns>
+    [Obsolete("This is deprecated and will be removed in future versions, use GetItem<T>(Claim, T) instead.")]
     public Item? GetItem(string context)
     {
-        if (context.Length == 0 || _items.Count == 0) return null;
-        return (from item in _items let ctx = item.GetClaim<string>(Claim.Ctx) where ctx is not null && ctx.Equals(context) select item).FirstOrDefault();
+        return GetItem(Claim.Ctx, context);
     }
         
     /// <summary>
@@ -154,9 +176,23 @@ public class Envelope: Item
     /// </summary>
     /// <param name="uniqueId">The unique id to look for.</param>
     /// <returns>The found item, or null if none was found.</returns>
+    [Obsolete("This is deprecated and will be removed in future versions, use GetItem<T>(Claim, T) instead.")]
     public Item? GetItem(Guid uniqueId)
     {
-        return _items.Count == 0 ? null : (from item in _items where item.GetClaim<Guid>(Claim.Uid).Equals(uniqueId) select item).FirstOrDefault();
+        return GetItem(Claim.Uid, uniqueId);
+    }
+    
+    /// <summary>
+    /// Returns any items in the envelope that matches a specified claim and value, If no items could be found, then this
+    /// will return an empty array. Provided claim value must not be null.
+    /// </summary>
+    /// <param name="claim">The claim for which the provided value should be compared with.</param>
+    /// <param name="value">The value of the claim that should be searched for.</param>
+    /// <typeparam name="T">The expected type of the claim.</typeparam>
+    /// <returns>All matching items, empty list if none were found.</returns>
+    public List<Item> GetItems<T>(Claim claim, T value)
+    {
+        return (from item in _items let compareValue = item.GetClaim<T>(claim) where compareValue != null && value.Equals(compareValue) select item).ToList();
     }
 
     /// <summary>
