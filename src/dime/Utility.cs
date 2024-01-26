@@ -97,10 +97,9 @@ public static class Utility
     /// </summary>
     /// <param name="base64">String to decode.</param>
     /// <returns>Decoded byte array.</returns>
-    public static byte[] FromBase64(String base64)
+    public static byte[] FromBase64(string base64)
     {
         var str = base64;
-        str = str.Replace('_', '/').Replace('-', '+');
         var padding = base64.Length % 4;
         if (padding > 1)
         {

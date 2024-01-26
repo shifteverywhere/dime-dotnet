@@ -288,9 +288,9 @@ public class DimeTest
     [TestMethod] 
     public void LegacyIirConvertToLegacyTest1() 
     {
-        Key key = Key.Generate(KeyCapability.Sign);
-        IdentityIssuingRequest iir = IdentityIssuingRequest.Generate(key);
-        String exported = iir.Export();
+        var key = Key.Generate(KeyCapability.Sign);
+        var iir = IdentityIssuingRequest.Generate(key);
+        var exported = iir.Export();
         Assert.IsNotNull(exported);
         iir.Strip();
         iir.ConvertToLegacy();

@@ -33,13 +33,13 @@ public class ItemLinkTest
     
     [TestMethod]
     public void ItemLinkTest3() {
-        var key = Key.Generate(new List<KeyCapability>() {KeyCapability.Sign}, null);
+        var key = Key.Generate(KeyCapability.Sign);
         var link = new ItemLink(Key.ItemHeader, key.GenerateThumbprint(), key.GetClaim<Guid>(Claim.Uid), Dime.Crypto.DefaultSuiteName);
         Assert.IsNotNull(link);
         Assert.AreEqual(Key.ItemHeader, link.ItemIdentifier);
         Assert.AreEqual(key.GenerateThumbprint(), link.Thumbprint);
         Assert.AreEqual(key.GetClaim<Guid>(Claim.Uid), link.UniqueId);
-        Assert.AreEqual("DSC", link.CryptoSuiteName);
+        Assert.AreEqual(Dime.Crypto.DefaultSuiteName, link.CryptoSuiteName);
     }
 
     [TestMethod]
@@ -104,10 +104,10 @@ public class ItemLinkTest
     public void VerifyTest2() 
     {
         var key = Key.Generate(KeyCapability.Sign);
-        Assert.AreEqual("DSC", key.CryptoSuiteName);
-        var link = new ItemLink(key, "STN");
+        Assert.AreEqual(Dime.Crypto.DefaultSuiteName, key.CryptoSuiteName);
+        var link = new ItemLink(key, "DSC");
         Assert.IsTrue(link.Verify(key));
-        Assert.AreEqual("STN", link.CryptoSuiteName);
+        Assert.AreEqual("DSC", link.CryptoSuiteName);
     }
 
     [TestMethod]

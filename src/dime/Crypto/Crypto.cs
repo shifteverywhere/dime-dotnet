@@ -5,13 +5,11 @@
 //  entities in a network.
 //
 //  Released under the MIT licence, see LICENSE for more information.
-//  Copyright © 2022 Shift Everywhere AB. All rights reserved.
+//  Copyright © 2024 Shift Everywhere AB. All rights reserved.
 //
-
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using DiME.Capability;
 
 namespace DiME.Crypto;
@@ -30,9 +28,10 @@ public class Crypto
     /// </summary>
     public Crypto()
     {
-        RegisterCryptoSuite(new StandardSuite(StandardSuite.StandardName));
-        RegisterCryptoSuite(new StandardSuite(StandardSuite.Base58Name));
-        _defaultSuiteName = StandardSuite.StandardName;
+        RegisterCryptoSuite(new NaClSuite(NaClSuite.SuiteName));
+        RegisterCryptoSuite(new LegacySuite(LegacySuite.LegacyDscSuite));
+        RegisterCryptoSuite(new LegacySuite(LegacySuite.LegacyStnSuite));
+        _defaultSuiteName = NaClSuite.SuiteName;
     }
 
     /// <summary>
@@ -48,53 +47,76 @@ public class Crypto
         }
         set
         {
-            lock(_lock)
+            lock (_lock)
+            {
+                if (!HasCryptoSuite(value))
+                    throw new ArgumentException($"Invalid cryptographic suite: {value}.");
                 _defaultSuiteName = value;
+            }
         }
     }
 
     /// <summary>
     /// Will generate a unique key name from the provided key. This will be used to extract which key was used to
-    /// create a signature. How a key identifier is generated is specific to the cryptographic suite used.
+    /// create a signature. How a key name is generated is specific to the cryptographic suite used.
     /// </summary>
-    /// <param name="key">The key to generate an identifier for.</param>
+    /// <param name="key">The key to generate an name for.</param>
     /// <returns>A key name, as a String.</returns>
     /// <exception cref="ArgumentNullException"></exception>
     public string GenerateKeyName(Key key)
     {
         if (key is null) { throw new ArgumentNullException(nameof(key), "Unable to generate, key must not be null."); }
         var impl = CryptoSuite(key.CryptoSuiteName);
-        var name = impl.GenerateKeyName(new[] { key.KeyBytes(Claim.Key), key.KeyBytes(Claim.Pub) });
-        return name is not null ? Utility.ToHex(name) : null;
+        return impl.GenerateKeyName(key);
     }
 
     /// <summary>
-    /// Generates a cryptographic signature from a data string.
+    /// Generates a cryptographic signature from a provided item and key.
     /// </summary>
-    /// <param name="data">The string to sign.</param>
-    /// <param name="key">The key to use for the signature.</param>
+    /// <param name="item">The item that should be signed.</param>
+    /// <param name="key">The key that should be used to sign the item.</param>
     /// <returns>The signature that was generated.</returns>
     /// <exception cref="ArgumentException"></exception>
-    public byte[] GenerateSignature(string data, Key key)
+    public Signature GenerateSignature(Item item, Key key)
     {
-        if (!key.HasCapability(KeyCapability.Sign)) { throw new ArgumentException("Unable to sign, provided key does not specify Sign usage."); }
+        if (item is null) { throw new ArgumentNullException(nameof(item), "Unable to generate signature, item to sign must not be null."); }
+        if (key?.Secret == null) { throw new ArgumentNullException(nameof(key), "Unable to generate signature, key or secret key must not be null."); }
+        if (!key.HasCapability(KeyCapability.Sign)) { throw new ArgumentException("Unable to generate signature, provided key does not specify 'Sign' capability."); }
         var impl = CryptoSuite(key.CryptoSuiteName);
-        return impl.GenerateSignature(Encoding.UTF8.GetBytes(data), key.KeyBytes(Claim.Key));
+        var bytes = impl.GenerateSignature(item, key);
+        return new Signature(bytes, item.IsLegacy ? null : GenerateKeyName(key));
     }
 
     /// <summary>
-    /// Verifies a cryptographic signature for a data string.
+    /// Verifies a cryptographic signature of an item using provided signature and key.
     /// </summary>
-    /// <param name="data">The string that should be verified with the signature.</param>
-    /// <param name="signature">The signature that should be verified.</param>
-    /// <param name="key">The key that should be used for the verification.</param>
+    /// <param name="item">The item to verify the signature with.</param>
+    /// <param name="signature">The signature to verify with.</param>
+    /// <param name="key">The key to use when verifying.</param>
     /// <returns>True if verified successfully, false otherwise.</returns>
     /// <exception cref="ArgumentException"></exception>
-    public bool VerifySignature(string data, byte[] signature, Key key)
+    public bool VerifySignature(Item item, Signature signature, Key key)
     {
-        if (!key.HasCapability(KeyCapability.Sign)) { throw new ArgumentException("Unable to sign, provided key does not specify Sign usage."); }
+        if (item is null) { throw new ArgumentNullException(nameof(item), "Unable to verify signature, item to sign must not be null."); }
+        if (signature is null) { throw new ArgumentNullException(nameof(signature), "Unable to verify signature, item to sign must not be null."); }
+        if (key?.Public == null) { throw new ArgumentNullException(nameof(key), "Unable to verify signature, key or public key must not be null."); }
+        if (!key.HasCapability(KeyCapability.Sign)) { throw new ArgumentException("Unable to verify, provided key does not specify 'Sign' capability."); }
         var impl = CryptoSuite(key.CryptoSuiteName);
-        return impl.VerifySignature(Encoding.UTF8.GetBytes(data), signature, key.KeyBytes(Claim.Pub));
+        return impl.VerifySignature(item, signature.Bytes, key);
+    }
+    
+    /// <summary>
+    /// Generates a cryptographic key of a provided type. If no cryptographic suite is provided, then the default suite
+    /// will be used.
+    /// </summary>
+    /// <param name="capabilities">The capabilities of the key to generate.</param>
+    /// <param name="suiteName">The cryptographic suite that should be used when generating the key, may be null for default suite.</param>
+    /// <returns>The generated key.</returns>
+    public Key GenerateKey(List<KeyCapability> capabilities, string suiteName = null)
+    {
+        if (capabilities == null || capabilities.Count == 0) { throw new ArgumentNullException(nameof(capabilities), "Key usage must not be null or empty."); }
+        var impl = CryptoSuite(suiteName ?? DefaultSuiteName);
+        return impl.GenerateKey(capabilities);
     }
 
     /// <summary>
@@ -104,17 +126,15 @@ public class Crypto
     /// </summary>
     /// <param name="clientKey">The client key to use (the receiver of the exchange).</param>
     /// <param name="serverKey">The server key to use (the initiator of the exchange).</param>
-    /// <param name="use">The use that should be specified for the generated key.</param>
+    /// <param name="capabilities">The capabilities that should be specified for the generated key.</param>
     /// <returns>The generated shared secret key.</returns>
     /// <exception cref="ArgumentException"></exception>
-    public byte[] GenerateSharedSecret(Key clientKey, Key serverKey, List<KeyCapability> use)
+    public Key GenerateSharedSecret(Key clientKey, Key serverKey, List<KeyCapability> capabilities)
     {
         if (!clientKey.HasCapability(KeyCapability.Exchange) || !serverKey.HasCapability(KeyCapability.Exchange)) { throw new ArgumentException("Unable to generate, provided keys do not specify 'Exchange' use."); }
         if (!clientKey.CryptoSuiteName.Equals(serverKey.CryptoSuiteName)) { throw new ArgumentException("Unable to generate, both keys must be generated using the same cryptographic suite."); }
         var impl = CryptoSuite(clientKey.CryptoSuiteName);
-        var rawClientKeys = new[] { clientKey.KeyBytes(Claim.Key), clientKey.KeyBytes(Claim.Pub) };
-        var rawServerKeys = new[] { serverKey.KeyBytes(Claim.Key), serverKey.KeyBytes(Claim.Pub) };
-        return impl.GenerateSharedSecret(rawClientKeys, rawServerKeys, use);
+        return impl.GenerateSharedSecret(clientKey, serverKey, capabilities);
     }
 
     /// <summary>
@@ -126,9 +146,11 @@ public class Crypto
     /// <exception cref="ArgumentException"></exception>
     public byte[] Encrypt(byte[] plainText, Key key)
     {
+        if (plainText == null || plainText.Length == 0) { throw new ArgumentNullException(nameof(plainText), "Plain text to encrypt must not be null and not have a length of 0."); }
+        if (key == null) { throw new ArgumentNullException(nameof(key),"Key must not be null."); }
         if (!key.HasCapability(KeyCapability.Encrypt)) { throw new ArgumentException("Unable to encrypt, provided key does not specify 'Encrypt' use."); }
         var impl = CryptoSuite(key.CryptoSuiteName);
-        return impl.Encrypt(plainText, key.KeyBytes(Claim.Key));
+        return impl.Encrypt(plainText, key);
     }
 
     /// <summary>
@@ -140,53 +162,23 @@ public class Crypto
     /// <exception cref="ArgumentException"></exception>
     public byte[] Decrypt(byte[] cipherText, Key key)
     {
+        if (cipherText == null || cipherText.Length == 0) { throw new ArgumentNullException(nameof(cipherText), "Cipher text to decrypt must not be null and not have a length of 0."); }
+        if (key == null) { throw new ArgumentNullException(nameof(key),"Key must not be null."); }
         if (!key.HasCapability(KeyCapability.Encrypt)) { throw new ArgumentException("Unable to decrypt, provided key does not specify 'Encrypt' use."); }
         var impl = CryptoSuite(key.CryptoSuiteName);
-        return impl.Decrypt(cipherText, key.KeyBytes(Claim.Key));
+        return impl.Decrypt(cipherText, key);
     }
-
+    
     /// <summary>
-    /// Generates a cryptographic key of a provided type. This will use the cryptographic suite that is set as the
-    /// default.
-    /// </summary>
-    /// <param name="capabilities">The capabilities of the key to generate.</param>
-    /// <returns>The generated key.</returns>
-    public byte[][] GenerateKey(List<KeyCapability> capabilities)
-    {
-        return GenerateKey(capabilities, DefaultSuiteName);
-    }
-
-    /// <summary>
-    /// Generates a cryptographic key of a provided type.
-    /// </summary>
-    /// <param name="capabilities">The capabilities of the key to generate.</param>
-    /// <param name="suiteName">The cryptographic suite that should be used when generating the key.</param>
-    /// <returns>The generated key.</returns>
-    public byte[][] GenerateKey(List<KeyCapability> capabilities, string suiteName)
-    {
-        var impl = CryptoSuite(suiteName);
-        return impl.GenerateKey(capabilities);
-    }
-
-    /// <summary>
-    /// Generates a secure hash of a byte array. This will use the cryptographic suite that is set as the default.
-    /// </summary>
-    /// <param name="data">The data that should be hashed.</param>
-    /// <returns>The generated secure hash, encoded as a string</returns>
-    public string GenerateHash(byte[] data)
-    {
-        return GenerateHash(data, DefaultSuiteName);
-    }
-
-    /// <summary>
-    /// Generates a secure hash of a byte array.
+    /// Generates a secure hash of a byte array. If no cryptographic suite is provided, then the default suite
+    /// will be used.
     /// </summary>
     /// <param name="data">The data that should be hashed.</param>
     /// <param name="suiteName">The cryptographic suite that should be used to generate the hash.</param>
     /// <returns>The generated secure hash, encoded as a string</returns>
-    public string GenerateHash(byte[] data, string suiteName)
+    public string GenerateHash(byte[] data, string suiteName = null)
     {
-        var impl = CryptoSuite(suiteName);
+        var impl = CryptoSuite(suiteName ?? DefaultSuiteName);
         return impl.GenerateHash(data);
     }
 
@@ -194,13 +186,14 @@ public class Crypto
     /// Encodes a key from a byte array to a string. The encoding format is determined by the cryptographic suite
     /// specified.
     /// </summary>
-    /// <param name="key">The key to encode.</param>
+    /// <param name="rawKey">The raw key bytes to encode.</param>
+    /// <param name="claim">The name of the claim to encode the key for, must be Claim.Key or Claim.Pub.</param>
     /// <param name="suiteName">The cryptographic suite to use.</param>
     /// <returns>The encoded key.</returns>
-    public string EncodeKey(byte[] key, string suiteName)
+    public string EncodeKeyBytes(byte[] rawKey, Claim claim, string suiteName)
     {
         var impl = CryptoSuite(suiteName);
-        return impl.EncodeKey(key);
+        return impl.EncodeKeyBytes(rawKey, claim);
     }
 
     /// <summary>
@@ -208,12 +201,13 @@ public class Crypto
     /// successful.
     /// </summary>
     /// <param name="encodedKey">The encoded key.</param>
+    /// <param name="claim">The name of the claim to encode the key for, must be Claim.Key or Claim.Pub.</param>
     /// <param name="suiteName">The cryptographic suite to use.</param>
     /// <returns>The decoded key.</returns>
-    public byte[] DecodeKey(string encodedKey, string suiteName)
+    public byte[] DecodeKeyBytes(string encodedKey, Claim claim, string suiteName)
     {
         var impl = CryptoSuite(suiteName);
-        return impl.DecodeKey(encodedKey);
+        return impl.DecodeKeyBytes(encodedKey, claim);
     }
     
     /// <summary>

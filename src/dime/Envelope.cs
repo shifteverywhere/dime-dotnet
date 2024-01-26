@@ -200,9 +200,9 @@ public class Envelope: Item
     /// anonymous envelope. It is also not possible to sign an envelope if it already has been signed or does not
     /// contain any Di:ME items.
     /// </summary>
-    /// <param name="key">The key to use when signing.</param>
+    /// <param name="signingKey">The key to use when signing.</param>
     /// <exception cref="InvalidOperationException"></exception>
-    public override void Sign(Key key)
+    public override void Sign(Key signingKey)
     {
         if (IsLegacy)
         {
@@ -210,7 +210,7 @@ public class Envelope: Item
             if (IsSigned) { throw new InvalidOperationException("Unable to sign, envelope is already signed."); }
         }
         if (_items == null || _items.Count == 0) { throw new InvalidOperationException("Unable to sign, at least one item must be attached before signing an envelope."); }
-        base.Sign(key);
+        base.Sign(signingKey);
     }
 
     /// <summary>
@@ -225,7 +225,7 @@ public class Envelope: Item
     }
 
     /// <inheritdoc />
-    public override string GenerateThumbprint(string? suitName = null)
+    public override string GenerateThumbprint(bool withSignature = true, string? suitName = null)
     {
         return Thumbprint(Encode(!IsAnonymous), suitName);
     }

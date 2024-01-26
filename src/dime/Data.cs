@@ -80,13 +80,13 @@ public class Data: Item
     /// <summary>
     /// Will sign the data item with the proved key. The Key instance must contain a secret key and have use 'Sign'.
     /// </summary>
-    /// <param name="key">The key to sign the item with.</param>
+    /// <param name="signingKey">The key to sign the item with.</param>
     /// <exception cref="InvalidOperationException"></exception>
-    public override void Sign(Key key)
+    public override void Sign(Key signingKey)
     {
         if (Payload == null) 
             throw new InvalidOperationException("Unable to sign message, no payload added.");
-        base.Sign(key);
+        base.Sign(signingKey);
     }
     
     /// <summary>

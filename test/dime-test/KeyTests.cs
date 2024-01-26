@@ -212,13 +212,14 @@ public class KeyTests
     [TestMethod]
     public void ImportTest1()
     {
-        const string encoded = "Di:KEY.eyJ1aWQiOiI3ZmE2OGU4OC02ZDVjLTQwMmItOThkOC1mZDg2NjQwY2Y0ZjIiLCJpYXQiOiIyMDIxLTEyLTAxVDIwOjUzOjIzLjM4MzczM1oiLCJrZXkiOiIyVERYZDlXVXR3dVliaTROaFNRRUhmTjg5QmhLVkNTQWVqUFpmRlFRZ1BxaVJadXNUTkdtcll0ZVEiLCJwdWIiOiIyVERYZG9OdXNiNXlWQXB6WTIzYXR1UTNzbUdiOExuZ0o0QVpYRWhpck1mQ0t5OHFkNEZwM1c5OHMifQ";
+        const string encoded = "Di:KEY.eyJjYXAiOlsic2lnbiJdLCJpYXQiOiIyMDI0LTAxLTI2VDE1OjA5OjA5Ljk1NTYyNTVaIiwia2V5IjoiTmFDbC5PcDN3Yk0zaFNsdS93eXFFZkp2bDJhTHNBdGpQWmE4aVlYWUpvejhhY0pUUVoyTFkyZkhhL2VvQlVPRFhzaThzdFY1K1B4dHVYL29nTEh1ZUFQMDRrUSIsInB1YiI6Ik5hQ2wuMEdkaTJObngydjNxQVZEZzE3SXZMTFZlZmo4YmJsLzZJQ3g3bmdEOU9KRSIsInVpZCI6IjRiOTQxZWE0LTFjMmItNDBjZi1iYjMwLWIzZmE3N2ZkMDNhMCJ9";
         var key = Item.Import<Key>(encoded);
+        Assert.AreEqual(1, key.Capabilities.Count);
         Assert.IsTrue(key.HasCapability(KeyCapability.Sign));
-        Assert.AreEqual(new Guid("7fa68e88-6d5c-402b-98d8-fd86640cf4f2"), key.GetClaim<Guid>(Claim.Uid));
-        Assert.AreEqual(DateTime.Parse("2021-12-01T20:53:23.383733Z").ToUniversalTime(), key.GetClaim<DateTime>(Claim.Iat));
-        Assert.AreEqual("2TDXd9WUtwuYbi4NhSQEHfN89BhKVCSAejPZfFQQgPqiRZusTNGmrYteQ", key.Secret);
-        Assert.AreEqual("2TDXdoNusb5yVApzY23atuQ3smGb8LngJ4AZXEhirMfCKy8qd4Fp3W98s", key.Public);
+        Assert.AreEqual(new Guid("4b941ea4-1c2b-40cf-bb30-b3fa77fd03a0"), key.GetClaim<Guid>(Claim.Uid));
+        Assert.AreEqual(DateTime.Parse("2024-01-26T15:09:09.9556255Z").ToUniversalTime(), key.GetClaim<DateTime>(Claim.Iat));
+        Assert.AreEqual("NaCl.Op3wbM3hSlu/wyqEfJvl2aLsAtjPZa8iYXYJoz8acJTQZ2LY2fHa/eoBUODXsi8stV5+PxtuX/ogLHueAP04kQ", key.Secret);
+        Assert.AreEqual("NaCl.0Gdi2Nnx2v3qAVDg17IvLLVefj8bbl/6ICx7ngD9OJE", key.Public);
     }
 
     [TestMethod]
@@ -240,7 +241,7 @@ public class KeyTests
     public void PublicOnlyTest2()
     {
         var message = new Message(Commons.AudienceIdentity.GetClaim<Guid>(Claim.Sub), Commons.IssuerIdentity.GetClaim<Guid>(Claim.Sub), 100L);
-        message.SetPayload(Encoding.UTF8.GetBytes("Racecar is racecar backwards."));
+        message.SetPayload(Encoding.UTF8.GetBytes(Commons.Payload));
         message.Sign(Commons.IssuerKey);
         var pubOnly = Commons.IssuerKey.PublicCopy();
         message.Verify(pubOnly);            

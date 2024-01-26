@@ -50,7 +50,7 @@ public sealed class ItemLink
     public ItemLink(Item item, string? cryptoSuiteName = null)
     {
         ItemIdentifier = item.Header;
-        Thumbprint = item.GenerateThumbprint(cryptoSuiteName);
+        Thumbprint = item.GenerateThumbprint(false, cryptoSuiteName);
         UniqueId = item.GetClaim<Guid>(Claim.Uid);
         CryptoSuiteName = cryptoSuiteName ?? Dime.Crypto.DefaultSuiteName;
     }
@@ -117,7 +117,7 @@ public sealed class ItemLink
     {
         return UniqueId.Equals(item.GetClaim<Guid>(Claim.Uid)) 
                && ItemIdentifier.Equals(item.Header)
-               && Thumbprint.Equals(item.GenerateThumbprint(CryptoSuiteName));
+               && Thumbprint.Equals(item.GenerateThumbprint(false, CryptoSuiteName));
     }
 
     /// <summary>
@@ -134,7 +134,7 @@ public sealed class ItemLink
             foreach (var link in links.Where(link => link.UniqueId.Equals(item.GetClaim<Guid>(Claim.Uid))))
             {
                 matchFound = true;
-                if (!link.ItemIdentifier.Equals(item.Header) || !link.Thumbprint.Equals(item.GenerateThumbprint(link.CryptoSuiteName)))
+                if (!link.ItemIdentifier.Equals(item.Header) || !link.Thumbprint.Equals(item.GenerateThumbprint(false, link.CryptoSuiteName)))
                     return IntegrityState.FailedLinkedItemFault;
             }
             if (!matchFound)

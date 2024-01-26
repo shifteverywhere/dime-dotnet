@@ -112,22 +112,33 @@ public abstract class Item
     }
     
     /// <summary>
+    /// This will return the encoded item as a byte-array. This should only be used when needing a raw version of the
+    /// item for cryptographic operations. For distribution and storage ExportToEncoded should be used.
+    /// </summary>
+    /// <param name="withSignature"></param>
+    /// <returns></returns>
+    public byte[] RawEncoded(bool withSignature)
+    {
+        return Encoding.UTF8.GetBytes(Encode(withSignature));
+    }
+    
+    /// <summary>
     /// Will sign an item with the proved key. The Key instance must contain a secret key and be of type IDENTITY.
     /// </summary>
-    /// <param name="key">The key to sign the item with, must be of type IDENTITY.</param>
+    /// <param name="signingKey">The key to sign the item with, must be of type IDENTITY.</param>
     /// <exception cref="InvalidOperationException"></exception>
     /// <exception cref="ArgumentNullException"></exception>
-    public virtual void Sign(Key key)
+    public virtual void Sign(Key signingKey)
     {
         if (IsLegacy && IsSigned)
             throw new InvalidOperationException("Unable to sign, legacy item is already signed.");
-        if (key.Secret is null)
-            throw new ArgumentNullException(nameof(key), "Unable to sign, key for signing must not be null.");
-        if (IsSigned && Signature.Find(Dime.Crypto.GenerateKeyName(key), Signatures) is not null)
+        if (signingKey.Secret is null)
+            throw new ArgumentNullException(nameof(signingKey), "Unable to sign, key for signing must not be null.");
+        if (IsSigned && Signature.Find(Dime.Crypto.GenerateKeyName(signingKey), Signatures) is not null)
             throw new InvalidOperationException("Item already signed with provided key.");
-        var signature = Dime.Crypto.GenerateSignature(Encode(false), key);
-        var name = IsLegacy ? null : Dime.Crypto.GenerateKeyName(key);
-        Signatures.Add(new Signature(signature, name));
+        var signature = Dime.Crypto.GenerateSignature(this, signingKey);
+        var name = IsLegacy ? null : Dime.Crypto.GenerateKeyName(signingKey);
+        Signatures.Add(signature);
         IsSigned = true;
     }
 
@@ -161,11 +172,12 @@ public abstract class Item
     /// been changed. This is created by securely hashing the item and will be unique and change as soon as any
     /// content changes.
     /// </summary>
+    /// <param name="includeSignature">If attached signatures should be included when generating the thumbprint.</param>
     /// <param name="suiteName">The name of the cryptographic suite to use, may be null.</param>
     /// <returns>The hash of the item as an encoded string.</returns>
-    public virtual string GenerateThumbprint(string? suiteName = null)
+    public virtual string GenerateThumbprint(bool includeSignature = true, string? suiteName = null)
     {
-        return Thumbprint(Encode(true), suiteName);
+        return Thumbprint(Encode(includeSignature), suiteName);
     }
 
     /// <summary>
@@ -261,7 +273,7 @@ public abstract class Item
             return IntegrityState.FailedKeyMismatch;
         try
         {
-            return !Dime.Crypto.VerifySignature(Encode(false), signature.Bytes, verifyKey) 
+            return !Dime.Crypto.VerifySignature(this, signature, verifyKey) 
                 ? IntegrityState.FailedNotTrusted : IntegrityState.ValidSignature;
         }
         catch (Exception)
