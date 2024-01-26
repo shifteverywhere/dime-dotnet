@@ -5,12 +5,13 @@
 //  entities in a network.
 //
 //  Released under the MIT licence, see LICENSE for more information.
-//  Copyright © 2022 Shift Everywhere AB. All rights reserved.
+//  Copyright © 2024 Shift Everywhere AB. All rights reserved.
 //
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Text;
 using DiME;
 using DiME.Capability;
 
@@ -19,7 +20,49 @@ namespace DiME_test;
 [TestClass]
 public class PerformanceTests
 {
-    private const int PerformanceRounds = 10;
+    private const int PerformanceRounds = 100000;
+
+    [TestMethod]
+    public void SignaturePerformanceTest()
+    {
+        Console.WriteLine("-- Signature performance tests --\n");
+        Console.WriteLine($"Number of rounds: {PerformanceRounds}\n");
+
+        var totalSw = new Stopwatch();
+        var sw = new Stopwatch();
+        totalSw.Start();
+        
+        var key = Key.Generate(KeyCapability.Sign);
+        var message = new Message(Guid.NewGuid(),
+            Guid.NewGuid(),
+            Dime.ValidFor1Hour,
+            Commons.Context);
+        message.SetPayload(Encoding.UTF8.GetBytes(Commons.Payload), Commons.Mimetype);
+        
+        Console.Write("* Running signing tests...");
+        sw.Start();
+        for(var i = 0; i < PerformanceRounds; i++) {
+            message.Sign(key);
+            message.Strip();
+        }
+        sw.Stop();
+        Console.WriteLine($" DONE \n\t - Total: {sw.Elapsed}s\n");
+        
+        message.Sign(key);
+        
+        sw.Reset();
+        Console.Write("* Running verification tests...");
+        sw.Start();
+        for(var i = 0; i < PerformanceRounds; i++) {
+            message.Verify(key);
+        }
+        sw.Stop();
+        Console.WriteLine($" DONE \n\t - Total: {sw.Elapsed}s\n");
+        
+        totalSw.Stop();
+        Console.WriteLine($"\nTOTAL: {totalSw.Elapsed}s\n");
+        
+    }
 
     [TestMethod]
     public void IdentityPerformanceTest()
