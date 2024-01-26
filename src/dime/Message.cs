@@ -99,14 +99,7 @@ public class Message: Data
     #endregion
         
     #region -- PUBLIC INTERFACE --
-
-    /// <inheritdoc />
-    public override string GenerateThumbprint(string? suiteName = null)
-    {
-        if (!IsSigned) throw new InvalidOperationException("Unable to generate thumbprint, message not signed.");
-        return base.GenerateThumbprint(suiteName);
-    }
-    
+   
     /// <summary>
     /// Will encrypt and attach a payload using a shared encryption key between the issuer and audience of a message.
     /// The two keys provided must not be null and only one must contain a secret (private) key, the order does not matter.

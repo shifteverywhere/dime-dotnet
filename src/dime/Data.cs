@@ -102,14 +102,6 @@ public class Data: Item
             throw new InvalidOperationException("Unable to verify message, no payload added.");
         return base.Verify(key, linkedItems);
     }
-
-    /// <inheritdoc />
-    public override string GenerateThumbprint(string? suitName = null)
-    {
-        if (Payload == null) 
-            throw new InvalidOperationException("Unable to generate thumbprint, no payload added.");
-        return base.GenerateThumbprint(suitName);
-    }
     
     #endregion
 
