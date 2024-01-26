@@ -5,7 +5,7 @@
 //  entities in a network.
 // 
 //  Released under the MIT licence, see LICENSE for more information.
-//  Copyright © 2022 Shift Everywhere AB. All rights reserved.
+//  Copyright © 2024 Shift Everywhere AB. All rights reserved.
 //
 #nullable enable
 using System;
@@ -240,7 +240,7 @@ public class Message: Data
 
     #region -- PRIVATE --
     
-    private static readonly List<Claim> AllowedClaims = new() { Claim.Amb, Claim.Aud, Claim.Ctx, Claim.Exp, Claim.Iat, Claim.Iss, Claim.Isu, Claim.Kid, Claim.Mim, Claim.Mtd, Claim.Sub, Claim.Sys, Claim.Uid };
+    private static readonly List<Claim> AllowedClaims = new() { Claim.Amb, Claim.Aud, Claim.Cmn, Claim.Ctx, Claim.Exp, Claim.Iat, Claim.Iss, Claim.Isu, Claim.Kid, Claim.Mim, Claim.Mtd, Claim.Sub, Claim.Sys, Claim.Uid };
     private new const int MinimumNbrComponents = 4;
 
     #endregion

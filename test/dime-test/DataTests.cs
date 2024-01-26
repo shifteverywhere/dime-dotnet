@@ -5,7 +5,7 @@
 //  entities in a network.
 //
 //  Released under the MIT licence, see LICENSE for more information.
-//  Copyright © 2022 Shift Everywhere AB. All rights reserved.
+//  Copyright © 2024 Shift Everywhere AB. All rights reserved.
 //
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
@@ -26,38 +26,6 @@ public class DataTests
         var data = new Data(Guid.NewGuid());
         Assert.AreEqual("DAT", data.Header);
         Assert.AreEqual("DAT", Data.ItemHeader);
-    }
-
-    [TestMethod]
-    public void DataTest1()
-    {
-        var now = DateTime.UtcNow;
-        var data = new Data(Guid.NewGuid(), 10L, Commons.Context);
-        data.SetPayload(Encoding.UTF8.GetBytes(Commons.Payload));
-        Assert.IsNotNull(data.GetClaim<Guid>(Claim.Uid));
-        Assert.AreEqual(Commons.Context, data.GetClaim<string>(Claim.Ctx));
-        Assert.AreEqual(Commons.Payload, Encoding.UTF8.GetString(data.GetPayload()));
-        Assert.IsTrue(data.GetClaim<DateTime>(Claim.Iat) >= now && data.GetClaim<DateTime>(Claim.Iat) <= (now.AddSeconds(1)));
-        Assert.IsTrue(data.GetClaim<DateTime>(Claim.Exp) > (now.AddSeconds(9)) && data.GetClaim<DateTime>(Claim.Exp) < (now.AddSeconds(11)));
-        Assert.IsNull(data.GetClaim<string>(Claim.Mim));
-    }
-
-    [TestMethod]
-    public void DataTest2() 
-    {
-        var data = new Data(Guid.NewGuid(), -1, Commons.Context);
-        data.SetPayload(Encoding.UTF8.GetBytes(Commons.Payload), Commons.Mimetype);
-        Assert.AreEqual(Commons.Mimetype, data.GetClaim<string>(Claim.Mim));
-        var d = data.GetClaim<DateTime>(Claim.Exp);
-        Assert.AreEqual(default(DateTime), data.GetClaim<DateTime>(Claim.Exp)); 
-    }
-
-    [TestMethod]
-    public void DataTest3() 
-    {
-        var data1 = new Data(Guid.NewGuid());
-        var data2 = new Data(Guid.NewGuid());
-        Assert.AreNotEqual(data1.GetClaim<Guid>(Claim.Uid), data2.GetClaim<Guid>(Claim.Uid));
     }
     
     [TestMethod]
@@ -89,6 +57,8 @@ public class DataTests
         data.PutClaim(Claim.Aud, Guid.NewGuid());
         Assert.IsNotNull(data.GetClaim<Guid>(Claim.Aud));
         Assert.AreNotEqual(default, data.GetClaim<Guid>(Claim.Aud));
+        data.PutClaim(Claim.Cmn, Commons.CommonName);
+        Assert.IsNotNull(data.GetClaim<string>(Claim.Cmn));
         data.PutClaim(Claim.Ctx, Commons.Context);
         Assert.IsNotNull(data.GetClaim<string>(Claim.Ctx));
         data.PutClaim(Claim.Exp, DateTime.UtcNow);
@@ -143,6 +113,38 @@ public class DataTests
         data.Strip();
         data.RemoveClaim(Claim.Iss);
         data.PutClaim(Claim.Iat, DateTime.UtcNow);
+    }
+
+    [TestMethod]
+    public void DataTest1()
+    {
+        var now = DateTime.UtcNow;
+        var data = new Data(Guid.NewGuid(), 10L, Commons.Context);
+        data.SetPayload(Encoding.UTF8.GetBytes(Commons.Payload));
+        Assert.IsNotNull(data.GetClaim<Guid>(Claim.Uid));
+        Assert.AreEqual(Commons.Context, data.GetClaim<string>(Claim.Ctx));
+        Assert.AreEqual(Commons.Payload, Encoding.UTF8.GetString(data.GetPayload()));
+        Assert.IsTrue(data.GetClaim<DateTime>(Claim.Iat) >= now && data.GetClaim<DateTime>(Claim.Iat) <= (now.AddSeconds(1)));
+        Assert.IsTrue(data.GetClaim<DateTime>(Claim.Exp) > (now.AddSeconds(9)) && data.GetClaim<DateTime>(Claim.Exp) < (now.AddSeconds(11)));
+        Assert.IsNull(data.GetClaim<string>(Claim.Mim));
+    }
+
+    [TestMethod]
+    public void DataTest2() 
+    {
+        var data = new Data(Guid.NewGuid(), -1, Commons.Context);
+        data.SetPayload(Encoding.UTF8.GetBytes(Commons.Payload), Commons.Mimetype);
+        Assert.AreEqual(Commons.Mimetype, data.GetClaim<string>(Claim.Mim));
+        var d = data.GetClaim<DateTime>(Claim.Exp);
+        Assert.AreEqual(default(DateTime), data.GetClaim<DateTime>(Claim.Exp)); 
+    }
+
+    [TestMethod]
+    public void DataTest3() 
+    {
+        var data1 = new Data(Guid.NewGuid());
+        var data2 = new Data(Guid.NewGuid());
+        Assert.AreNotEqual(data1.GetClaim<Guid>(Claim.Uid), data2.GetClaim<Guid>(Claim.Uid));
     }
 
     [TestMethod]

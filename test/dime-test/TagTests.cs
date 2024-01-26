@@ -5,7 +5,7 @@
 //  entities in a network.
 //
 //  Released under the MIT licence, see LICENSE for more information.
-//  Copyright © 2022 Shift Everywhere AB. All rights reserved.
+//  Copyright © 2024 Shift Everywhere AB. All rights reserved.
 //
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
@@ -55,6 +55,8 @@ public class TagTests
         tag.PutClaim(Claim.Aud, Guid.NewGuid());
         Assert.IsNotNull(tag.GetClaim<Guid>(Claim.Aud));
         Assert.AreNotEqual(default, tag.GetClaim<Guid>(Claim.Aud));
+        tag.PutClaim(Claim.Cmn, Commons.CommonName);
+        Assert.IsNotNull(tag.GetClaim<string>(Claim.Cmn));
         tag.PutClaim(Claim.Ctx, Commons.Context);
         Assert.IsNotNull(tag.GetClaim<string>(Claim.Ctx));
         tag.PutClaim(Claim.Exp, DateTime.UtcNow);

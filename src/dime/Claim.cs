@@ -5,7 +5,7 @@
 //  entities in a network.
 //
 //  Released under the MIT licence, see LICENSE for more information.
-//  Copyright © 2022 Shift Everywhere AB. All rights reserved.
+//  Copyright © 2024 Shift Everywhere AB. All rights reserved.
 //
 namespace DiME;
 
@@ -21,6 +21,8 @@ public enum Claim
     /// <summary>Capability - Describes the capabilities, or usages/constrains, of an item (Identity, Identity Issuing
     /// Request, Key).</summary>
     Cap,
+    /// <summary>Common Name - A common name, or alias, for the item, may be used to simplify manual identification of items (All).</summary>
+    Cmn,
     /// <summary>Context - The context for in which the item is to be used or valid (All).</summary>
     Ctx,
     /// <summary>Expires at - The date and time when the item should be considered invalid and should no longer be used

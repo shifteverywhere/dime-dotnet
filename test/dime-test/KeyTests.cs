@@ -5,7 +5,7 @@
 //  entities in a network.
 //
 //  Released under the MIT licence, see LICENSE for more information.
-//  Copyright © 2022 Shift Everywhere AB. All rights reserved.
+//  Copyright © 2024 Shift Everywhere AB. All rights reserved.
 //
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
@@ -56,6 +56,8 @@ public class KeyTests
         key.PutClaim(Claim.Aud, Guid.NewGuid());
         Assert.IsNotNull(key.GetClaim<Guid>(Claim.Aud));
         Assert.AreNotEqual(default, key.GetClaim<Guid>(Claim.Aud));
+        key.PutClaim(Claim.Cmn, Commons.CommonName);
+        Assert.IsNotNull(key.GetClaim<string>(Claim.Cmn));
         key.PutClaim(Claim.Ctx, Commons.Context);
         Assert.IsNotNull(key.GetClaim<string>(Claim.Ctx));
         key.PutClaim(Claim.Exp, DateTime.UtcNow);
@@ -286,5 +288,23 @@ public class KeyTests
         Assert.AreEqual(IntegrityState.FailedKeyMismatch, key.Verify(Commons.AudienceKey));
         Assert.IsFalse(key.Strip(Commons.AudienceKey));
     }
-        
+
+    [TestMethod]
+    public void CommonNameTest1()
+    {
+        var key = Key.Generate(KeyCapability.Sign);
+        key.PutClaim(Claim.Cmn, Commons.CommonName);
+        Assert.IsNotNull(key.GetClaim<string>(Claim.Cmn));
+        Assert.AreEqual(Commons.CommonName, key.GetClaim<string>(Claim.Cmn));
+    }
+
+    [TestMethod]
+    public void CommonNameTest2()
+    {
+        const string exported = "Di:KEY.eyJjYXAiOlsic2lnbiJdLCJjbW4iOiJEaU1FIiwiaWF0IjoiMjAyNC0wMS0yNlQxNzoyODowNi4xOTY0MzRaIiwia2V5IjoiTmFDbC5GVjNOM3crSXAxeHY3OHZ2L3JrWUJibzQyZElGVnZ6cTN3SGo1cUZTazVjcXpiTStrbEFuYTZjalV3bURpeVRyc2FJdWY2MmFHNWFuNFArd1FrV0h5QSIsInB1YiI6Ik5hQ2wuS3MyelBwSlFKMnVuSTFNSmc0c2s2N0dpTG4rdG1odVdwK0Qvc0VKRmg4ZyIsInVpZCI6ImZjZDNkMzI2LWY2NzQtNGQyZi1iODFhLTA3NWZlYmIwYTFkNSJ9";
+        var key = Item.Import<Key>(exported);
+        Assert.IsNotNull(key.GetClaim<string>(Claim.Cmn));
+        Assert.AreEqual(Commons.CommonName, key.GetClaim<string>(Claim.Cmn));
+    }
+
 }

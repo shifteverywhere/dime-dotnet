@@ -5,7 +5,7 @@
 //  entities in a network.
 //
 //  Released under the MIT licence, see LICENSE for more information.
-//  Copyright © 2022 Shift Everywhere AB. All rights reserved.
+//  Copyright © 2024 Shift Everywhere AB. All rights reserved.
 //
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
@@ -54,6 +54,8 @@ public class EnvelopeTests
         envelope.PutClaim(Claim.Aud, Guid.NewGuid());
         Assert.IsNotNull(envelope.GetClaim<Guid>(Claim.Aud));
         Assert.AreNotEqual(default, envelope.GetClaim<Guid>(Claim.Aud));
+        envelope.PutClaim(Claim.Cmn, Commons.CommonName);
+        Assert.IsNotNull(envelope.GetClaim<string>(Claim.Cmn));
         envelope.PutClaim(Claim.Ctx, Commons.Context);
         Assert.IsNotNull(envelope.GetClaim<string>(Claim.Ctx));
         envelope.PutClaim(Claim.Exp, DateTime.UtcNow);

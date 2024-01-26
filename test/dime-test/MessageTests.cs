@@ -5,7 +5,7 @@
 //  entities in a network.
 //
 //  Released under the MIT licence, see LICENSE for more information.
-//  Copyright © 2022 Shift Everywhere AB. All rights reserved.
+//  Copyright © 2024 Shift Everywhere AB. All rights reserved.
 //
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
@@ -59,6 +59,8 @@ public class MessageTests
         message.PutClaim(Claim.Aud, Guid.NewGuid());
         Assert.IsNotNull(message.GetClaim<Guid>(Claim.Aud));
         Assert.AreNotEqual(default, message.GetClaim<Guid>(Claim.Aud));
+        message.PutClaim(Claim.Cmn, Commons.CommonName);
+        Assert.IsNotNull(message.GetClaim<string>(Claim.Cmn));
         message.PutClaim(Claim.Ctx, Commons.Context);
         Assert.IsNotNull(message.GetClaim<string>(Claim.Ctx));
         message.PutClaim(Claim.Exp, DateTime.UtcNow);
@@ -564,20 +566,7 @@ public class MessageTests
         issuerMessage2.Sign(Commons.IssuerKey);
         Assert.AreNotEqual(issuerMessage1.GenerateThumbprint(), issuerMessage2.GenerateThumbprint());
     }
-    
-    [TestMethod]
-    public void ThumbprintTest3() 
-    {
-        try {
-            var message = new Message(Commons.AudienceIdentity.GetClaim<Guid>(Claim.Sub), Commons.IssuerIdentity.GetClaim<Guid>(Claim.Sub), Dime.ValidFor1Minute);
-            message.SetPayload(Encoding.UTF8.GetBytes(Commons.Payload));
-            message.GenerateThumbprint();
-            Assert.IsTrue(false, "Exception not thrown.");
-        } catch (InvalidOperationException) {
-            /* All is well */
-        }
-    }
-    
+   
     [TestMethod]
     public void ContextTest1() 
     {

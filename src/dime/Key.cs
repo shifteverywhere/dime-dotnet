@@ -287,7 +287,7 @@ public class Key: Item
 
     #region -- PRIVATE --
 
-    private static readonly List<Claim> AllowedClaims = new() { Claim.Amb, Claim.Aud, Claim.Ctx, Claim.Exp, Claim.Iat, Claim.Iss, Claim.Isu, Claim.Kid, Claim.Mtd, Claim.Sub, Claim.Sys, Claim.Uid };
+    private static readonly List<Claim> AllowedClaims = new() { Claim.Amb, Claim.Aud, Claim.Cmn, Claim.Ctx, Claim.Exp, Claim.Iat, Claim.Iss, Claim.Isu, Claim.Kid, Claim.Mtd, Claim.Sub, Claim.Sys, Claim.Uid };
     private const int CryptoSuiteIndex = 0;
     private const int EncodedKeyIndex = 1;
     private const int LegacyKeyHeaderSize = 6;

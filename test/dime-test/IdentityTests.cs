@@ -5,7 +5,7 @@
 //  entities in a network.
 //
 //  Released under the MIT licence, see LICENSE for more information.
-//  Copyright © 2022 Shift Everywhere AB. All rights reserved.
+//  Copyright © 2024 Shift Everywhere AB. All rights reserved.
 //
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
@@ -50,6 +50,8 @@ public class IdentityTests
         identity.PutClaim(Claim.Aud, Guid.NewGuid());
         Assert.IsNotNull(identity.GetClaim<Guid>(Claim.Aud));
         Assert.AreNotEqual(default, identity.GetClaim<Guid>(Claim.Aud));
+        identity.PutClaim(Claim.Cmn, Commons.CommonName);
+        Assert.IsNotNull(identity.GetClaim<string>(Claim.Cmn));
         identity.PutClaim(Claim.Ctx, Commons.Context);
         Assert.IsNotNull(identity.GetClaim<string>(Claim.Ctx));
         identity.PutClaim(Claim.Exp, DateTime.UtcNow);
