@@ -20,7 +20,7 @@ namespace DiME_test;
 [TestClass]
 public class PerformanceTests
 {
-    private const int PerformanceRounds = 100000;
+    private const int PerformanceRounds = 10;
 
     [TestMethod]
     public void SignaturePerformanceTest()

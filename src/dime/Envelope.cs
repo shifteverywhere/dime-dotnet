@@ -107,7 +107,7 @@ public class Envelope: Item
         {
             envelope.Components.Add(sections[^1]);
             envelope.Encoded = encoded[..encoded.LastIndexOf(Dime.SectionDelimiter)];
-            if (envelope.Signatures[0].IsLegacy)
+            if (envelope.SignatureList[0].IsLegacy)
                 envelope.IsLegacy = true;
         }
         return envelope;
@@ -261,7 +261,7 @@ public class Envelope: Item
             Encoded = builder.ToString();
         }
         if (withSignature && IsSigned)
-            return $"{Encoded}{Dime.SectionDelimiter}{Signature.ToEncoded(Signatures)}";
+            return $"{Encoded}{Dime.SectionDelimiter}{Signature.ToEncoded(SignatureList)}";
         return Encoded;
     }
 

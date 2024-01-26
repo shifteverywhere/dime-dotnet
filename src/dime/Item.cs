@@ -9,6 +9,7 @@
 //
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Linq;
 using System.Text;
 using DiME.KeyRing;
@@ -37,7 +38,11 @@ public abstract class Item
     /// Returns if the item is marked as legacy (compatible with Dime format before official version 1). 
     /// </summary>
     public virtual bool IsLegacy { get; internal set; }
-        
+    /// <summary>
+    /// A read-only list of all attached signatures. Is null if no signatures are attached.
+    /// </summary>
+    public ReadOnlyCollection<Signature>? Signatures => _signatures is not null ? new ReadOnlyCollection<Signature>(_signatures) : null;
+    
     /// <summary>
     /// Will import an item from a Dime encoded string.Dime envelopes cannot be imported using this method, for
     /// envelopes use Envelope.importFromEncoded(String) instead.
@@ -134,11 +139,11 @@ public abstract class Item
             throw new InvalidOperationException("Unable to sign, legacy item is already signed.");
         if (signingKey.Secret is null)
             throw new ArgumentNullException(nameof(signingKey), "Unable to sign, key for signing must not be null.");
-        if (IsSigned && Signature.Find(Dime.Crypto.GenerateKeyName(signingKey), Signatures) is not null)
+        if (IsSigned && Signature.Find(Dime.Crypto.GenerateKeyName(signingKey), SignatureList) is not null)
             throw new InvalidOperationException("Item already signed with provided key.");
         var signature = Dime.Crypto.GenerateSignature(this, signingKey);
         var name = IsLegacy ? null : Dime.Crypto.GenerateKeyName(signingKey);
-        Signatures.Add(signature);
+        SignatureList.Add(signature);
         IsSigned = true;
     }
 
@@ -163,8 +168,8 @@ public abstract class Item
     public bool Strip(Key key) {
         if (IsLegacy || !IsSigned) return false;
         var identifier = Dime.Crypto.GenerateKeyName(key);
-        var signature = Signature.Find(identifier, Signatures);
-        return signature != null && Signatures.Remove(signature);
+        var signature = Signature.Find(identifier, SignatureList);
+        return signature != null && SignatureList.Remove(signature);
     }
 
     /// <summary>
@@ -268,7 +273,7 @@ public abstract class Item
             return IntegrityState.FailedNoSignature;
         if (verifyKey is null)
             return Dime.KeyRing.Verify(this);
-        var signature = IsLegacy ? Signatures[0] : Signature.Find(Dime.Crypto.GenerateKeyName(verifyKey), Signatures);
+        var signature = IsLegacy ? SignatureList[0] : Signature.Find(Dime.Crypto.GenerateKeyName(verifyKey), SignatureList);
         if (signature is null)
             return IntegrityState.FailedKeyMismatch;
         try
@@ -431,7 +436,7 @@ public abstract class Item
     /// <summary>
     /// Holds all signatures attached to the item.
     /// </summary>
-    protected List<Signature> Signatures
+    protected List<Signature> SignatureList
     {
         get
         {
@@ -455,7 +460,7 @@ public abstract class Item
         CustomDecoding(Components);
         if (IsSigned)
         {
-            IsLegacy = Signatures[0].IsLegacy;
+            IsLegacy = SignatureList[0].IsLegacy;
             Encoded = encoded[..encoded.LastIndexOf(Dime.ComponentDelimiter)];
         }
         else
@@ -486,7 +491,7 @@ public abstract class Item
             return new StringBuilder()
                 .Append(Encoded)
                 .Append(Dime.ComponentDelimiter)
-                .Append(Signature.ToEncoded(Signatures))
+                .Append(Signature.ToEncoded(SignatureList))
                 .ToString();
         }
         return Encoded;
