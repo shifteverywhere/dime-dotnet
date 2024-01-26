@@ -218,6 +218,7 @@ public class KeyTests
         var key = Item.Import<Key>(encoded);
         Assert.AreEqual(1, key.Capabilities.Count);
         Assert.IsTrue(key.HasCapability(KeyCapability.Sign));
+        Assert.AreEqual("a4a5617311695240", key.Name);
         Assert.AreEqual(new Guid("4b941ea4-1c2b-40cf-bb30-b3fa77fd03a0"), key.GetClaim<Guid>(Claim.Uid));
         Assert.AreEqual(DateTime.Parse("2024-01-26T15:09:09.9556255Z").ToUniversalTime(), key.GetClaim<DateTime>(Claim.Iat));
         Assert.AreEqual("NaCl.Op3wbM3hSlu/wyqEfJvl2aLsAtjPZa8iYXYJoz8acJTQZ2LY2fHa/eoBUODXsi8stV5+PxtuX/ogLHueAP04kQ", key.Secret);
@@ -305,6 +306,16 @@ public class KeyTests
         var key = Item.Import<Key>(exported);
         Assert.IsNotNull(key.GetClaim<string>(Claim.Cmn));
         Assert.AreEqual(Commons.CommonName, key.GetClaim<string>(Claim.Cmn));
+    }
+
+    [TestMethod]
+    public void NameTest1()
+    {
+        var key1 = Key.Generate(KeyCapability.Sign);
+        var key2 = Key.Generate(KeyCapability.Sign);
+        Assert.IsNotNull(key1.Name);
+        Assert.IsNotNull(key2.Name);
+        Assert.AreNotEqual(key1.Name, key2.Name);
     }
 
 }

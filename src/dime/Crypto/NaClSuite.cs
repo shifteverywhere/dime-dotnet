@@ -51,14 +51,14 @@ internal class NaClSuite: ICryptoSuite
     /// <inheritdoc />
     public virtual byte[] GenerateSignature(Item item, Key key)
     {
-        var data = Hash(item.RawEncoded(false));
+        var data = Encoding.UTF8.GetBytes(item.GenerateThumbprint(false, _suiteName));// Hash(item.RawEncoded(false));
         return data is not { Length: > 0 } ? null : SodiumPublicKeyAuth.SignDetached(data, key.KeyBytes(Claim.Key));
     }
 
     /// <inheritdoc />
     public virtual bool VerifySignature(Item item, byte[] signature, Key key)
     {
-        var data = Hash(item.RawEncoded(false));
+        var data = Encoding.UTF8.GetBytes(item.GenerateThumbprint(false, _suiteName));// Hash(item.RawEncoded(false));
         if (data is not { Length: > 0 }) throw new ArgumentException("Failed to generate signature, item thumbprint was null or empty.", nameof(item));
         return SodiumPublicKeyAuth.VerifyDetached(signature,
             data,

@@ -13,7 +13,6 @@ using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Linq;
 using DiME.Capability;
-using DiME.Crypto;
 
 namespace DiME;
 
@@ -80,6 +79,10 @@ public class Key: Item
                 throw new ArgumentException($"Invalid claim for key provided: {claim}.");
         }
     }
+    /// <summary>
+    /// Returns the unique name of this key. This name will be included in any signatures produced.
+    /// </summary>
+    public string Name => Dime.Crypto.GenerateKeyName(this);
     /// <summary>
     /// A list of cryptographic uses that the key may perform.
     /// </summary>
