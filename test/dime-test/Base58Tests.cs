@@ -5,7 +5,7 @@
 //  entities in a network.
 //
 //  Released under the MIT licence, see LICENSE for more information.
-//  Copyright © 2022 Shift Everywhere AB. All rights reserved.
+//  Copyright © 2024 Shift Everywhere AB. All rights reserved.
 //
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.Text;

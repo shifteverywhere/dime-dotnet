@@ -7,7 +7,6 @@
 //  Released under the MIT licence, see LICENSE for more information.
 //  Copyright © 2024 Shift Everywhere AB. All rights reserved.
 //
-
 using System.Linq;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.Text;

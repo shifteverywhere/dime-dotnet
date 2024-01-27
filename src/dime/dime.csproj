@@ -24,7 +24,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="ASodium" Version="0.5.6" />
+    <PackageReference Include="ASodium" Version="0.6.1" />
     <ProjectReference Include="..\jsoncanonicalizer\jsoncanonicalizer.csproj">
       <ReferenceOutputAssembly>true</ReferenceOutputAssembly>
       <IncludeAssets>jsoncanonicalizer.dll</IncludeAssets>
