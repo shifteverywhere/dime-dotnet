@@ -1,5 +1,16 @@
 # CHANGE LOG
 
+## Version 1.2.5 - 2024-02-07
+- Restrictions to only generate thumbprint of signed Message/Data items removed
+- Allows fetching of items from envelopes based on any claim, not just context ("ctx")
+- Deprecated Envelope#getItem(string), fetching from context
+- Deprecated Envelope#getItem(Guid), fetching from unique id (uid)
+- Introduced NaCl crypto suite with large performance gains when signing
+- Restrictions to only generate thumbprint of signed Message/Data items removed
+- Adds method to get all attached signatures of an Item as a list of Signature instances
+- Adds method to get the unique name of a key
+- Updates dependencies
+
 ## Version 1.2.4 - 2023-02-03
 - Adds support to verify identities using an arbitrary identity from the trust chain
 - Removes verification of identity issuing requests when issuing new identity, if required, verify manually first
@@ -88,4 +99,4 @@
 ## Version 1.0.0 - 2022-02-19
 - Official version 1.0.0 (**Hurray!**)
 
-**Copyright © 2023 Shift Everywhere AB. All rights reserved.**
+**Copyright © 2024 Shift Everywhere AB. All rights reserved.**
